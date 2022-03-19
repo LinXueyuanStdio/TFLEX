@@ -809,7 +809,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 sampling_loader = DataLoader(
                     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count, for_test=True),
                     batch_size=128,
-                    num_workers=num_workers,
+                    num_workers=num_workers // 2,
                     collate_fn=collate_fn
                 )
                 bar = Progbar(sample_count)
@@ -832,7 +832,7 @@ class ComplexQueryData(TemporalKnowledgeData):
 
         # 3. calculate meta
         def avg_answers_count(qa):
-            return sum([len(a) for q, a in qa]) / len(qa)
+            return sum([len(a) for q, a in qa]) / len(qa) if len(qa) > 0 else 0
 
         def calculate_meta(query_name: str):
             train_qa = self.train_queries_answers[query_name]["queries_answers"]
