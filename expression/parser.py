@@ -7,6 +7,7 @@
 from __future__ import division
 
 import ast
+from _ast import *
 
 
 class ExpressionParser(ast.NodeVisitor):
@@ -101,7 +102,11 @@ class ExpressionParser(ast.NodeVisitor):
         self._modified_variables = {}
 
         try:
-            return self.visit(ast.parse(expression))
+            result = ast.parse(expression)
+            # with open(filename, "a+") as f:
+            #     f.write(ast.dump(result))
+            print(ast.dump(result, indent=4))
+            return self.visit(result)
         except SyntaxError as error:
             error.filename = filename
             error.text = expression
@@ -255,11 +260,10 @@ class ExpressionParser(ast.NodeVisitor):
         func = self._unary_ops[op]
         return func(self.visit(node.operand))
 
-    def visit_IfExp(self, node):
+    def visit_IfExp(self, node: IfExp):
         """
         Visit an inline if..else expression node.
         """
-
         return self.visit(node.body) if self.visit(node.test) else self.visit(node.orelse)
 
     def visit_Compare(self, node):

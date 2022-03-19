@@ -76,15 +76,15 @@ class BlaschkE(nn.Module):
     def forward(self, h_idx, r_idx):
         return self.forward_head_batch(h_idx.view(-1), r_idx.view(-1))
 
-    def forward_head_batch(self, e1_idx, rel_idx):
+    def forward_head_batch(self, h_idx, r_idx):
         """
         Completed.
         Given a head entity and a relation (h,r), we compute scores for all possible triples,i.e.,
         [score(h,r,x)|x \in Entities] => [0.0,0.1,...,0.8], shape=> (1, |Entities|)
         Given a batch of head entities and relations => shape (size of batch,| Entities|)
         """
-        h = self.E(e1_idx)
-        r = self.R(rel_idx)
+        h = self.E(h_idx)
+        r = self.R(r_idx)
 
         t = self.mul(h, r)
         if self.flag_hamilton_mul_norm:

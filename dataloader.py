@@ -1,17 +1,22 @@
-#!/usr/bin/python3
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2021/10/26
+@description: null
+"""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from collections import defaultdict
-from typing import Tuple, List
+from typing import Tuple, List, Set
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from ComplexQueryData import QueryStructure
+from ComplexQueryData import QueryStructure, QueryFlattenIds
 from util import flatten
 
 
@@ -103,30 +108,106 @@ class TrainDataset(Dataset):
 
 
 class QueryStructureScoringAllDataset(Dataset):
-    def __init__(self, queries: List[List[int]], nentity, answer):
+    def __init__(self, queries: List[Tuple[QueryFlattenIds, Set[int]]], nentity):
         # queries is a list of (query, query_structure) pairs
         self.len = len(queries)
         self.queries = queries
         self.entity_count = nentity
-        self.answer = answer
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, idx):
-        query: List[int] = self.queries[idx]  # List[**int]
-        data = torch.zeros(self.entity_count).float()
-        data[list(self.answer[query])] = 1.
+        query, answer_ids = self.queries[idx]  # List[**int]
+        answer = torch.zeros(self.entity_count).float()
+        answer[list(answer_ids)] = 1.
         # flatten ((('e', ('r', 'n')), ('e', ('r', 'n'))), ('n', 'r')) -> ["e", "r", "n", "e", "r", "n", "n", "r"]
-        # data    : torch.LongTensor (N,) where positive 1 while negative 0
-        # flatten(query)     : List[**int]
-        return data, flatten(query)
+        # flatten(query) : List[**int]
+        # answer         : torch.LongTensor (N,) where positive 1 while negative 0
+        flatten_query = torch.LongTensor(flatten(query))
+        return flatten_query, answer
 
-    @staticmethod
-    def collate_fn(data):
-        sample = torch.cat([_[0] for _ in data], dim=0)
-        query = [_[1] for _ in data]
-        return sample, query
+
+class QueryStructureScoringNDataset(Dataset):
+    def __init__(self, queries: List[Tuple[QueryFlattenIds, Set[int]]], nentity, negative_sample_size):
+        # queries is a list of (query, query_structure) pairs
+        self.len = len(queries)
+        self.queries = queries
+        self.entity_count = nentity
+        self.negative_sample_size = negative_sample_size
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, idx):
+        query, answer_ids = self.queries[idx]  # List[**int]
+
+        positive_id = np.random.choice(list(answer_ids))  # select one answer
+        subsampling_weight = len(answer_ids)  # answer count of query
+        subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
+        negative_sample_list = []
+        negative_sample_size = 0
+        while negative_sample_size < self.negative_sample_size:
+            negative_sample = np.random.randint(self.entity_count, size=self.negative_sample_size * 2)
+            mask = np.in1d(
+                negative_sample,
+                answer_ids,
+                assume_unique=True,
+                invert=True
+            )
+            negative_sample = negative_sample[mask]
+            negative_sample_list.append(negative_sample)
+            negative_sample_size += negative_sample.size
+        negative_sample = np.concatenate(negative_sample_list)[:self.negative_sample_size]
+        selected_ids = [positive_id] + list(negative_sample)  # 1 vs. N
+        sample = torch.LongTensor(selected_ids)
+
+        answer = torch.zeros(len(selected_ids)).float()
+        answer[0] = 1.
+        # flatten ((('e', ('r', 'n')), ('e', ('r', 'n'))), ('n', 'r')) -> ["e", "r", "n", "e", "r", "n", "n", "r"]
+        # flatten(query) : List[**int]
+        # answer         : torch.LongTensor (N,) where positive 1 while negative 0
+        flatten_query = torch.LongTensor(flatten(query))
+        return flatten_query, sample, answer, subsampling_weight
+
+
+class QueryStructureScoringDataset(Dataset):
+    def __init__(self, queries: List[Tuple[QueryFlattenIds, Set[int]]], nentity, negative_sample_size):
+        # queries is a list of (query, query_structure) pairs
+        self.len = len(queries)
+        self.queries = queries
+        self.entity_count = nentity
+        self.negative_sample_size = negative_sample_size
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, idx):
+        query, answer_ids = self.queries[idx]  # List[**int]
+
+        positive_id = np.random.choice(list(answer_ids))  # select one answer
+        subsampling_weight = len(answer_ids)  # answer count of query
+        subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
+        negative_sample_list = []
+        negative_sample_size = 0
+        while negative_sample_size < self.negative_sample_size:
+            negative_sample = np.random.randint(self.entity_count, size=self.negative_sample_size * 2)
+            mask = np.in1d(
+                negative_sample,
+                answer_ids,
+                assume_unique=True,
+                invert=True
+            )
+            negative_sample = negative_sample[mask]
+            negative_sample_list.append(negative_sample)
+            negative_sample_size += negative_sample.size
+        negative_sample = np.concatenate(negative_sample_list)[:self.negative_sample_size]
+        positive_sample = torch.LongTensor([positive_id])
+        negative_sample = torch.LongTensor(negative_sample)
+        # flatten ((('e', ('r', 'n')), ('e', ('r', 'n'))), ('n', 'r')) -> ["e", "r", "n", "e", "r", "n", "n", "r"]
+        # flatten(query) : List[**int]
+        flatten_query = torch.LongTensor(flatten(query))
+        return flatten_query, positive_sample, negative_sample, subsampling_weight
 
 
 class ScoringAllDataset(Dataset):

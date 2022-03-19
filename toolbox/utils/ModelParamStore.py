@@ -1,4 +1,9 @@
-# 模型保存和恢复
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2022/2/19
+@description: 模型保存和恢复
+"""
 from typing import Tuple
 
 import torch
@@ -75,7 +80,12 @@ def save_entity_embedding_list(entity_embedding, embedding_path="./result/fr_en/
             f.write("\n")
 
 
-class StoreSchema:
+class ModelParamStoreSchema:
+    """模型参数保存，涉及
+     1）检查点的保存和读取；
+     2）用于部署的模型参数的保存和读取
+    """
+
     def __init__(self, path: OutputPathSchema, best_checkpoint_filename="best_checkpoint.tar", best_model_filename="best_model.tar"):
         self.path = path
         self.best_checkpoint_path = path.checkpoint_path(best_checkpoint_filename)

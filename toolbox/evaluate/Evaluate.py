@@ -215,7 +215,7 @@ def evaluate_entity_alignment(test_data_size: int, left_emb, right_emb,
 
 
 def get_score(result: Dict[str, Union[dict, float]]):
-    score = (result["left2right"]["Hits@1"] + result["right2left"]["Hits@1"]) / 2
+    score = (result["left2right"]["MeanReciprocalRank"] + result["right2left"]["MeanReciprocalRank"]) / 2
     return score
 
 

@@ -1,4 +1,9 @@
-#!/usr/bin/python3
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2021/10/26
+@description: null
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -16,7 +21,8 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
+from dataloader import TestDataset, TrainDataset
+from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.nn.BetaE import KGReasoning
 from util import flatten_query, parse_time, set_global_seed, eval_tuple
 

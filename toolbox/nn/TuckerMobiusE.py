@@ -96,16 +96,16 @@ class TuckerMobiusE(nn.Module):
         r_idx = r_idx.view(-1)
         return self.forward_head_batch(h_idx, r_idx)
 
-    def forward_head_batch(self, e1_idx, rel_idx):
+    def forward_head_batch(self, h_idx, r_idx):
         """
         Completed.
         Given a head entity and a relation (h,r), we compute scores for all possible triples,i.e.,
         [score(h,r,x)|x \in Entities] => [0.0,0.1,...,0.8], shape=> (1, |Entities|)
         Given a batch of head entities and relations => shape (size of batch,| Entities|)
         """
-        h = self.E(e1_idx)
-        r = self.R(rel_idx)
-        r2 = self.R2(rel_idx)
+        h = self.E(h_idx)
+        r = self.R(r_idx)
+        r2 = self.R2(r_idx)
 
         h_a, h_b = h
         t_a = self.real_tucker(h_a, r2)
@@ -129,13 +129,13 @@ class TuckerMobiusE(nn.Module):
 
         return score
 
-    def reverse_loss(self, e1_idx, rel_idx, max_relation_idx):
-        h = self.E(e1_idx)
+    def reverse_loss(self, h_idx, r_idx, max_relation_idx):
+        h = self.E(h_idx)
         h_a, h_b = h
         h = (h_a.detach(), h_b.detach())
 
-        r = self.R(rel_idx)
-        reverse_rel_idx = (rel_idx + max_relation_idx) % (2 * max_relation_idx)
+        r = self.R(r_idx)
+        reverse_rel_idx = (r_idx + max_relation_idx) % (2 * max_relation_idx)
 
         t = self.mul(h, r)
         reverse_r = self.R(reverse_rel_idx)

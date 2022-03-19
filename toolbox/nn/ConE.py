@@ -190,7 +190,7 @@ class ConE(nn.Module):
                 argsort = torch.argsort(negative_logit, dim=1, descending=True)
                 ranking = argsort.clone().to(torch.float)
                 if len(argsort) == args.test_batch_size:
-                    ranking = ranking.scatter_(1, argsort, model.batch_entity_range)
+                    ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))
                 else:
                     if args.cuda:
                         ranking = ranking.scatter_(1, argsort, torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 1).cuda())

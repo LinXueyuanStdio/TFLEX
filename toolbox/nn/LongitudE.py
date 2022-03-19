@@ -285,7 +285,7 @@ class LongitudE(nn.Module):
     def forward_cone(self, positive_sample, negative_sample, subsampling_weight,
                      batch_queries_dict: Dict[QueryStructure, torch.Tensor],
                      batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
-        # 1. 用 batch_queries_dict 将 查询 嵌入为 ConE（编码后的状态）
+        # 1. 用 batch_queries_dict 将 查询 嵌入
         all_idxs, all_axis_embeddings, all_arg_embeddings = [], [], []
         all_union_idxs, all_union_axis_embeddings, all_union_arg_embeddings = [], [], []
         for query_structure in batch_queries_dict:
@@ -575,7 +575,7 @@ class LongitudE(nn.Module):
                 argsort = torch.argsort(negative_logit, dim=1, descending=True)
                 ranking = argsort.clone().to(torch.float)
                 if len(argsort) == args.test_batch_size:
-                    ranking = ranking.scatter_(1, argsort, model.batch_entity_range)
+                    ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))
                 else:
                     if args.cuda:
                         ranking = ranking.scatter_(1, argsort, torch.arange(model.nentity).to(torch.float).repeat(argsort.shape[0], 1).cuda())

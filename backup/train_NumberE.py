@@ -80,6 +80,7 @@ class MyExperiment(Experiment):
                  edim, rdim, input_dropout, hidden_dropout1, hidden_dropout2,
                  ):
         super(MyExperiment, self).__init__(output)
+        self.log(f"{locals()}")
 
         # 1. build train dataset
         train_data = AddDataset(-100, 100)
@@ -97,9 +98,9 @@ class MyExperiment(Experiment):
         best_score = 0
         if resume:
             if resume_by_score > 0:
-                start_step, _, best_score = self.store.load_by_score(model, opt, resume_by_score)
+                start_step, _, best_score = self.model_param_store.load_by_score(model, opt, resume_by_score)
             else:
-                start_step, _, best_score = self.store.load_best(model, opt)
+                start_step, _, best_score = self.model_param_store.load_best(model, opt)
             self.dump_model(model)
             model.eval()
             with torch.no_grad():
@@ -139,13 +140,13 @@ class MyExperiment(Experiment):
                     result = self.evaluate(model, valid_data, valid_dataloader, test_batch_size, test_device)
                     self.visual_result(step + 1, result, "Valid-")
                     score = get_score(result)
-                    self.store.save_by_score(model, opt, step, 0, score)
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
                         best_score = score
                         self.debug("saving best score %.4f" % score)
-                        self.store.save_best(model, opt, step, 0, score)
+                        self.model_param_store.save_best(model, opt, step, 0, score)
                     else:
+                        self.model_param_store.save_by_score(model, opt, step, 0, score)
                         self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
@@ -199,15 +200,6 @@ class MyExperiment(Experiment):
             self.vis.add_scalar(scope + i, left2right[i], step_num)
         for i in right2left:
             self.vis.add_scalar(scope + i, right2left[i], step_num)
-
-    def dump_model(self, model):
-        self.debug(model)
-        self.debug("")
-        self.debug("Trainable parameters:")
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                self.debug(name)
-        self.debug("")
 
 
 @click.command()

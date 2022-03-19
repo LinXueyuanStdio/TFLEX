@@ -1,3 +1,9 @@
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2021/10/26
+@description: null
+"""
 import logging
 import os
 import os.path as osp
@@ -173,23 +179,11 @@ def ground_queries(dataset, query_structure, ent_in, ent_out, small_ent_in, smal
     s0 = time.time()
     old_num_sampled = -1
     while num_sampled < gen_num:
-        if num_sampled != 0:
-            if num_sampled % (gen_num // 100) == 0 and num_sampled != old_num_sampled:
-                logging.info('%s %s: [%d/%d], avg time: %s, try: %s, repeat: %s: more_answer: %s, broken: %s, no extra: %s, no negative: %s empty: %s' % (mode,
-                                                                                                                                                          query_structure,
-                                                                                                                                                          num_sampled, gen_num,
-                                                                                                                                                          (time.time() - s0) / num_sampled, num_try,
-                                                                                                                                                          num_repeat, num_more_answer,
-                                                                                                                                                          num_broken, num_no_extra_answer,
-                                                                                                                                                          num_no_extra_negative, num_empty))
-                old_num_sampled = num_sampled
-        print('%s %s: [%d/%d], avg time: %s, try: %s, repeat: %s: more_answer: %s, broken: %s, no extra: %s, no negative: %s empty: %s' % (mode,
-                                                                                                                                           query_structure,
-                                                                                                                                           num_sampled, gen_num,
-                                                                                                                                           (time.time() - s0) / (num_sampled + 0.001), num_try,
-                                                                                                                                           num_repeat, num_more_answer,
-                                                                                                                                           num_broken, num_no_extra_answer, num_no_extra_negative,
-                                                                                                                                           num_empty), end='\r')
+        if num_sampled != 0 and num_sampled % (gen_num // 100) == 0 and num_sampled != old_num_sampled:
+            logging.info(f'{mode} {query_structure}: [{num_sampled:d}/{gen_num:d}], avg time: {(time.time() - s0) / num_sampled}, try: {num_try}, repeat: {num_repeat}: more_answer: {num_more_answer}, broken: {num_broken}, no extra: {num_no_extra_answer}, no negative: {num_no_extra_negative} empty: {num_empty}')
+            old_num_sampled = num_sampled
+        print(
+            f'{mode} {query_structure}: [{num_sampled:d}/{gen_num:d}], avg time: {(time.time() - s0) / (num_sampled + 0.001)}, try: {num_try}, repeat: {num_repeat}: more_answer: {num_more_answer}, broken: {num_broken}, no extra: {num_no_extra_answer}, no negative: {num_no_extra_negative} empty: {num_empty}', end='\r')
         num_try += 1
         empty_query_structure = deepcopy(query_structure)
         answer = random.sample(ent_in.keys(), 1)[0]
@@ -391,8 +385,10 @@ def achieve_answer(query, ent_in, ent_out) -> set:
             ent_set = achieve_answer(query[0], ent_in, ent_out)
         for i in range(len(query[-1])):
             if query[-1][i] == -2:
+                # negation
                 ent_set = set(range(len(ent_in))) - ent_set
             else:
+                # projection
                 ent_set_traverse = set()
                 for ent in ent_set:
                     ent_set_traverse = ent_set_traverse.union(ent_out[ent][query[-1][i]])
@@ -403,12 +399,14 @@ def achieve_answer(query, ent_in, ent_out) -> set:
         if len(query[-1]) == 1 and query[-1][0] == -1:
             union_flag = True
         for i in range(1, len(query)):
-            if not union_flag:
-                ent_set = ent_set.intersection(achieve_answer(query[i], ent_in, ent_out))
-            else:
+            if union_flag:
+                # union
                 if i == len(query) - 1:
                     continue
                 ent_set = ent_set.union(achieve_answer(query[i], ent_in, ent_out))
+            else:
+                # intersection
+                ent_set = ent_set.intersection(achieve_answer(query[i], ent_in, ent_out))
     return ent_set
 
 

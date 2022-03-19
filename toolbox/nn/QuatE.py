@@ -250,7 +250,7 @@ class QMult(nn.Module):
     def forward(self, h_idx, r_idx):
         return self.forward_head_batch(h_idx.view(-1), r_idx.view(-1))
 
-    def forward_head_batch(self, e1_idx, rel_idx):
+    def forward_head_batch(self, h_idx, r_idx):
         """
         Completed.
         Given a head entity and a relation (h,r), we compute scores for all possible triples,i.e.,
@@ -259,15 +259,15 @@ class QMult(nn.Module):
         """
         # (1)
         # (1.1) Quaternion embeddings of head entities
-        emb_head_real = self.emb_ent_real(e1_idx)
-        emb_head_i = self.emb_ent_i(e1_idx)
-        emb_head_j = self.emb_ent_j(e1_idx)
-        emb_head_k = self.emb_ent_k(e1_idx)
+        emb_head_real = self.emb_ent_real(h_idx)
+        emb_head_i = self.emb_ent_i(h_idx)
+        emb_head_j = self.emb_ent_j(h_idx)
+        emb_head_k = self.emb_ent_k(h_idx)
         # (1.2) Quaternion embeddings of relations
-        emb_rel_real = self.emb_rel_real(rel_idx)
-        emb_rel_i = self.emb_rel_i(rel_idx)
-        emb_rel_j = self.emb_rel_j(rel_idx)
-        emb_rel_k = self.emb_rel_k(rel_idx)
+        emb_rel_real = self.emb_rel_real(r_idx)
+        emb_rel_i = self.emb_rel_i(r_idx)
+        emb_rel_j = self.emb_rel_j(r_idx)
+        emb_rel_k = self.emb_rel_k(r_idx)
 
         if self.flag_hamilton_mul_norm:
             # (2) Quaternion multiplication of (1.1) and unit normalized (1.2).
@@ -304,7 +304,7 @@ class QMult(nn.Module):
         score = real_score + i_score + j_score + k_score
         return torch.sigmoid(score)
 
-    def forward_tail_batch(self, rel_idx, e2_idx):
+    def forward_tail_batch(self, r_idx, e2_idx):
         """
         Completed.
         Given a relation and a tail entity(r,t), we compute scores for all possible triples,i.e.,
@@ -313,10 +313,10 @@ class QMult(nn.Module):
         """
         # (1)
         # (1.1) Quaternion embeddings of relations.
-        emb_rel_real = self.emb_rel_real(rel_idx)
-        emb_rel_i = self.emb_rel_i(rel_idx)
-        emb_rel_j = self.emb_rel_j(rel_idx)
-        emb_rel_k = self.emb_rel_k(rel_idx)
+        emb_rel_real = self.emb_rel_real(r_idx)
+        emb_rel_i = self.emb_rel_i(r_idx)
+        emb_rel_j = self.emb_rel_j(r_idx)
+        emb_rel_k = self.emb_rel_k(r_idx)
         # (1.2)  Reshape Quaternion embeddings of tail entities.
         emb_tail_real = self.emb_ent_real(e2_idx).view(-1, self.embedding_dim, 1)
         emb_tail_i = self.emb_ent_i(e2_idx).view(-1, self.embedding_dim, 1)
@@ -366,11 +366,11 @@ class QMult(nn.Module):
         score = score.squeeze()
         return score
 
-    def forward_head_and_loss(self, e1_idx, rel_idx, targets):
-        return self.loss(self.forward_head_batch(e1_idx=e1_idx, rel_idx=rel_idx), targets)
+    def forward_head_and_loss(self, h_idx, r_idx, targets):
+        return self.loss(self.forward_head_batch(h_idx=h_idx, r_idx=r_idx), targets)
 
-    def forward_tail_and_loss(self, rel_idx, e2_idx, targets):
-        return self.loss(self.forward_tail_batch(rel_idx=rel_idx, e2_idx=e2_idx), targets)
+    def forward_tail_and_loss(self, r_idx, e2_idx, targets):
+        return self.loss(self.forward_tail_batch(r_idx=r_idx, e2_idx=e2_idx), targets)
 
     def init(self):
         nn.init.xavier_normal_(self.emb_ent_real.weight.data)
@@ -478,7 +478,7 @@ class ConvQ(nn.Module):
         x = F.relu(self.bn_conv2(self.fc1(x)))
         return torch.chunk(x, 4, dim=1)
 
-    def forward_head_batch(self, e1_idx, rel_idx):
+    def forward_head_batch(self, h_idx, r_idx):
         """
         Given a head entity and a relation (h,r), we compute scores for all entities.
         [score(h,r,x)|x \in Entities] => [0.0,0.1,...,0.8], shape=> (1, |Entities|)
@@ -486,15 +486,15 @@ class ConvQ(nn.Module):
         """
         # (1)
         # (1.1) Quaternion embeddings of head entities
-        emb_head_real = self.emb_ent_real(e1_idx)
-        emb_head_i = self.emb_ent_i(e1_idx)
-        emb_head_j = self.emb_ent_j(e1_idx)
-        emb_head_k = self.emb_ent_k(e1_idx)
+        emb_head_real = self.emb_ent_real(h_idx)
+        emb_head_i = self.emb_ent_i(h_idx)
+        emb_head_j = self.emb_ent_j(h_idx)
+        emb_head_k = self.emb_ent_k(h_idx)
         # (1.2) Quaternion embeddings of relations
-        emb_rel_real = self.emb_rel_real(rel_idx)
-        emb_rel_i = self.emb_rel_i(rel_idx)
-        emb_rel_j = self.emb_rel_j(rel_idx)
-        emb_rel_k = self.emb_rel_k(rel_idx)
+        emb_rel_real = self.emb_rel_real(r_idx)
+        emb_rel_i = self.emb_rel_i(r_idx)
+        emb_rel_j = self.emb_rel_j(r_idx)
+        emb_rel_k = self.emb_rel_k(r_idx)
 
         # (2) Apply convolution operation on (1.1) and (1.2).
         Q_3 = self.residual_convolution(Q_1=(emb_head_real, emb_head_i, emb_head_j, emb_head_k),
@@ -538,16 +538,16 @@ class ConvQ(nn.Module):
         score = real_score + i_score + j_score + k_score
         return torch.sigmoid(score)
 
-    def forward_tail_batch(self, rel_idx, e2_idx):
+    def forward_tail_batch(self, r_idx, e2_idx):
         """
         Completed.
         """
         # (1)
         # (1.1) Quaternion embeddings of relations.
-        emb_rel_real = self.emb_rel_real(rel_idx)
-        emb_rel_i = self.emb_rel_i(rel_idx)
-        emb_rel_j = self.emb_rel_j(rel_idx)
-        emb_rel_k = self.emb_rel_k(rel_idx)
+        emb_rel_real = self.emb_rel_real(r_idx)
+        emb_rel_i = self.emb_rel_i(r_idx)
+        emb_rel_j = self.emb_rel_j(r_idx)
+        emb_rel_k = self.emb_rel_k(r_idx)
         # (1.2) Quaternion embeddings of tail entities.
         emb_tail_real = self.emb_ent_real(e2_idx)
         emb_tail_i = self.emb_ent_i(e2_idx)
@@ -613,11 +613,11 @@ class ConvQ(nn.Module):
         score = score.squeeze()
         return score
 
-    def forward_head_and_loss(self, e1_idx, rel_idx, targets):
-        return self.loss(self.forward_head_batch(e1_idx=e1_idx, rel_idx=rel_idx), targets)
+    def forward_head_and_loss(self, h_idx, r_idx, targets):
+        return self.loss(self.forward_head_batch(h_idx=h_idx, r_idx=r_idx), targets)
 
-    def forward_tail_and_loss(self, rel_idx, e2_idx, targets):
-        return self.loss(self.forward_tail_batch(rel_idx=rel_idx, e2_idx=e2_idx), targets)
+    def forward_tail_and_loss(self, r_idx, e2_idx, targets):
+        return self.loss(self.forward_tail_batch(r_idx=r_idx, e2_idx=e2_idx), targets)
 
     def init(self):
         nn.init.xavier_normal_(self.emb_ent_real.weight.data)

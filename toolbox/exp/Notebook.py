@@ -1,5 +1,5 @@
 from toolbox.exp.OutputSchema import OutputSchema
-from toolbox.utils.Store import StoreSchema
+from toolbox.utils.ModelParamStore import ModelParamStoreSchema
 from toolbox.utils.Visualize import VisualizeSchema
 
 
@@ -16,4 +16,4 @@ def init_by_output(self: object, output: OutputSchema):
     self.success = output.logger.success
     self.fail = output.logger.failed
     self.vis = VisualizeSchema(str(output.pathSchema.dir_path_visualize))
-    self.store = StoreSchema(output.pathSchema)
+    self.store = ModelParamStoreSchema(output.pathSchema)

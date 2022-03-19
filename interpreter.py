@@ -4,11 +4,7 @@
 @date: 2021/10/27
 @description: null
 """
-
-from __future__ import print_function
-
 import cmd
-import math
 import sys
 import traceback
 
@@ -24,24 +20,11 @@ class ExpressionInterpreter(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = '>> '
-
-        # you can extend variables and functions by yourselves!
-        variables = {
-            'pi': math.pi,
-            'e': math.e
-        }
-        functions = {
-            'log': math.log,
-            'log10': math.log10,
-            'exp': math.exp,
-            'pow': math.pow,
-            'sqrt': math.sqrt
-        }
-        self.parser = expression.ExpressionParser(variables=variables, functions=functions, assignment=True)
+        self.parser = expression.NeuralParser()
 
     def default(self, line):
         try:
-            output = self.parser.parse(line)
+            output = self.parser.parse(line, "output/parse.log")
             if output is not None:
                 self.stdout.write(str(output) + '\n')
 

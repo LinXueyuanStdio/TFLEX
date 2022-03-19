@@ -1,18 +1,28 @@
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2021/10/26
+@description: 输出目录管理
+"""
 from pathlib import Path
+from typing import Union
 
 from toolbox.utils.Log import Log
 
 
 class OutputPathSchema:
-    def __init__(self, output_path: Path):
-        self.output_path = output_path
+    """
+    输出目录 下的路径
+    """
 
-        self.dir_path_log = output_path / 'log'
-        self.dir_path_visualize = output_path / 'visualize'
-        self.dir_path_checkpoint = output_path / 'checkpoint'
-        self.dir_path_deploy = output_path / 'deploy'
-        self.dir_path_embedding = output_path / 'embedding'
-        self.dir_path_scripts = output_path / 'scripts'
+    def __init__(self, output_path: Union[Path, str]):
+        self.output_path = output_path if output_path is Path else Path(output_path)
+
+        self.dir_path_log = self.output_path / 'logs'
+        self.dir_path_visualize = self.output_path / 'visualize'
+        self.dir_path_checkpoint = self.output_path / 'checkpoint'
+        self.dir_path_deploy = self.output_path / 'deploy'
+        self.dir_path_scripts = self.output_path / 'scripts'
 
         self.build_dir_structure()
 
@@ -31,28 +41,12 @@ class OutputPathSchema:
     def scripts_path(self, filename) -> Path:
         return self.dir_path_scripts / filename
 
-    def embedding_path(self, filename) -> Path:
-        return self.dir_path_embedding / filename
-
-    def entity_embedding_path(self, score=-1) -> Path:
-        return self.score_embedding_path("entity", score)
-
-    def relation_embedding_path(self, score=-1) -> Path:
-        return self.score_embedding_path("relation", score)
-
-    def score_embedding_path(self, name, score=-1) -> Path:
-        if score == -1:
-            return self.embedding_path("%s_embedding.txt" % name)
-        else:
-            return self.embedding_path("%s_embedding_score_%d.txt" % (name, int(score)))
-
     def build_dir_structure(self):
         self.output_path.mkdir(parents=True, exist_ok=True)
         self.dir_path_log.mkdir(parents=True, exist_ok=True)
         self.dir_path_visualize.mkdir(parents=True, exist_ok=True)
         self.dir_path_checkpoint.mkdir(parents=True, exist_ok=True)
         self.dir_path_deploy.mkdir(parents=True, exist_ok=True)
-        self.dir_path_embedding.mkdir(parents=True, exist_ok=True)
         self.dir_path_scripts.mkdir(parents=True, exist_ok=True)
 
     def clean(self):
@@ -63,27 +57,25 @@ class OutputPathSchema:
 
 
 class OutputSchema:
-    """./output
+    """
+    输出目录
+      ./output
         - experiment name
-          - visualize
+          - visualize          Tensorboard 可视化
             - events...
-          - log
+          - logs               log 日志，包含超参数、指标、最佳指标等日志，配合 toolbox.web.log_app 使用
             - config.log
             - loss.log
-            - train.log
-            - test.log
-            - valid.log
-          - checkpoint
+          - checkpoint         检查点，用于恢复训练
             - checkpoint_score_xx.tar
-          - deploy
+          - deploy             部署模型，基于 checkpoint ，不同的是这里的 tar 文件内只包含模型，不包含优化器梯度等信息
             - model_score_xx.tar
-          - embedding
-            - embedding_score_xx.pkl
           - config.yaml
-          - output.log
+          - output.log         打印到命令行的日志
 
         Args:
             experiment_name (str): Name of your experiment
+            overwrite (bool): If True, it will delete the folder and create new one.
 
         Examples:
             >>> from toolbox.exp.OutputSchema import OutputSchema
@@ -106,8 +98,8 @@ class OutputSchema:
         data_home_path = data_home_path.resolve()
         return data_home_path / self.name
 
-    def output_path_child(self, name: str) -> Path:
-        return self.home_path / name
+    def output_path_child(self, child_dir_name: str) -> Path:
+        return self.home_path / child_dir_name
 
     def child_log(self, name: str, write_to_console=False) -> Log:
         return Log(str(self.pathSchema.log_path(name)), name_scope=self.name + "output-" + name, write_to_console=write_to_console)
@@ -116,3 +108,6 @@ class OutputSchema:
         """ Displays all the metadata of the knowledge graph"""
         for key, value in self.__dict__.items():
             self.logger.info("%s %s" % (key, value))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.home_path})"

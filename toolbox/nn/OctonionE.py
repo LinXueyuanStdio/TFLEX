@@ -126,7 +126,7 @@ class OMult(torch.nn.Module):
     def forward(self, h_idx, r_idx):
         return self.forward_head_batch(h_idx.view(-1), r_idx.view(-1))
 
-    def forward_head_batch(self, e1_idx, rel_idx):
+    def forward_head_batch(self, h_idx, r_idx):
         """
         Given a head entity and a relation (h,r), we compute scores for all possible triples,i.e.,
             [score(h,r,x)|x \in Entities] => [0.0,0.1,...,0.8], shape=> (1, |Entities|)
@@ -134,23 +134,23 @@ class OMult(torch.nn.Module):
         """
         # (1)
         # (1.1) Octonion embeddings of head entities
-        emb_head_e0 = self.emb_ent_e0(e1_idx)
-        emb_head_e1 = self.emb_ent_e1(e1_idx)
-        emb_head_e2 = self.emb_ent_e2(e1_idx)
-        emb_head_e3 = self.emb_ent_e3(e1_idx)
-        emb_head_e4 = self.emb_ent_e4(e1_idx)
-        emb_head_e5 = self.emb_ent_e5(e1_idx)
-        emb_head_e6 = self.emb_ent_e6(e1_idx)
-        emb_head_e7 = self.emb_ent_e7(e1_idx)
+        emb_head_e0 = self.emb_ent_e0(h_idx)
+        emb_head_e1 = self.emb_ent_e1(h_idx)
+        emb_head_e2 = self.emb_ent_e2(h_idx)
+        emb_head_e3 = self.emb_ent_e3(h_idx)
+        emb_head_e4 = self.emb_ent_e4(h_idx)
+        emb_head_e5 = self.emb_ent_e5(h_idx)
+        emb_head_e6 = self.emb_ent_e6(h_idx)
+        emb_head_e7 = self.emb_ent_e7(h_idx)
         # (1.2) Octonion embeddings of relations
-        emb_rel_e0 = self.emb_rel_e0(rel_idx)
-        emb_rel_e1 = self.emb_rel_e1(rel_idx)
-        emb_rel_e2 = self.emb_rel_e2(rel_idx)
-        emb_rel_e3 = self.emb_rel_e3(rel_idx)
-        emb_rel_e4 = self.emb_rel_e4(rel_idx)
-        emb_rel_e5 = self.emb_rel_e5(rel_idx)
-        emb_rel_e6 = self.emb_rel_e6(rel_idx)
-        emb_rel_e7 = self.emb_rel_e7(rel_idx)
+        emb_rel_e0 = self.emb_rel_e0(r_idx)
+        emb_rel_e1 = self.emb_rel_e1(r_idx)
+        emb_rel_e2 = self.emb_rel_e2(r_idx)
+        emb_rel_e3 = self.emb_rel_e3(r_idx)
+        emb_rel_e4 = self.emb_rel_e4(r_idx)
+        emb_rel_e5 = self.emb_rel_e5(r_idx)
+        emb_rel_e6 = self.emb_rel_e6(r_idx)
+        emb_rel_e7 = self.emb_rel_e7(r_idx)
 
         if self.flag_octonion_mul_norm:
             # (2) Octonion  multiplication of (1.1) and unit normalized (1.2).
@@ -206,7 +206,7 @@ class OMult(torch.nn.Module):
         score = e0_score + e1_score + e2_score + e3_score + e4_score + e5_score + e6_score + e7_score
         return torch.sigmoid(score)
 
-    def forward_tail_batch(self, rel_idx, e2_idx):
+    def forward_tail_batch(self, r_idx, e2_idx):
         """
         KvsN reverse.
         Given a relation and a tail entity (r,t).
@@ -222,14 +222,14 @@ class OMult(torch.nn.Module):
         """
         # (1)
         # (1.1) Octonion embeddings of relations
-        emb_rel_e0 = self.emb_rel_e0(rel_idx)
-        emb_rel_e1 = self.emb_rel_e1(rel_idx)
-        emb_rel_e2 = self.emb_rel_e2(rel_idx)
-        emb_rel_e3 = self.emb_rel_e3(rel_idx)
-        emb_rel_e4 = self.emb_rel_e4(rel_idx)
-        emb_rel_e5 = self.emb_rel_e5(rel_idx)
-        emb_rel_e6 = self.emb_rel_e6(rel_idx)
-        emb_rel_e7 = self.emb_rel_e7(rel_idx)
+        emb_rel_e0 = self.emb_rel_e0(r_idx)
+        emb_rel_e1 = self.emb_rel_e1(r_idx)
+        emb_rel_e2 = self.emb_rel_e2(r_idx)
+        emb_rel_e3 = self.emb_rel_e3(r_idx)
+        emb_rel_e4 = self.emb_rel_e4(r_idx)
+        emb_rel_e5 = self.emb_rel_e5(r_idx)
+        emb_rel_e6 = self.emb_rel_e6(r_idx)
+        emb_rel_e7 = self.emb_rel_e7(r_idx)
         # (1.2)  Reshape octonion embeddings of tail entities.
         emb_tail_e0 = self.emb_ent_e0(e2_idx).view(-1, self.embedding_dim, 1)
         emb_tail_e1 = self.emb_ent_e1(e2_idx).view(-1, self.embedding_dim, 1)
@@ -242,14 +242,14 @@ class OMult(torch.nn.Module):
 
         if self.flag_octonion_mul_norm:
             # (2) Reshape (1.1)-relations.
-            emb_rel_e0 = self.emb_rel_e0(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e1 = self.emb_rel_e1(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e2 = self.emb_rel_e2(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e3 = self.emb_rel_e3(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e4 = self.emb_rel_e4(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e5 = self.emb_rel_e5(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e6 = self.emb_rel_e6(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e7 = self.emb_rel_e7(rel_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e0 = self.emb_rel_e0(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e1 = self.emb_rel_e1(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e2 = self.emb_rel_e2(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e3 = self.emb_rel_e3(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e4 = self.emb_rel_e4(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e5 = self.emb_rel_e5(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e6 = self.emb_rel_e6(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e7 = self.emb_rel_e7(r_idx).view(-1, 1, self.embedding_dim)
             # (3) Octonion multiplication of ALL entities and unit normalized (1.1).
             e0, e1, e2, e3, e4, e5, e6, e7 = octonion_mul_norm(
                 O_1=(self.emb_ent_e0.weight, self.emb_ent_e1.weight,
@@ -308,11 +308,11 @@ class OMult(torch.nn.Module):
         score = score.squeeze()
         return torch.sigmoid(score)
 
-    def forward_head_and_loss(self, e1_idx, rel_idx, targets):
-        return self.loss(self.forward_head_batch(e1_idx=e1_idx, rel_idx=rel_idx), targets)
+    def forward_head_and_loss(self, h_idx, r_idx, targets):
+        return self.loss(self.forward_head_batch(h_idx=h_idx, r_idx=r_idx), targets)
 
-    def forward_tail_and_loss(self, rel_idx, e2_idx, targets):
-        return self.loss(self.forward_tail_batch(rel_idx=rel_idx, e2_idx=e2_idx), targets)
+    def forward_tail_and_loss(self, r_idx, e2_idx, targets):
+        return self.loss(self.forward_tail_batch(r_idx=r_idx, e2_idx=e2_idx), targets)
 
     def init(self):
         nn.init.xavier_normal_(self.emb_ent_e0.weight.data)
@@ -471,26 +471,26 @@ class ConvO(nn.Module):
         x = F.relu(x)
         return torch.chunk(x, 8, dim=1)
 
-    def forward_head_batch(self, e1_idx, rel_idx):
+    def forward_head_batch(self, h_idx, r_idx):
         # (1)
         # (1.1) Octonion embeddings of head entities
-        emb_head_e0 = self.emb_ent_e0(e1_idx)
-        emb_head_e1 = self.emb_ent_e1(e1_idx)
-        emb_head_e2 = self.emb_ent_e2(e1_idx)
-        emb_head_e3 = self.emb_ent_e3(e1_idx)
-        emb_head_e4 = self.emb_ent_e4(e1_idx)
-        emb_head_e5 = self.emb_ent_e5(e1_idx)
-        emb_head_e6 = self.emb_ent_e6(e1_idx)
-        emb_head_e7 = self.emb_ent_e7(e1_idx)
+        emb_head_e0 = self.emb_ent_e0(h_idx)
+        emb_head_e1 = self.emb_ent_e1(h_idx)
+        emb_head_e2 = self.emb_ent_e2(h_idx)
+        emb_head_e3 = self.emb_ent_e3(h_idx)
+        emb_head_e4 = self.emb_ent_e4(h_idx)
+        emb_head_e5 = self.emb_ent_e5(h_idx)
+        emb_head_e6 = self.emb_ent_e6(h_idx)
+        emb_head_e7 = self.emb_ent_e7(h_idx)
         # (1.2) Octonion embeddings of relations
-        emb_rel_e0 = self.emb_rel_e0(rel_idx)
-        emb_rel_e1 = self.emb_rel_e1(rel_idx)
-        emb_rel_e2 = self.emb_rel_e2(rel_idx)
-        emb_rel_e3 = self.emb_rel_e3(rel_idx)
-        emb_rel_e4 = self.emb_rel_e4(rel_idx)
-        emb_rel_e5 = self.emb_rel_e5(rel_idx)
-        emb_rel_e6 = self.emb_rel_e6(rel_idx)
-        emb_rel_e7 = self.emb_rel_e7(rel_idx)
+        emb_rel_e0 = self.emb_rel_e0(r_idx)
+        emb_rel_e1 = self.emb_rel_e1(r_idx)
+        emb_rel_e2 = self.emb_rel_e2(r_idx)
+        emb_rel_e3 = self.emb_rel_e3(r_idx)
+        emb_rel_e4 = self.emb_rel_e4(r_idx)
+        emb_rel_e5 = self.emb_rel_e5(r_idx)
+        emb_rel_e6 = self.emb_rel_e6(r_idx)
+        emb_rel_e7 = self.emb_rel_e7(r_idx)
         # (2) Apply convolution operation on (1.1) and (1.2).
         O_3 = self.residual_convolution(O_1=(emb_head_e0, emb_head_e1, emb_head_e2, emb_head_e3,
                                              emb_head_e4, emb_head_e5, emb_head_e6, emb_head_e7),
@@ -555,17 +555,17 @@ class ConvO(nn.Module):
         score = e0_score + e1_score + e2_score + e3_score + e4_score + e5_score + e6_score + e7_score
         return torch.sigmoid(score)
 
-    def forward_tail_batch(self, rel_idx, e2_idx):
+    def forward_tail_batch(self, r_idx, e2_idx):
         # (1)
         # (1.1) Octonion embeddings of relations
-        emb_rel_e0 = self.emb_rel_e0(rel_idx)
-        emb_rel_e1 = self.emb_rel_e1(rel_idx)
-        emb_rel_e2 = self.emb_rel_e2(rel_idx)
-        emb_rel_e3 = self.emb_rel_e3(rel_idx)
-        emb_rel_e4 = self.emb_rel_e4(rel_idx)
-        emb_rel_e5 = self.emb_rel_e5(rel_idx)
-        emb_rel_e6 = self.emb_rel_e6(rel_idx)
-        emb_rel_e7 = self.emb_rel_e7(rel_idx)
+        emb_rel_e0 = self.emb_rel_e0(r_idx)
+        emb_rel_e1 = self.emb_rel_e1(r_idx)
+        emb_rel_e2 = self.emb_rel_e2(r_idx)
+        emb_rel_e3 = self.emb_rel_e3(r_idx)
+        emb_rel_e4 = self.emb_rel_e4(r_idx)
+        emb_rel_e5 = self.emb_rel_e5(r_idx)
+        emb_rel_e6 = self.emb_rel_e6(r_idx)
+        emb_rel_e7 = self.emb_rel_e7(r_idx)
         # (1.2) Octonion embeddings of head entities
         emb_tail_e0 = self.emb_ent_e0(e2_idx)
         emb_tail_e1 = self.emb_ent_e1(e2_idx)
@@ -603,14 +603,14 @@ class ConvO(nn.Module):
         conv_e7 = conv_e7.view(-1, 1, self.embedding_dim)
         if self.flag_octonion_mul_norm:
             # (4) Reshape (1.1)-relations.
-            emb_rel_e0 = self.emb_rel_e0(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e1 = self.emb_rel_e1(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e2 = self.emb_rel_e2(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e3 = self.emb_rel_e3(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e4 = self.emb_rel_e4(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e5 = self.emb_rel_e5(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e6 = self.emb_rel_e6(rel_idx).view(-1, 1, self.embedding_dim)
-            emb_rel_e7 = self.emb_rel_e7(rel_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e0 = self.emb_rel_e0(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e1 = self.emb_rel_e1(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e2 = self.emb_rel_e2(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e3 = self.emb_rel_e3(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e4 = self.emb_rel_e4(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e5 = self.emb_rel_e5(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e6 = self.emb_rel_e6(r_idx).view(-1, 1, self.embedding_dim)
+            emb_rel_e7 = self.emb_rel_e7(r_idx).view(-1, 1, self.embedding_dim)
             # (5) Octonion multiplication of ALL entities and unit normalized (4.1).
             e0, e1, e2, e3, e4, e5, e6, e7 = octonion_mul_norm(
                 O_1=(self.emb_ent_e0.weight, self.emb_ent_e1.weight,
@@ -669,11 +669,11 @@ class ConvO(nn.Module):
         score = score.squeeze()
         return torch.sigmoid(score)
 
-    def forward_head_and_loss(self, e1_idx, rel_idx, targets):
-        return self.loss(self.forward_head_batch(e1_idx=e1_idx, rel_idx=rel_idx), targets)
+    def forward_head_and_loss(self, h_idx, r_idx, targets):
+        return self.loss(self.forward_head_batch(h_idx=h_idx, r_idx=r_idx), targets)
 
-    def forward_tail_and_loss(self, rel_idx, e2_idx, targets):
-        return self.loss(self.forward_tail_batch(rel_idx=rel_idx, e2_idx=e2_idx), targets)
+    def forward_tail_and_loss(self, r_idx, e2_idx, targets):
+        return self.loss(self.forward_tail_batch(r_idx=r_idx, e2_idx=e2_idx), targets)
 
     def init(self):
         nn.init.xavier_normal_(self.emb_ent_e0.weight.data)

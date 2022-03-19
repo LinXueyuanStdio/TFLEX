@@ -25,13 +25,12 @@
 # 3. custom dataset
 
 import os
-import shutil
 import tarfile
-import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
+from toolbox.utils.Download import download_to_path
 from toolbox.utils.Log import Log
 
 
@@ -89,13 +88,11 @@ class RemoteDataset:
         if self.url.endswith('.tar.gz') or self.url.endswith('.tgz'):
             if self.tar.exists():
                 return
-            with urllib.request.urlopen(self.url) as response, open(str(self.tar), 'wb') as out_file:
-                shutil.copyfileobj(response, out_file)
+            download_to_path([self.url], str(self.tar))
         elif self.url.endswith('.zip'):
             if self.zip.exists():
                 return
-            with urllib.request.urlopen(self.url) as response, open(str(self.zip), 'wb') as out_file:
-                shutil.copyfileobj(response, out_file)
+            download_to_path([self.url], str(self.zip))
         else:
             raise NotImplementedError("Unknown compression format")
 
@@ -164,12 +161,12 @@ class RelationalTriplet:
 
 
 class BaseDatasetSchema:
-    def __init__(self, name: str, home: str = "data"):
+    def __init__(self, name: str, home: Union[Path, str] = "data"):
         self.name = name
         self.root_path = self.get_dataset_home_path(home)  # ./data/${name}
 
-    def get_dataset_home_path(self, home="data") -> Path:
-        data_home_path: Path = Path('.') / home
+    def get_dataset_home_path(self, home: Union[Path, str] = "data") -> Path:
+        data_home_path: Path = Path(home)
         data_home_path.mkdir(parents=True, exist_ok=True)
         data_home_path = data_home_path.resolve()
         return data_home_path / self.name
@@ -187,6 +184,9 @@ class BaseDatasetSchema:
         _logger = Log(str(log_path), name_scope="DatasetSchema")
         for key, value in self.__dict__.items():
             _logger.info("%s %s" % (key, value))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.root_path})"
 
 
 class RelationalTripletDatasetSchema(BaseDatasetSchema):
@@ -212,7 +212,7 @@ class RelationalTripletDatasetSchema(BaseDatasetSchema):
 
     """
 
-    def __init__(self, name: str, home: str = "data"):
+    def __init__(self, name: str, home: Union[Path, str] = "data"):
         BaseDatasetSchema.__init__(self, name, home)
         self.dataset_path = self.get_dataset_path()
         self.cache_path = self.get_dataset_path_child("cache")
@@ -249,7 +249,7 @@ class FreebaseFB15k(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(FreebaseFB15k, self).__init__("FB15k", home)
         url = "https://everest.hds.utc.fr/lib/exe/fetch.php?media=en:fb15k.tgz"
         self.try_to_fetch_remote(url)
@@ -266,7 +266,7 @@ class DeepLearning50a(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(DeepLearning50a, self).__init__("dL50a", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/dL50a.tgz"
         self.try_to_fetch_remote(url)
@@ -283,7 +283,7 @@ class WordNet18(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(WordNet18, self).__init__("WN18", home)
         url = "https://everest.hds.utc.fr/lib/exe/fetch.php?media=en:wordnet-mlj12.tar.gz"
         self.try_to_fetch_remote(url)
@@ -303,7 +303,7 @@ class WordNet18_RR(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(WordNet18_RR, self).__init__("WN18RR", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/WN18RR.tar.gz"
         self.try_to_fetch_remote(url)
@@ -323,7 +323,7 @@ class YAGO3_10(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(YAGO3_10, self).__init__("YAGO3_10", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/YAGO3-10.tar.gz"
         self.try_to_fetch_remote(url)
@@ -343,7 +343,7 @@ class FreebaseFB15k_237(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(FreebaseFB15k_237, self).__init__("FB15K_237", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/fb15k-237.tgz"
         self.try_to_fetch_remote(url)
@@ -363,7 +363,7 @@ class Kinship(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(Kinship, self).__init__("Kinship", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/kinship.tar.gz"
         self.try_to_fetch_remote(url)
@@ -383,7 +383,7 @@ class Nations(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(Nations, self).__init__("Nations", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/nations.tar.gz"
         self.try_to_fetch_remote(url)
@@ -402,7 +402,7 @@ class UMLS(RelationalTripletDatasetSchema):
         the knowledge graph dataset.
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(UMLS, self).__init__("UMLS", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/umls.tar.gz"
         self.try_to_fetch_remote(url)
@@ -422,7 +422,7 @@ class NELL_995(RelationalTripletDatasetSchema):
 
     """
 
-    def __init__(self, home: str = "data"):
+    def __init__(self, home: Union[Path, str] = "data"):
         super(NELL_995, self).__init__("NELL_995", home)
         url = "https://github.com/louisccc/KGppler/raw/master/datasets/NELL_995.zip"
         self.try_to_fetch_remote(url)
@@ -434,38 +434,38 @@ class NELL_995(RelationalTripletDatasetSchema):
         return self.root_path
 
 
-def get_dataset(dataset_name: str):
-    if dataset_name.lower() == 'freebase15k' or dataset_name.lower() == 'fb15k':
-        return FreebaseFB15k()
-    elif dataset_name.lower() == 'deeplearning50a' or dataset_name.lower() == 'dl50a':
-        return DeepLearning50a()
-    elif dataset_name.lower() == 'wordnet18' or dataset_name.lower() == 'wn18':
-        return WordNet18()
-    elif dataset_name.lower() == 'wordnet18_rr' or dataset_name.lower() == 'wn18_rr':
-        return WordNet18_RR()
-    elif dataset_name.lower() == 'yago3_10' or dataset_name.lower() == 'yago':
-        return YAGO3_10()
-    elif dataset_name.lower() == 'freebase15k_237' or dataset_name.lower() == 'fb15k_237':
-        return FreebaseFB15k_237()
-    elif dataset_name.lower() == 'kinship' or dataset_name.lower() == 'ks':
-        return Kinship()
-    elif dataset_name.lower() == 'nations':
-        return Nations()
-    elif dataset_name.lower() == 'umls':
-        return UMLS()
-    elif dataset_name.lower() == 'nell_995':
-        return NELL_995()
-    elif dataset_name.lower() == 'dbp15k':
-        return DBP15k()
-    elif dataset_name.lower() == 'dbp100k':
-        return DBP100k()
+def get_dataset(dataset_name: str, home: Union[Path, str] = "data"):
+    if dataset_name.lower() in ['freebase15k', 'fb15k']:
+        return FreebaseFB15k(home=home)
+    elif dataset_name.lower() in ['deeplearning50a', 'dl50a']:
+        return DeepLearning50a(home=home)
+    elif dataset_name.lower() in ['wordnet18', 'wn18']:
+        return WordNet18(home=home)
+    elif dataset_name.lower() in ['wordnet18_rr', 'wn18_rr', 'wn18rr', 'wn18-rr']:
+        return WordNet18_RR(home=home)
+    elif dataset_name.lower() in ['yago3_10', 'yago3-10', 'yago3', 'yago']:
+        return YAGO3_10(home=home)
+    elif dataset_name.lower() in ['freebase15k_237', 'fb15k_237', 'fb15k-237', 'fb15k237']:
+        return FreebaseFB15k_237(home=home)
+    elif dataset_name.lower() in ['kinship', 'ks']:
+        return Kinship(home=home)
+    elif dataset_name.lower() in ['nations']:
+        return Nations(home=home)
+    elif dataset_name.lower() in ['umls']:
+        return UMLS(home=home)
+    elif dataset_name.lower() in ['nell_995']:
+        return NELL_995(home=home)
+    elif dataset_name.lower() in ['dbp15k']:
+        return DBP15k(home=home)
+    elif dataset_name.lower() in ['dbp100k']:
+        return DBP100k(home=home)
     else:
         raise ValueError("Unknown dataset: %s" % dataset_name)
 
 
 class DBP15k(RelationalTripletDatasetSchema):
 
-    def __init__(self, name="fr_en", home: str = "data"):
+    def __init__(self, name="fr_en", home: Union[Path, str] = "data"):
         """
         :param name: choice "fr_en", "ja_en", "zh_en"
         """
@@ -492,7 +492,7 @@ class DBP15k(RelationalTripletDatasetSchema):
 
 
 class DBP100k(RelationalTripletDatasetSchema):
-    def __init__(self, name="fr_en", home: str = "data"):
+    def __init__(self, name="fr_en", home: Union[Path, str] = "data"):
         """
         :param name: choice "fr_en", "ja_en", "zh_en"
         """
@@ -519,7 +519,7 @@ class DBP100k(RelationalTripletDatasetSchema):
 
 
 class SimplifiedDBP15k(RelationalTripletDatasetSchema):
-    def __init__(self, name="fr_en", home: str = "data"):
+    def __init__(self, name="fr_en", home: Union[Path, str] = "data"):
         """
         :param name: choice "fr_en", "ja_en", "zh_en"
         """

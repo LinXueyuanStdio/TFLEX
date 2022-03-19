@@ -1,7 +1,9 @@
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch import nn
+
+ComplexNum = Tuple[torch.Tensor, torch.Tensor]
 
 
 class ComplexEmbedding(nn.Module):
@@ -38,11 +40,6 @@ class ComplexEmbedding(nn.Module):
 
 class ComplexScoringAll(nn.Module):
     def forward(self, complex_numbers, embeddings):
-        """
-        complex_numbers = [(Bxd)]
-        embeddings = [(Nxd)]
-        return [(BxN)]
-        """
         out = []
         for idx, complex_number in enumerate(list(complex_numbers)):
             ans = torch.mm(complex_number, embeddings[idx].transpose(1, 0))
@@ -80,7 +77,7 @@ class ComplexDropout(nn.Module):
 
 
 class ComplexBatchNorm1d(nn.Module):
-    def __init__(self, embedding_dim, num_channels):
+    def __init__(self, embedding_dim, num_channels=2):
         super(ComplexBatchNorm1d, self).__init__()
         self.embedding_dim = embedding_dim
         self.num_channels = num_channels

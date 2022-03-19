@@ -1,25 +1,29 @@
-#!/usr/bin/python3
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2021/10/26
+@description: null
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import collections
-from collections import defaultdict
 
 import click
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from ComplexQueryData import *
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
+from dataloader import TestDataset, TrainDataset
+from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
-from util import flatten_query, sizeof_fmt
+from util import flatten_query
 
 
 def convert_to_logic(x):
@@ -100,7 +104,6 @@ class Negation(nn.Module):
 class FLEX(nn.Module):
     def __init__(self, nentity, nrelation, hidden_dim, gamma,
                  test_batch_size=1,
-                 use_cuda=False,
                  query_name_dict=None,
                  center_reg=None, drop: float = 0.):
         super(FLEX, self).__init__()
@@ -119,14 +122,7 @@ class FLEX(nn.Module):
         self.negation = Negation(self.entity_dim)
 
         self.query_name_dict = query_name_dict
-
-        self.use_cuda = use_cuda
         self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
-        if self.use_cuda:
-            self.batch_entity_range = self.batch_entity_range.cuda()
-
-        self.feature_scale = 1.0
-        self.logic_scale = 1.0
         self.epsilon = 2.0
         self.gamma = nn.Parameter(torch.Tensor([gamma]), requires_grad=False)
         self.embedding_range = nn.Parameter(torch.Tensor([(self.gamma.item() + self.epsilon) / hidden_dim]), requires_grad=False)
@@ -150,7 +146,7 @@ class FLEX(nn.Module):
     def forward_FLEX(self, positive_sample, negative_sample, subsampling_weight,
                      batch_queries_dict: Dict[QueryStructure, torch.Tensor],
                      batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
-        # 1. 用 batch_queries_dict 将 查询 嵌入为 ConE（编码后的状态）
+        # 1. 用 batch_queries_dict 将 查询 嵌入
         all_idxs, all_feature, all_logic = [], [], []
         all_union_idxs, all_union_feature, all_union_logic = [], [], []
         for query_structure in batch_queries_dict:
@@ -277,9 +273,7 @@ class FLEX(nn.Module):
                 feature_entity_embedding = self.scale(feature_entity_embedding)
                 feature_entity_embedding = convert_to_feature(feature_entity_embedding)
 
-                logic_entity_embedding = torch.zeros_like(feature_entity_embedding)
-                if self.use_cuda:
-                    logic_entity_embedding = logic_entity_embedding.cuda()
+                logic_entity_embedding = torch.zeros_like(feature_entity_embedding).to(feature_entity_embedding.device)
 
                 idx += 1
 
@@ -384,8 +378,9 @@ class MyExperiment(Experiment):
                  hidden_dim, input_dropout, gamma, center_reg,
                  ):
         super(MyExperiment, self).__init__(output)
+        self.log(f"{locals()}")
 
-        self.store.save_scripts(["train_CQE_FLEX_NegationByMLP.py"])
+        self.model_param_store.save_scripts([__file__])
         nentity = data.nentity
         nrelation = data.nrelation
         self.log('-------------------------------' * 3)
@@ -444,7 +439,7 @@ class MyExperiment(Experiment):
         valid_dataloader = DataLoader(
             TestDataset(valid_queries, nentity, nrelation),
             batch_size=test_batch_size,
-            num_workers=cpu_num,
+            num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
         )
 
@@ -455,7 +450,7 @@ class MyExperiment(Experiment):
         test_dataloader = DataLoader(
             TestDataset(test_queries, nentity, nrelation),
             batch_size=test_batch_size,
-            num_workers=cpu_num,
+            num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
         )
 
@@ -465,7 +460,6 @@ class MyExperiment(Experiment):
             nrelation=nrelation,
             hidden_dim=hidden_dim,
             gamma=gamma,
-            use_cuda=True,
             center_reg=center_reg,
             test_batch_size=test_batch_size,
             query_name_dict=query_name_dict,
@@ -473,11 +467,12 @@ class MyExperiment(Experiment):
         ).to(train_device)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         best_score = 0
+        best_test_score = 0
         if resume:
             if resume_by_score > 0:
-                start_step, _, best_score = self.store.load_by_score(model, opt, resume_by_score)
+                start_step, _, best_score = self.model_param_store.load_by_score(model, opt, resume_by_score)
             else:
-                start_step, _, best_score = self.store.load_best(model, opt)
+                start_step, _, best_score = self.model_param_store.load_best(model, opt)
             self.dump_model(model)
             model.eval()
             with torch.no_grad():
@@ -485,23 +480,27 @@ class MyExperiment(Experiment):
                 self.debug("Take a look at the performance after resumed.")
                 self.debug("Validation (step: %d):" % start_step)
                 result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, test_device)
-                self.visual_result(start_step + 1, result, "Valid")
+                best_score = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, test_device)
-                self.visual_result(start_step + 1, result, "Test")
+                best_test_score = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
             self.dump_model(model)
 
         current_learning_rate = lr
-        self.log('center reg = %s' % center_reg)
-        self.log('tasks = %s' % tasks)
-        self.log('start_step = %d' % start_step)
-        self.log('Start Training...')
-        self.log('learning_rate = %f' % current_learning_rate)
-        self.log('batch_size = %d' % batch_size)
-        self.log('hidden_dim = %d' % hidden_dim)
-        self.log('gamma = %f' % gamma)
+        hyper = {
+            'center_reg': center_reg,
+            'tasks': tasks,
+            'learning_rate': lr,
+            'batch_size': batch_size,
+            "hidden_dim": hidden_dim,
+            "gamma": gamma,
+        }
+        self.metric_log_store.add_hyper(hyper)
+        for k, v in hyper.items():
+            self.log(f'{k} = {v}')
+        self.metric_log_store.add_progress(max_steps)
         warm_up_steps = max_steps // 2
 
         # 3. training
@@ -517,10 +516,9 @@ class MyExperiment(Experiment):
                     self.vis.add_scalar('other_' + metric, log[metric], step)
                 log = self.train(model, opt, train_path_iterator, step, train_device)
 
-            loss_log = progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
-            if (step + 1) % 1000 == 0:
-                for key, value in loss_log:
-                    self.log_loss(str(key) + ": " + str(value))
+            progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
+            if (step + 1) % 10 == 0:
+                self.metric_log_store.add_loss(log, step + 1)
 
             if (step + 1) >= warm_up_steps:
                 current_learning_rate = current_learning_rate / 5
@@ -539,13 +537,14 @@ class MyExperiment(Experiment):
                     self.debug("Validation (step: %d):" % (step + 1))
                     result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, test_device)
                     score = self.visual_result(step + 1, result, "Valid")
-                    self.store.save_by_score(model, opt, step, 0, score)
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
                         best_score = score
                         self.debug("saving best score %.4f" % score)
-                        self.store.save_best(model, opt, step, 0, score)
+                        self.metric_log_store.add_best_metric({"result": result}, "Valid")
+                        self.model_param_store.save_best(model, opt, step, 0, score)
                     else:
+                        self.model_param_store.save_by_score(model, opt, step, 0, score)
                         self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
@@ -553,11 +552,16 @@ class MyExperiment(Experiment):
                     print("")
                     self.debug("Test (step: %d):" % (step + 1))
                     result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, test_device)
-                    self.visual_result(step + 1, result, "Test")
+                    score = self.visual_result(step + 1, result, "Test")
+                    if score >= best_test_score:
+                        best_test_score = score
+                        self.metric_log_store.add_best_metric({"result": result}, "Test")
                     print("")
+        self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
         model.train()
+        model.to(device)
         optimizer.zero_grad()
 
         positive_sample, negative_sample, subsampling_weight, batch_queries, query_structures = next(train_iterator)
@@ -592,14 +596,17 @@ class MyExperiment(Experiment):
         return log
 
     def evaluate(self, model, easy_answers, hard_answers, test_dataloader, test_batch_size, device="cuda:0"):
+        model.to(device)
         total_steps = len(test_dataloader)
-        progbar = Progbar(max_step=total_steps // (test_batch_size * 10))
+        progbar = Progbar(max_step=total_steps)
         logs = collections.defaultdict(list)
         step = 0
         h10 = None
+        batch_queries_dict = collections.defaultdict(list)
+        batch_idxs_dict = collections.defaultdict(list)
         for negative_sample, queries, queries_unflatten, query_structures in test_dataloader:
-            batch_queries_dict = collections.defaultdict(list)
-            batch_idxs_dict = collections.defaultdict(list)
+            batch_queries_dict.clear()
+            batch_idxs_dict.clear()
             for i, query in enumerate(queries):
                 batch_queries_dict[query_structures[i]].append(query)
                 batch_idxs_dict[query_structures[i]].append(i)
@@ -611,10 +618,10 @@ class MyExperiment(Experiment):
             queries_unflatten = [queries_unflatten[i] for i in idxs]
             query_structures = [query_structures[i] for i in idxs]
             argsort = torch.argsort(negative_logit, dim=1, descending=True)
-            ranking = argsort.clone().float()
+            ranking = argsort.float()
             if len(argsort) == test_batch_size:
                 # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
-                ranking = ranking.scatter_(1, argsort, model.batch_entity_range)  # achieve the ranking of all entities
+                ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))  # achieve the ranking of all entities
             else:
                 # otherwise, create a new torch Tensor for batch_entity_range
                 ranking = ranking.scatter_(1,
@@ -638,8 +645,8 @@ class MyExperiment(Experiment):
                 h1 = torch.mean((cur_ranking <= 1).float()).item()
                 h3 = torch.mean((cur_ranking <= 3).float()).item()
                 h10 = torch.mean((cur_ranking <= 10).float()).item()
-
-                logs[query_structure].append({
+                query_structure_name = query_name_dict[query_structure]
+                logs[query_structure_name].append({
                     'MRR': mrr,
                     'hits@1': h1,
                     'hits@3': h3,
@@ -648,27 +655,27 @@ class MyExperiment(Experiment):
                 })
 
             step += 1
-            if step % (test_batch_size * 10) == 0:
-                progbar.update(step // (test_batch_size * 10), [("Hits @10", h10)])
+            progbar.update(step, [("Hits @10", h10)])
 
         metrics = collections.defaultdict(lambda: collections.defaultdict(int))
-        for query_structure in logs:
-            for metric in logs[query_structure][0].keys():
+        for query_structure_name in logs:
+            for metric in logs[query_structure_name][0].keys():
                 if metric in ['hard']:
                     continue
-                metrics[query_structure][metric] = sum([log[metric] for log in logs[query_structure]]) / len(logs[query_structure])
-            metrics[query_structure]['num_queries'] = len(logs[query_structure])
+                metrics[query_structure_name][metric] = sum([log[metric] for log in logs[query_structure_name]]) / len(logs[query_structure_name])
+            metrics[query_structure_name]['num_queries'] = len(logs[query_structure_name])
 
         return metrics
 
     def visual_result(self, step_num: int, result, scope: str):
         """Evaluate queries in dataloader"""
+        self.metric_log_store.add_metric({scope: result}, step_num, scope)
         average_metrics = defaultdict(float)
         num_query_structures = 0
         num_queries = 0
         for query_structure in result:
             for metric in result[query_structure]:
-                self.vis.add_scalar("_".join([scope, query_name_dict[query_structure], metric]), result[query_structure][metric], step_num)
+                self.vis.add_scalar("_".join([scope, query_structure, metric]), result[query_structure][metric], step_num)
                 if metric != 'num_queries':
                     average_metrics[metric] += result[query_structure][metric]
             num_queries += result[query_structure]['num_queries']
@@ -686,7 +693,7 @@ class MyExperiment(Experiment):
             cell = average_metrics[row]
             row_results[row].append(cell)
         for col in result:
-            row_results[header].append(query_name_dict[col])
+            row_results[header].append(col)
             col_data = result[col]
             for row in col_data:
                 cell = col_data[row]
@@ -705,18 +712,6 @@ class MyExperiment(Experiment):
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
         score = average_metrics["MRR"]
         return score
-
-    def dump_model(self, model):
-        self.debug(model)
-        self.debug("")
-        self.debug("Trainable parameters:")
-        num_params = 0
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                self.debug(name)
-                num_params += np.prod(param.size())
-        self.log('Total Parameters: %s' % sizeof_fmt(num_params))
-        self.debug("")
 
 
 @click.command()

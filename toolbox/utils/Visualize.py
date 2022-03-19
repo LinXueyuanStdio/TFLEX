@@ -1,12 +1,15 @@
-# 可视化
-# run the command below to open tensorbard
-#
-# tensorboard --logdir .
-#
-from torch.utils.tensorboard import SummaryWriter
-
-
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2022/2/19
+@description: 可视化
+run the command below to open tensorbard
+```shell
+tensorboard --logdir .
+```
+"""
 def get_writer(log_dir: str, comments=""):
+    from torch.utils.tensorboard import SummaryWriter
     return SummaryWriter(log_dir, comments)
 
 

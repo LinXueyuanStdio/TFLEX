@@ -1,43 +1,45 @@
-#!/usr/bin/python3
-
+"""
+@author: lxy
+@email: linxy59@mail2.sysu.edu.cn
+@date: 2021/10/26
+@description: null
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 import collections
-from collections import defaultdict
 
 import click
-import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from ComplexQueryData import *
-from dataloader import TestDataset, TrainDataset, SingledirectionalOneShotIterator
+from dataloader import TestDataset, TrainDataset
+from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.nn.ConE import ConE
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
-from util import flatten_query, sizeof_fmt
+from util import flatten_query
 
 
 class MyExperiment(Experiment):
 
     def __init__(self, output: OutputSchema, data: ComplexQueryData,
                  start_step, max_steps, every_test_step, every_valid_step,
-                 batch_size, test_batch_size, sampling_window_size, label_smoothing,
+                 batch_size, test_batch_size, negative_sample_size,
                  train_device, test_device,
                  resume, resume_by_score,
-                 lr, amsgrad, lr_decay, weight_decay,
-                 edim, rdim, input_dropout, hidden_dropout1, hidden_dropout2,
-                 negative_sample_size, hidden_dim, gamma, learning_rate, cpu_num,
-                 tasks, evaluate_union, center_reg,
+                 lr, tasks, evaluate_union, cpu_num,
+                 hidden_dim, input_dropout, gamma, center_reg,
                  ):
         super(MyExperiment, self).__init__(output)
+        self.log(f"{locals()}")
 
-        self.store.save_scripts(["train_CQE_ConE.py"])
+        self.model_param_store.save_scripts([__file__])
         nentity = data.nentity
         nrelation = data.nrelation
         self.log('-------------------------------' * 3)
@@ -96,7 +98,7 @@ class MyExperiment(Experiment):
         valid_dataloader = DataLoader(
             TestDataset(valid_queries, nentity, nrelation),
             batch_size=test_batch_size,
-            num_workers=cpu_num,
+            num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
         )
 
@@ -107,7 +109,7 @@ class MyExperiment(Experiment):
         test_dataloader = DataLoader(
             TestDataset(test_queries, nentity, nrelation),
             batch_size=test_batch_size,
-            num_workers=cpu_num,
+            num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
         )
 
@@ -125,11 +127,12 @@ class MyExperiment(Experiment):
         ).to(train_device)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         best_score = 0
+        best_test_score = 0
         if resume:
             if resume_by_score > 0:
-                start_step, _, best_score = self.store.load_by_score(model, opt, resume_by_score)
+                start_step, _, best_score = self.model_param_store.load_by_score(model, opt, resume_by_score)
             else:
-                start_step, _, best_score = self.store.load_best(model, opt)
+                start_step, _, best_score = self.model_param_store.load_best(model, opt)
             self.dump_model(model)
             model.eval()
             with torch.no_grad():
@@ -137,23 +140,27 @@ class MyExperiment(Experiment):
                 self.debug("Take a look at the performance after resumed.")
                 self.debug("Validation (step: %d):" % start_step)
                 result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, test_device)
-                self.visual_result(start_step + 1, result, "Valid")
+                best_score = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, test_device)
-                self.visual_result(start_step + 1, result, "Test")
+                best_test_score = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
             self.dump_model(model)
 
-        current_learning_rate = learning_rate
-        self.log('center reg = %s' % center_reg)
-        self.log('tasks = %s' % tasks)
-        self.log('start_step = %d' % start_step)
-        self.log('Start Training...')
-        self.log('learning_rate = %f' % current_learning_rate)
-        self.log('batch_size = %d' % batch_size)
-        self.log('hidden_dim = %d' % hidden_dim)
-        self.log('gamma = %f' % gamma)
+        current_learning_rate = lr
+        hyper = {
+            'center_reg': center_reg,
+            'tasks': tasks,
+            'learning_rate': lr,
+            'batch_size': batch_size,
+            "hidden_dim": hidden_dim,
+            "gamma": gamma,
+        }
+        self.metric_log_store.add_hyper(hyper)
+        for k, v in hyper.items():
+            self.log(f'{k} = {v}')
+        self.metric_log_store.add_progress(max_steps)
         warm_up_steps = max_steps // 2
 
         # 3. training
@@ -169,10 +176,9 @@ class MyExperiment(Experiment):
                     self.vis.add_scalar('other_' + metric, log[metric], step)
                 log = self.train(model, opt, train_path_iterator, step, train_device)
 
-            loss_log = progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
-            if (step + 1) % 1000 == 0:
-                for key, value in loss_log:
-                    self.log_loss(str(key) + ": " + str(value))
+            progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
+            if (step + 1) % 10 == 0:
+                self.metric_log_store.add_loss(log, step + 1)
 
             if (step + 1) >= warm_up_steps:
                 current_learning_rate = current_learning_rate / 5
@@ -191,13 +197,14 @@ class MyExperiment(Experiment):
                     self.debug("Validation (step: %d):" % (step + 1))
                     result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, test_device)
                     score = self.visual_result(step + 1, result, "Valid")
-                    self.store.save_by_score(model, opt, step, 0, score)
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
                         best_score = score
                         self.debug("saving best score %.4f" % score)
-                        self.store.save_best(model, opt, step, 0, score)
+                        self.metric_log_store.add_best_metric({"result": result}, "Valid")
+                        self.model_param_store.save_best(model, opt, step, 0, score)
                     else:
+                        self.model_param_store.save_by_score(model, opt, step, 0, score)
                         self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
@@ -205,11 +212,16 @@ class MyExperiment(Experiment):
                     print("")
                     self.debug("Test (step: %d):" % (step + 1))
                     result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, test_device)
-                    self.visual_result(step + 1, result, "Test")
+                    score = self.visual_result(step + 1, result, "Test")
+                    if score >= best_test_score:
+                        best_test_score = score
+                        self.metric_log_store.add_best_metric({"result": result}, "Test")
                     print("")
+        self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
         model.train()
+        model.to(device)
         optimizer.zero_grad()
 
         positive_sample, negative_sample, subsampling_weight, batch_queries, query_structures = next(train_iterator)
@@ -244,14 +256,17 @@ class MyExperiment(Experiment):
         return log
 
     def evaluate(self, model, easy_answers, hard_answers, test_dataloader, test_batch_size, device="cuda:0"):
+        model.to(device)
         total_steps = len(test_dataloader)
-        progbar = Progbar(max_step=total_steps // (test_batch_size * 10))
+        progbar = Progbar(max_step=total_steps)
         logs = collections.defaultdict(list)
         step = 0
         h10 = None
+        batch_queries_dict = collections.defaultdict(list)
+        batch_idxs_dict = collections.defaultdict(list)
         for negative_sample, queries, queries_unflatten, query_structures in test_dataloader:
-            batch_queries_dict = collections.defaultdict(list)
-            batch_idxs_dict = collections.defaultdict(list)
+            batch_queries_dict.clear()
+            batch_idxs_dict.clear()
             for i, query in enumerate(queries):
                 batch_queries_dict[query_structures[i]].append(query)
                 batch_idxs_dict[query_structures[i]].append(i)
@@ -263,10 +278,10 @@ class MyExperiment(Experiment):
             queries_unflatten = [queries_unflatten[i] for i in idxs]
             query_structures = [query_structures[i] for i in idxs]
             argsort = torch.argsort(negative_logit, dim=1, descending=True)
-            ranking = argsort.clone().float()
+            ranking = argsort.float()
             if len(argsort) == test_batch_size:
                 # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
-                ranking = ranking.scatter_(1, argsort, model.batch_entity_range)  # achieve the ranking of all entities
+                ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))  # achieve the ranking of all entities
             else:
                 # otherwise, create a new torch Tensor for batch_entity_range
                 ranking = ranking.scatter_(1,
@@ -290,8 +305,8 @@ class MyExperiment(Experiment):
                 h1 = torch.mean((cur_ranking <= 1).float()).item()
                 h3 = torch.mean((cur_ranking <= 3).float()).item()
                 h10 = torch.mean((cur_ranking <= 10).float()).item()
-
-                logs[query_structure].append({
+                query_structure_name = query_name_dict[query_structure]
+                logs[query_structure_name].append({
                     'MRR': mrr,
                     'hits@1': h1,
                     'hits@3': h3,
@@ -300,27 +315,27 @@ class MyExperiment(Experiment):
                 })
 
             step += 1
-            if step % (test_batch_size * 10) == 0:
-                progbar.update(step // (test_batch_size * 10), [("Hits @10", h10)])
+            progbar.update(step, [("Hits @10", h10)])
 
         metrics = collections.defaultdict(lambda: collections.defaultdict(int))
-        for query_structure in logs:
-            for metric in logs[query_structure][0].keys():
+        for query_structure_name in logs:
+            for metric in logs[query_structure_name][0].keys():
                 if metric in ['hard']:
                     continue
-                metrics[query_structure][metric] = sum([log[metric] for log in logs[query_structure]]) / len(logs[query_structure])
-            metrics[query_structure]['num_queries'] = len(logs[query_structure])
+                metrics[query_structure_name][metric] = sum([log[metric] for log in logs[query_structure_name]]) / len(logs[query_structure_name])
+            metrics[query_structure_name]['num_queries'] = len(logs[query_structure_name])
 
         return metrics
 
     def visual_result(self, step_num: int, result, scope: str):
         """Evaluate queries in dataloader"""
+        self.metric_log_store.add_metric({scope: result}, step_num, scope)
         average_metrics = defaultdict(float)
         num_query_structures = 0
         num_queries = 0
         for query_structure in result:
             for metric in result[query_structure]:
-                self.vis.add_scalar("_".join([scope, query_name_dict[query_structure], metric]), result[query_structure][metric], step_num)
+                self.vis.add_scalar("_".join([scope, query_structure, metric]), result[query_structure][metric], step_num)
                 if metric != 'num_queries':
                     average_metrics[metric] += result[query_structure][metric]
             num_queries += result[query_structure]['num_queries']
@@ -338,7 +353,7 @@ class MyExperiment(Experiment):
             cell = average_metrics[row]
             row_results[row].append(cell)
         for col in result:
-            row_results[header].append(query_name_dict[col])
+            row_results[header].append(col)
             col_data = result[col]
             for row in col_data:
                 cell = col_data[row]
@@ -358,66 +373,46 @@ class MyExperiment(Experiment):
         score = average_metrics["MRR"]
         return score
 
-    def dump_model(self, model):
-        self.debug(model)
-        self.debug("")
-        self.debug("Trainable parameters:")
-        num_params = 0
-        for name, param in model.named_parameters():
-            if param.requires_grad:
-                self.debug(name)
-                num_params += np.prod(param.size())
-        self.log('Total Parameters: %s' % sizeof_fmt(num_params))
-        self.debug("")
-
 
 @click.command()
-@click.option("--dataset", type=str, default="FB15k-237", help="Which dataset to use: FB15k, FB15k-237, WN18 or WN18RR.")
+@click.option("--dataset", type=str, default="FB15k-237", help="Which dataset to use: FB15k, FB15k-237, NELL.")
 @click.option("--name", type=str, default="ConE", help="Name of the experiment.")
 @click.option("--start_step", type=int, default=0, help="start step.")
 @click.option("--max_steps", type=int, default=300001, help="Number of steps.")
 @click.option("--every_test_step", type=int, default=10000, help="Number of steps.")
 @click.option("--every_valid_step", type=int, default=10000, help="Number of steps.")
 @click.option("--batch_size", type=int, default=512, help="Batch size.")
-@click.option("--test_batch_size", type=int, default=4, help="Test batch size.")
-@click.option("--sampling_window_size", type=int, default=1000, help="Sampling window size.")
-@click.option("--label_smoothing", type=float, default=0.1, help="Amount of label smoothing.")
+@click.option("--test_batch_size", type=int, default=8, help="Test batch size.")
+@click.option('--negative_sample_size', default=128, type=int, help="negative entities sampled per query")
 @click.option("--train_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--test_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--resume", type=bool, default=False, help="Resume from output directory.")
 @click.option("--resume_by_score", type=float, default=0.0, help="Resume by score from output directory. Resume best if it is 0. Default: 0")
 @click.option("--lr", type=float, default=0.0001, help="Learning rate.")
-@click.option("--amsgrad", type=bool, default=False, help="AMSGrad for Adam.")
-@click.option("--lr_decay", type=float, default=0.995, help='Decay the learning rate by this factor every epoch. Default: 0.995')
-@click.option('--weight_decay', type=float, default=0.0, help='Weight decay value to use in the optimizer. Default: 0.0')
-@click.option("--edim", type=int, default=200, help="Entity embedding dimensionality.")
-@click.option("--rdim", type=int, default=200, help="Relation embedding dimensionality.")
+@click.option('--tasks', type=str, default='1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up', help="tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task")
+@click.option('--evaluate_union', type=str, default="DNF", help='choices=[DNF, DM] the way to evaluate union queries, transform it to disjunctive normal form (DNF) or use the De Morgan\'s laws (DM)')
+@click.option('--cpu_num', type=int, default=4, help="used to speed up torch.dataloader")
+@click.option('--hidden_dim', type=int, default=800, help="embedding dimension")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
-@click.option("--hidden_dropout1", type=float, default=0.2, help="Dropout after the first hidden layer.")
-@click.option("--hidden_dropout2", type=float, default=0.2, help="Dropout after the second hidden layer.")
-@click.option('--negative_sample_size', default=128, type=int, help="negative entities sampled per query")
-@click.option('--hidden_dim', default=800, type=int, help="embedding dimension")
-@click.option('--gamma', default=30.0, type=float, help="margin in the loss")
-@click.option('--learning_rate', default=0.0001, type=float)
-@click.option('--cpu_num', default=4, type=int, help="used to speed up torch.dataloader")
-@click.option('--tasks', default='1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up', type=str, help="tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task")
-@click.option('--center_reg', default=0.02, type=float, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--evaluate_union', default="DNF", type=str,
-              help='choices=[DNF, DM] the way to evaluate union queries, transform it to disjunctive normal form (DNF) or use the De Morgan\'s laws (DM)')
+@click.option('--gamma', type=float, default=30.0, help="margin in the loss")
+@click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 def main(dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
-         batch_size, test_batch_size, sampling_window_size, label_smoothing,
+         batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
-         lr, amsgrad, lr_decay, weight_decay,
-         edim, rdim, input_dropout, hidden_dropout1, hidden_dropout2,
-         negative_sample_size, hidden_dim, gamma, learning_rate, cpu_num,
-         tasks, evaluate_union, center_reg,
+         lr, tasks, evaluate_union, cpu_num,
+         hidden_dim, input_dropout, gamma, center_reg,
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
 
-    dataset = FB15k_237_BetaE()
+    if dataset == "FB15k-237":
+        dataset = FB15k_237_BetaE()
+    elif dataset == "FB15k":
+        dataset = FB15k_BetaE()
+    elif dataset == "NELL":
+        dataset = NELL_BetaE()
     cache = ComplexQueryDatasetCachePath(dataset.root_path)
     data = ComplexQueryData(cache_path=cache)
     data.load(evaluate_union, tasks)
@@ -425,13 +420,11 @@ def main(dataset, name,
     MyExperiment(
         output, data,
         start_step, max_steps, every_test_step, every_valid_step,
-        batch_size, test_batch_size, sampling_window_size, label_smoothing,
+        batch_size, test_batch_size, negative_sample_size,
         train_device, test_device,
         resume, resume_by_score,
-        lr, amsgrad, lr_decay, weight_decay,
-        edim, rdim, input_dropout, hidden_dropout1, hidden_dropout2,
-        negative_sample_size, hidden_dim, gamma, learning_rate, cpu_num,
-        tasks, evaluate_union, center_reg,
+        lr, tasks, evaluate_union, cpu_num,
+        hidden_dim, input_dropout, gamma, center_reg,
     )
 
 

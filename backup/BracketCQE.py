@@ -101,7 +101,7 @@ class Bracket(nn.Module):
     def forward_bracket(self, positive_sample, negative_sample, subsampling_weight,
                         batch_queries_dict: Dict[QueryStructure, torch.Tensor],
                         batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
-        # 1. 用 batch_queries_dict 将 查询 嵌入为 ConE（编码后的状态）
+        # 1. 用 batch_queries_dict 将 查询 嵌入
         all_idxs, all_bra, all_ket = [], [], []
         all_union_idxs, all_union_bra, all_union_ket = [], [], []
         device = self.b_x.device

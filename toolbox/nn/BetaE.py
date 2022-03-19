@@ -644,7 +644,7 @@ class KGReasoning(nn.Module):
                 argsort = torch.argsort(negative_logit, dim=1, descending=True)
                 ranking = argsort.clone().float()
                 if len(argsort) == args.test_batch_size:  # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
-                    ranking = ranking.scatter_(1, argsort, model.batch_entity_range)  # achieve the ranking of all entities
+                    ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))  # achieve the ranking of all entities
                 else:  # otherwise, create a new torch Tensor for batch_entity_range
                     if args.cuda:
                         ranking = ranking.scatter_(1,

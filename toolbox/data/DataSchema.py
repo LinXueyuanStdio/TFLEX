@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict
 from pathlib import Path
-from typing import Tuple, List, Set, Dict
+from typing import Tuple, List, Set, Dict, Any
 
 from toolbox.data.DatasetSchema import (
     RelationalTripletDatasetSchema,
@@ -106,7 +106,7 @@ class BaseData:
     def clear_cache(self):
         pass
 
-    def meta(self):
+    def meta(self) -> Dict[str, Any]:
         return {}
 
     def dump(self) -> List[str]:
@@ -114,8 +114,8 @@ class BaseData:
         # dump key information
         dump = [
             "",
-            "----------Metadata Info for Dataset:%s----------------" % self.dataset.name,
-            "---------------------------------------------",
+            "-" * 15 + "Metadata Info for Dataset: " + self.dataset.name + "-" * (15 - len(self.dataset.name)),
+            "-" * (30 + len("Metadata Info for Dataset: ")),
             "",
         ]
         return dump
@@ -264,10 +264,12 @@ class RelationalTripletData(BaseData):
 
     def transform_mappings(self):
         """ Function to generate the mapping from string name to integer ids. """
-        self.entity2idx = {v: k for k, v in enumerate(self.all_entities)}
-        self.idx2entity = {v: k for k, v in self.entity2idx.items()}
-        self.relation2idx = {v: k for k, v in enumerate(self.all_relations)}
-        self.idx2relation = {v: k for k, v in self.relation2idx.items()}
+        for k, v in enumerate(self.all_entities):
+            self.entity2idx[v] = k
+            self.idx2entity[k] = v
+        for k, v in enumerate(self.all_relations):
+            self.relation2idx[v] = k
+            self.idx2relation[k] = v
 
     def transform_all_triplets_ids(self):
         entity2idx = self.entity2idx
@@ -427,7 +429,7 @@ class RelationalTripletData(BaseData):
         self.train_triples_count = meta["train_triples_count"]
         self.triple_count = meta["triple_count"]
 
-    def meta(self):
+    def meta(self) -> Dict[str, Any]:
         return {
             "relation_count": self.relation_count,
             "entity_count": self.entity_count,
@@ -442,13 +444,13 @@ class RelationalTripletData(BaseData):
         # dump key information
         dump = [
             "",
-            "----------Metadata Info for Dataset:%s----------------" % self.dataset.name,
+            "-" * 15 + "Metadata Info for Dataset: " + self.dataset.name + "-" * (15 - len(self.dataset.name)),
             "Total Training Triples   :%s" % self.train_triples_count,
             "Total Testing Triples    :%s" % self.test_triples_count,
             "Total validation Triples :%s" % self.valid_triples_count,
             "Total Entities           :%s" % self.entity_count,
             "Total Relations          :%s" % self.relation_count,
-            "---------------------------------------------",
+            "-" * (30 + len("Metadata Info for Dataset: ")),
             "",
         ]
         return dump
@@ -983,7 +985,7 @@ class DBP15kData(RelationalTripletData):
         self.kg1_attribute_values_count = meta["kg1_attribute_values_count"]
         self.kg2_attribute_values_count = meta["kg2_attribute_values_count"]
 
-    def meta(self):
+    def meta(self) -> Dict[str, Any]:
         return {
             "dataset": self.dataset.name,
             "entity_count": self.entity_count,
@@ -1017,7 +1019,8 @@ class DBP15kData(RelationalTripletData):
     def dump(self) -> List[str]:
         dump = [
             "",
-            "----------Metadata Info for Dataset:%s----------------" % self.dataset.name,
+            "-" * 15 + "Metadata Info for Dataset: " + self.dataset.name + "-" * (15 - len(self.dataset.name)),
+
             "Total Entities           :%s" % self.entity_count,
             "Total Relations          :%s" % self.relation_count,
             "Total Attribute Names    :%s" % self.all_attribute_names_count,
@@ -1050,7 +1053,7 @@ class DBP15kData(RelationalTripletData):
             "relations         :%d" % self.kg2_relations_count,
             "attribute_names   :%d" % self.kg2_attribute_names_count,
             "attribute_values  :%d" % self.kg2_attribute_values_count,
-            "---------------------------------------------",
+            "-" * (30 + len("Metadata Info for Dataset: ")),
             "",
         ]
         return dump
