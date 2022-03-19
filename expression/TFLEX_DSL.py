@@ -65,7 +65,7 @@ query_structures = {
     "e2u_DNF": "def e2u_DNF(e1, r1, t1, e2, r2, t2): return Pe(e1, r1, t1), Pe(e2, r2, t2)",  # 2u_DNF
     "Pe_e2u_DNF": "def Pe_e2u_DNF(e1, r1, t1, e2, r2, t2, r3, t3): return Pe(Pe(e1, r1, t1), r3, t3), Pe(Pe(e2, r2, t2), r3, t3)",  # up_DNF
     "t2u_DNF": "def t2u_DNF(e1, r1, e2, e3, r2, e4): return Pt(e1, r1, e2), Pt(e3, r2, e4)",  # t-2u_DNF
-    "Pe_t2u_DNF": "def Pe_t2u_DNF(e1, r1, e2, e3, r2, e4, e5, r3, e6): return Pe(e1, r1, Pt(e2, r2, e3), Pe(e1, r1, Pt(e4, r3, e5))",  # t-up_DNF
+    "Pe_t2u_DNF": "def Pe_t2u_DNF(e1, r1, e2, e3, r2, e4, e5, r3, e6): return Pe(e1, r1, Pt(e2, r2, e3)), Pe(e1, r1, Pt(e4, r3, e5))",  # t-up_DNF
 }
 union_query_structures = [
     "e2u", "Pe_e2u",  # 2u, up
