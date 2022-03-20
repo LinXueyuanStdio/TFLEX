@@ -832,7 +832,7 @@ class ComplexQueryData(TemporalKnowledgeData):
 
         # 3. calculate meta
         def avg_answers_count(qa):
-            return sum([len(a) for q, a in qa]) / len(qa) if len(qa) > 0 else 0
+            return sum([len(row[-1]) for row in qa]) / len(qa)
 
         def calculate_meta(query_name: str):
             train_qa = self.train_queries_answers[query_name]["queries_answers"]
