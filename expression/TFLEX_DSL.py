@@ -88,7 +88,16 @@ test_query_structures = train_query_structures + [
     "t2i_Pe", "Pe_t2i",  # t-pi, t-ip
     "t2u", "Pe_t2u",  # t-2u, t-up
 ]
-#
+
+
+def is_to_predict_entity_set(query_name) -> bool:
+    return query_name.startswith("e") or query_name.startswith("Pe")
+
+
+def query_contains_union_and_we_should_use_DNF(query_name) -> bool:
+    return query_name in union_query_structures
+
+
 # def Pe_bt2i(e1, r1, e2, r2, e3, e4, r3, e5):
 #     if t1 in before(t2):
 #         return t2i(e2, r2, e3, e4, r3, e5)
@@ -392,7 +401,7 @@ class SamplingParser(BasicParser):
             # print("find_timestamp", timestamps)
             return timestamps
 
-        neural_ops = { # 4+4+3
+        neural_ops = {  # 4+4+3
             "And": lambda q1, q2: FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps),
             "And3": lambda q1, q2, q3: FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps),
             "Or": lambda q1, q2: FixedQuery(answers=q1.answers | q2.answers, timestamps=q1.timestamps & q2.timestamps),
