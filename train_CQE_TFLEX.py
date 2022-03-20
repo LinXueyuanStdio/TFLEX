@@ -1155,7 +1155,7 @@ def main(data_home, dataset, name,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
-         lr, tasks, evaluate_union, cpu_num,
+         lr, cpu_num,
          hidden_dim, input_dropout, gamma, center_reg,
          ):
     set_seeds(0)
