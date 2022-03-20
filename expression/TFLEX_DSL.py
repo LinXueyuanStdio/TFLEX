@@ -8,7 +8,7 @@ import random
 from math import pi
 from typing import List, Union
 
-from .ParamSchema import Placeholder, FixedQuery, placeholder2fixed
+from .ParamSchema import Placeholder, FixedQuery, placeholder2fixed, get_param_name_list
 from .symbol import Interpreter
 
 query_structures = {
@@ -132,6 +132,9 @@ class BasicParser(Interpreter):
         func = self.eval(func_name)
         self.func_cache[func_name] = func
         return func
+
+    def fast_args(self, func_name) -> List[str]:
+        return get_param_name_list(self.fast_function(func_name))
 
 
 class SamplingParser(BasicParser):

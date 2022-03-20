@@ -14,19 +14,18 @@ from torch.utils.data import Dataset
 from ComplexTemporalQueryData import TYPE_train_queries_answers, TYPE_test_queries_answers
 
 
-def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[str], List[int], Set[int]]]:
+def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[int], Set[int]]]:
     res = []
     for query_name, query_schema in queries_answers.items():
-        args: List[str] = query_schema["args"]
         qa_list: List[Tuple[List[int], Set[int]]] = query_schema["queries_answers"]
         for query, answer in qa_list:
-            res.append((query_name, args, query, answer))
+            res.append((query_name, query, answer))
     return res
 
 
 class TrainDataset(Dataset):
     def __init__(self, queries_answers: TYPE_train_queries_answers, nentity: int, nrelation: int, negative_sample_size: int):
-        self.all_data: List[Tuple[str, List[str], List[int], Set[int]]] = flatten_train(queries_answers)
+        self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.nentity: int = nentity
@@ -38,7 +37,7 @@ class TrainDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        query_name, args, query, answer = self.all_data[idx]
+        query_name, query, answer = self.all_data[idx]
         tail = np.random.choice(list(answer))  # select one answer
         subsampling_weight = self.count[query_name]  # answer count of query
         subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
@@ -61,21 +60,21 @@ class TrainDataset(Dataset):
         # positive_answer    : torch.LongTensor (1,)                          Tensor([8])
         # negative_answer    : torch.LongTensor (self.negative_sample_size,)  Tensor([100, 392, 499, ...])
         # subsampling_weight : torch.FloatTensor (1,)                         Tensor([0.02])
-        return query_name, args, query, positive_answer, negative_answer, subsampling_weight
+        return query_name, query, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
     def collate_fn(data):
-        query_name, args, query, positive_answer, negative_answer, subsampling_weight = tuple(zip(*data))
+        query_name, query, positive_answer, negative_answer, subsampling_weight = tuple(zip(*data))
         query = torch.cat(query, dim=0)
         positive_answer = torch.cat(positive_answer, dim=0)
         negative_answer = torch.stack(negative_answer, dim=0)
         subsampling_weight = torch.cat(subsampling_weight, dim=0)
-        return query_name, args, query, positive_answer, negative_answer, subsampling_weight
+        return query_name, query, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
-    def count_frequency(all_data: List[Tuple[str, List[str], List[int], Set[int]]], start=4) -> Dict[str, int]:
+    def count_frequency(all_data: List[Tuple[str, List[int], Set[int]]], start=4) -> Dict[str, int]:
         count = {}
-        for query_name, args, query, answer in all_data:
+        for query_name, query, answer in all_data:
             count[query_name] = start + len(answer)
         return count
 

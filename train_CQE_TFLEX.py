@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 import expression
 from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
-from expression.ParamSchema import is_entity, is_relation, is_timestamp
+from expression.ParamSchema import is_entity, is_relation, is_timestamp, get_param_name_list
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
@@ -639,6 +639,7 @@ class FLEX(nn.Module):
 
         for query_structure in batch_queries_dict:
             query_name, query_args = query_structure
+            query_args = self.parser.fast_args(query_name)
             query_tensor = batch_queries_dict[query_structure]  # BxL, B for batch size, L for query args length
             query_idxs = batch_idxs_dict[query_structure]
             # query_idxs is of shape Bx1.
@@ -979,15 +980,15 @@ class MyExperiment(Experiment):
         model.to(device)
         optimizer.zero_grad()
 
-        query_name, args, batch_queries, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
+        query_name, batch_queries, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
         batch_queries_dict: Dict[Tuple[str, List[str]], list] = defaultdict(list)
         batch_idxs_dict: Dict[Tuple[str, List[str]], List[int]] = defaultdict(list)
         for i, query in enumerate(batch_queries):  # group queries with same structure
-            query_schema = (query_name[i], args[i])
-            batch_queries_dict[query_schema].append(query)
-            batch_idxs_dict[query_schema].append(i)
-        for query_structure in batch_queries_dict:
-            batch_queries_dict[query_structure] = torch.LongTensor(batch_queries_dict[query_structure]).to(device)
+            key = query_name[i]
+            batch_queries_dict[key].append(query)
+            batch_idxs_dict[key].append(i)
+        for key in batch_queries_dict:
+            batch_queries_dict[key] = torch.LongTensor(batch_queries_dict[key]).to(device)
         positive_answer = positive_answer.to(device)
         negative_answer = negative_answer.to(device)
         subsampling_weight = subsampling_weight.to(device)
@@ -1024,11 +1025,11 @@ class MyExperiment(Experiment):
             batch_queries_dict.clear()
             batch_idxs_dict.clear()
             for i, query in enumerate(batch_queries):
-                query_schema = (query_name[i], args[i])
-                batch_queries_dict[query_schema].append(query)
-                batch_idxs_dict[query_schema].append(i)
-            for query_schema in batch_queries_dict:
-                batch_queries_dict[query_schema] = torch.LongTensor(batch_queries_dict[query_schema]).to(device)
+                key = query_name[i]
+                batch_queries_dict[key].append(query)
+                batch_idxs_dict[key].append(i)
+            for key in batch_queries_dict:
+                batch_queries_dict[key] = torch.LongTensor(batch_queries_dict[key]).to(device)
             candidate_answer = candidate_answer.to(device)
 
             _, negative_logit, _, idxs = model(None, candidate_answer, None, batch_queries_dict, batch_idxs_dict)
