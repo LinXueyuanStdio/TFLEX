@@ -504,7 +504,16 @@ class ComplexQueryData(TemporalKnowledgeData):
                 ]
             }
         }
-        self.valid_queries_answers: TYPE_test_queries_answers = {}
+        self.valid_queries_answers: TYPE_test_queries_answers = {
+            "Pe_aPt": {
+                "args": ["e1", "r1", "e2", "r2", "e3"],
+                "queries_answers": [
+                    ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
+                    ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
+                    ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
+                ]
+            }
+        }
         self.test_queries_answers: TYPE_test_queries_answers = {}
         # meta
         self.query_meta = {
@@ -553,7 +562,7 @@ class ComplexQueryData(TemporalKnowledgeData):
         # test_not_t_sro, test_not_o_srt = build_not_t2sro_o2srt(self.entities_ids, self.timestamps_ids, test_sro_t, test_srt_o)
 
         # 1. 1-hop: Pe, Pt
-        def build_one_hop(param_name_list: List[str], sro_t):
+        def build_one_hop(param_name_list: List[str], sro_t, for_test=False):
             queries_answers = []
             for s in sro_t:
                 for r in sro_t[s]:
@@ -561,19 +570,22 @@ class ComplexQueryData(TemporalKnowledgeData):
                         answers = sro_t[s][r][o]
                         if len(answers) > 0:
                             queries = [s, r, o]
-                            queries_answers.append((queries, answers))
+                            if for_test:
+                                queries_answers.append((queries, {}, answers))
+                            else:
+                                queries_answers.append((queries, answers))
             return {
                 "args": param_name_list,
                 "queries_answers": queries_answers
             }
 
-        self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o)
-        self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o)
-        self.test_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], test_srt_o)
+        self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o, for_test=False)
+        self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o, for_test=True)
+        self.test_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], test_srt_o, for_test=True)
 
-        self.train_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], train_sro_t)
-        self.valid_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], valid_sro_t)
-        self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t)
+        self.train_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], train_sro_t, for_test=False)
+        self.valid_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], valid_sro_t, for_test=True)
+        self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t, for_test=True)
 
         # 2. multi-hop: Pe_aPt, Pe_bPt, etc
         # 2.1 parser
