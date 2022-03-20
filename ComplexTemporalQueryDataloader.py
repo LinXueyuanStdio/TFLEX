@@ -79,19 +79,18 @@ class TrainDataset(Dataset):
         return count
 
 
-def flatten_test(queries_answers: TYPE_test_queries_answers) -> List[Tuple[str, List[str], List[int], Set[int], Set[int]]]:
+def flatten_test(queries_answers: TYPE_test_queries_answers) -> List[Tuple[str, List[int], Set[int], Set[int]]]:
     res = []
     for query_name, query_schema in queries_answers.items():
-        args: List[str] = query_schema["args"]
         qa_list: List[Tuple[List[int], Set[int], Set[int]]] = query_schema["queries_answers"]
         for query, easy_answer, hard_answer in qa_list:
-            res.append((query_name, args, query, easy_answer, hard_answer))
+            res.append((query_name, query, easy_answer, hard_answer))
     return res
 
 
 class TestDataset(Dataset):
     def __init__(self, queries_answers: TYPE_test_queries_answers, nentity, nrelation):
-        self.all_data: List[Tuple[str, List[str], List[int], Set[int], Set[int]]] = flatten_test(queries_answers)
+        self.all_data: List[Tuple[str, List[int], Set[int], Set[int]]] = flatten_test(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.nentity: int = nentity
@@ -101,14 +100,14 @@ class TestDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        query_name, args, query, easy_answer, hard_answer = self.all_data[idx]
+        query_name, query, easy_answer, hard_answer = self.all_data[idx]
         candidate_answer = torch.LongTensor(range(self.nentity))
         hard_answer = set(hard_answer) - set(easy_answer)
-        return candidate_answer, query_name, args, query, easy_answer, hard_answer
+        return candidate_answer, query_name, query, easy_answer, hard_answer
 
     @staticmethod
     def collate_fn(data):
-        candidate_answer, query_name, args, query, easy_answer, hard_answer = tuple(zip(*data))
+        candidate_answer, query_name, query, easy_answer, hard_answer = tuple(zip(*data))
         query = torch.cat(query, dim=0)
         candidate_answer = torch.cat(candidate_answer, dim=0)
-        return candidate_answer, query_name, args, query, easy_answer, hard_answer
+        return candidate_answer, query_name, query, easy_answer, hard_answer
