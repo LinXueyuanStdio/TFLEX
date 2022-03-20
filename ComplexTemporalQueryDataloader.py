@@ -65,7 +65,7 @@ class TrainDataset(Dataset):
     @staticmethod
     def collate_fn(data):
         query_name, query, positive_answer, negative_answer, subsampling_weight = tuple(zip(*data))
-        query = torch.cat(query, dim=0)
+        query = torch.stack(query, dim=0)
         positive_answer = torch.cat(positive_answer, dim=0)
         negative_answer = torch.stack(negative_answer, dim=0)
         subsampling_weight = torch.cat(subsampling_weight, dim=0)
@@ -108,6 +108,6 @@ class TestDataset(Dataset):
     @staticmethod
     def collate_fn(data):
         candidate_answer, query_name, query, easy_answer, hard_answer = tuple(zip(*data))
-        query = torch.cat(query, dim=0)
-        candidate_answer = torch.cat(candidate_answer, dim=0)
+        query = torch.stack(query, dim=0)
+        candidate_answer = torch.stack(candidate_answer, dim=0)
         return candidate_answer, query_name, query, easy_answer, hard_answer
