@@ -124,6 +124,9 @@ class BaseData:
         for i in self.dump():
             log(i)
 
+    def __str__(self):
+        return "\n".join(self.dump())
+
 
 class RelationalTripletData(BaseData):
     """ The class is the main module that handles the knowledge graph.

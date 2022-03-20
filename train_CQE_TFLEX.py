@@ -1165,7 +1165,7 @@ def main(data_home, dataset, name,
         dataset = ICEWS14(data_home)
     elif dataset == "ICEWS05_15":
         dataset = ICEWS05_15(data_home)
-    cache = ComplexTemporalQueryDatasetCachePath(dataset.root_path)
+    cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
     data = ComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
     data.load_cache([
