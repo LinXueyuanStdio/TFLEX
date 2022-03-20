@@ -5,7 +5,7 @@
 @description: null
 """
 from collections import defaultdict
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 import click
 import torch
@@ -570,12 +570,102 @@ class FLEX(nn.Module):
     def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
         return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
 
-    def forward_FLEX(self, positive_sample, negative_sample, subsampling_weight,
+    def forward_FLEX(self,
+                     positive_answer: torch.Tensor,
+                     negative_answer: torch.Tensor,
+                     subsampling_weight: Optional[torch.Tensor],
                      batch_queries_dict: Dict[QueryStructure, torch.Tensor],
                      batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
         # 1. 用 batch_queries_dict 将 查询 嵌入
-        all_idxs, all_feature, all_logic = [], [], []
-        all_union_idxs, all_union_feature, all_union_logic = [], [], []
+        (all_idxs, all_predict), (all_union_idxs, all_union_predict_1, all_union_predict_2) = self.batch_predict(batch_queries_dict, batch_idxs_dict)
+
+        if subsampling_weight is not None:
+            subsampling_weight = subsampling_weight[all_idxs + all_union_idxs]
+
+        # 2. 计算正例损失
+        if positive_answer is None:
+            # skip
+            positive_scores = None
+        else:
+            # 2.1 计算 一般的查询
+            if len(all_idxs) > 0:
+                # positive samples for non-union queries in this batch
+                positive_sample_regular = positive_answer[all_idxs]  # (B,)
+                positive_feature = self.entity_feature(positive_sample_regular).unsqueeze(1)  # (B, 1, d)
+                positive_scores = self.scoring_all(positive_feature, all_predict)
+            else:
+                positive_scores = torch.Tensor([]).to(self.embedding_range.device)
+
+            # 2.1 计算 并查询
+            if len(all_union_idxs) > 0:
+                # positive samples for union queries in this batch
+                positive_sample_union = positive_answer[all_union_idxs]  # (B,)
+                positive_feature = self.entity_feature(positive_sample_union).unsqueeze(1)  # (B, 1, d)
+                positive_union_scores = self.scoring_all(positive_feature, all_union_feature, all_union_logic)
+
+                batch_size = positive_union_scores.shape[0] // 2
+                positive_union_scores = positive_union_scores.view(batch_size, 2, -1)
+                positive_union_scores = torch.max(positive_union_scores, dim=1)[0]
+                positive_union_scores = positive_union_scores.view(batch_size, -1)
+            else:
+                positive_union_scores = torch.Tensor([]).to(self.embedding_range.device)
+            positive_scores = torch.cat([positive_scores, positive_union_scores], dim=0)
+
+        # 3. 计算负例损失
+        if negative_answer is None:
+            # skip
+            negative_scores = None
+        else:
+            # 3.1 计算 一般的查询
+            if len(all_idxs) > 0:
+                negative_sample_regular = negative_answer[all_idxs]  # (B, N)
+                negative_feature = self.entity_feature(negative_sample_regular)  # (B, N, d)
+                negative_scores = self.scoring_all(negative_feature, all_predict)
+            else:
+                negative_scores = torch.Tensor([]).to(self.embedding_range.device)
+
+            # 3.1 计算 并查询
+            if len(all_union_idxs) > 0:
+                negative_sample_union = negative_answer[all_union_idxs]  # (B, N)
+                negative_feature = self.entity_feature(negative_sample_union).unsqueeze(1)  # (B, 1, N, d)
+                batch_size = all_union_feature.shape[0] // 2
+                all_union_feature = all_union_feature.view(batch_size, 2, 1, -1)
+                all_union_logic = all_union_logic.view(batch_size, 2, 1, -1)
+                negative_union_scores = self.scoring_all(negative_feature, all_union_feature, all_union_logic)
+
+                negative_union_scores = negative_union_scores.view(batch_size, 2, -1)
+                negative_union_scores = torch.max(negative_union_scores, dim=1)[0]
+                negative_union_scores = negative_union_scores.view(batch_size, -1)
+            else:
+                negative_union_scores = torch.Tensor([]).to(self.embedding_range.device)
+            negative_scores = torch.cat([negative_scores, negative_union_scores], dim=0)
+
+        return positive_scores, negative_scores, subsampling_weight, all_idxs + all_union_idxs
+
+    def entity_feature(self, sample_ids):
+        entity_feature = self.entity_feature_embedding(sample_ids)
+        entity_feature = self.scale(entity_feature)
+        entity_feature = convert_to_feature(entity_feature)
+        return entity_feature
+
+    def single_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor):
+        query_name, query_args = query_structure
+        if query_name in union_query_structures:
+            # transform to DNF
+            func = self.parser.fast_function(query_name + "_DNF")
+            embedding_of_args = self.embed_args(query_args, query_tensor)
+            predict_1, predict_2 = func(*embedding_of_args)  # tuple[B x dt, B x dt]
+            return predict_1, predict_2
+        else:
+            # other query and DM are normal
+            func = self.parser.fast_function(query_name)
+            embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
+            predict = func(*embedding_of_args)  # B x dt
+            return predict
+
+    def batch_predict(self, batch_queries_dict: Dict[QueryStructure, torch.Tensor], batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
+        all_idxs, all_predict = [], []
+        all_union_idxs, all_union_predict_1, all_union_predict_2 = [], [], []
 
         for query_structure in batch_queries_dict:
             query_name, query_args = query_structure
@@ -589,98 +679,29 @@ class FLEX(nn.Module):
                 # transform to DNF
                 func = self.parser.fast_function(query_name + "_DNF")
                 embedding_of_args = self.embed_args(query_args, query_tensor)
-                predict = func(*embedding_of_args) # tuple[B x dt, B x dt]
+                predict_1, predict_2 = func(*embedding_of_args)  # tuple[B x dt, B x dt]
+                all_union_predict_1.append(predict_1)
+                all_union_predict_2.append(predict_2)
                 all_union_idxs.extend(query_idxs)
             else:
-                # DM remains
+                # other query and DM are normal
                 func = self.parser.fast_function(query_name)
-                embedding_of_args = self.embed_args(query_args, query_tensor) # [B x dt]*L
-                predict = func(*embedding_of_args) # B x dt
+                embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
+                predict = func(*embedding_of_args)  # B x dt
+                all_predict.append(predict)
                 all_idxs.extend(query_idxs)
-
-        if len(all_feature) > 0:
-            all_feature = torch.cat(all_feature, dim=0)  # (B, d)
-            all_logic = torch.cat(all_logic, dim=0)  # (B, d)
-        if len(all_union_feature) > 0:
-            all_union_feature = torch.cat(all_union_feature, dim=0)  # (2B, d)
-            all_union_logic = torch.cat(all_union_logic, dim=0)  # (2B, d)
-        if type(subsampling_weight) != type(None):
-            subsampling_weight = subsampling_weight[all_idxs + all_union_idxs]
-
-        # 2. 计算正例损失
-        if type(positive_sample) != type(None):
-            # 2.1 计算 一般的查询
-            if len(all_feature) > 0:
-                # positive samples for non-union queries in this batch
-                positive_sample_regular = positive_sample[all_idxs]  # (B,)
-                positive_feature = self.entity_feature(positive_sample_regular).unsqueeze(1)  # (B, 1, d)
-                positive_scores = self.scoring_all(positive_feature, all_feature, all_logic)
-            else:
-                positive_scores = torch.Tensor([]).to(self.embedding_range.device)
-
-            # 2.1 计算 并查询
-            if len(all_union_feature) > 0:
-                # positive samples for union queries in this batch
-                positive_sample_union = positive_sample[all_union_idxs]  # (B,)
-                positive_feature = self.entity_feature(positive_sample_union).unsqueeze(1)  # (B, 1, d)
-                positive_union_scores = self.scoring_all(positive_feature, all_union_feature, all_union_logic)
-
-                batch_size = positive_union_scores.shape[0] // 2
-                positive_union_scores = positive_union_scores.view(batch_size, 2, -1)
-                positive_union_scores = torch.max(positive_union_scores, dim=1)[0]
-                positive_union_scores = positive_union_scores.view(batch_size, -1)
-            else:
-                positive_union_scores = torch.Tensor([]).to(self.embedding_range.device)
-            positive_scores = torch.cat([positive_scores, positive_union_scores], dim=0)
-        else:
-            positive_scores = None
-
-        # 3. 计算负例损失
-        if type(negative_sample) != type(None):
-            # 3.1 计算 一般的查询
-            if len(all_feature) > 0:
-                negative_sample_regular = negative_sample[all_idxs]  # (B, N)
-                negative_feature = self.entity_feature(negative_sample_regular)  # (B, N, d)
-                negative_scores = self.scoring_all(negative_feature, all_feature, all_logic)
-            else:
-                negative_scores = torch.Tensor([]).to(self.embedding_range.device)
-
-            # 3.1 计算 并查询
-            if len(all_union_feature) > 0:
-                negative_sample_union = negative_sample[all_union_idxs]  # (B, N)
-                negative_feature = self.entity_feature(negative_sample_union).unsqueeze(1)  # (B, 1, N, d)
-                batch_size = all_union_feature.shape[0] // 2
-                all_union_feature = all_union_feature.view(batch_size, 2, 1, -1)
-                all_union_logic = all_union_logic.view(batch_size, 2, 1, -1)
-                negative_union_scores = self.scoring_all(negative_feature, all_union_feature, all_union_logic)
-
-                negative_union_scores = negative_union_scores.view(batch_size, 2, -1)
-                negative_union_scores = torch.max(negative_union_scores, dim=1)[0]
-                negative_union_scores = negative_union_scores.view(batch_size, -1)
-            else:
-                negative_union_scores = torch.Tensor([]).to(self.embedding_range.device)
-            negative_scores = torch.cat([negative_scores, negative_union_scores], dim=0)
-        else:
-            negative_scores = None
-
-        return positive_scores, negative_scores, subsampling_weight, all_idxs + all_union_idxs
-
-    def entity_feature(self, sample_ids):
-        entity_feature = self.entity_feature_embedding(sample_ids)
-        entity_feature = self.scale(entity_feature)
-        entity_feature = convert_to_feature(entity_feature)
-        return entity_feature
-
-    def single_forward(self, query_structure: QueryStructure, queries: torch.Tensor, positive_sample: torch.Tensor, negative_sample: torch.Tensor):
-        feature, logic, _ = self.embed_query(queries, query_structure, 0)
-        positive_score = self.scoring_all(self.entity_feature(positive_sample), feature, logic)
-        negative_score = self.scoring_all(self.entity_feature(negative_sample), feature, logic)
-        return positive_score, negative_score
+        if len(all_idxs) > 0:
+            all_predict = map(lambda predict_tensor: torch.cat(predict_tensor, dim=0), all_predict)  # (B, d) * 5
+        if len(all_union_idxs) > 0:
+            all_union_predict_1 = map(lambda predict_tensor: torch.cat(predict_tensor, dim=0), all_union_predict_1)  # (B, d) * 5
+            all_union_predict_2 = map(lambda predict_tensor: torch.cat(predict_tensor, dim=0), all_union_predict_2)  # (B, d) * 5
+        return (all_idxs, all_predict), (all_union_idxs, all_union_predict_1, all_union_predict_2)
 
     def batch_forward(self, batch_queries_dict: Dict[QueryStructure, torch.Tensor], batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
         # 1. 用 batch_queries_dict 将查询嵌入（编码后的状态）
         all_idxs, all_feature, all_logic = [], [], []
         all_union_idxs, all_union_feature, all_union_logic = [], [], []
+        feature = None
         for query_structure in batch_queries_dict:
             # 用字典重新组织了嵌入，一个批次(BxL)只对应一种结构
             pass
@@ -1170,4 +1191,29 @@ def main(data_home, dataset, name,
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    max_id = 20
+    entity_count = max_id
+    relation_count = max_id
+    timestamp_count = max_id
+    hidden_dim = 10
+    gamma = 10
+    center_reg = 0.02
+    test_batch_size = 1
+    input_dropout = 0.1
+    model = FLEX(
+        nentity=entity_count,
+        nrelation=relation_count,
+        ntimestamp=timestamp_count,
+        hidden_dim=hidden_dim,
+        gamma=gamma,
+        center_reg=center_reg,
+        test_batch_size=test_batch_size,
+        drop=input_dropout,
+    )
+    B = 8
+    query_args = ["e1", "r1", "t1", "e2", "r2", "t2", "r3", "t3"]
+    query_structure = ("Pe_e2u", query_args)
+    query_tensor = torch.randint(0, max_id, (B, len(query_args)))
+    predict = model.single_predict(query_structure, query_tensor)
+    print(predict)

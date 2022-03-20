@@ -114,6 +114,8 @@ class BasicParser(Interpreter):
         functions = dict(**neural_ops, **alias, **predefine)
         super().__init__(usersyms=dict(**variables, **functions))
         self.func_cache = {}
+        for _, qs in query_structures.items():
+            self.eval(qs)
 
     def fast_function(self, func_name):
         if func_name in self.func_cache:
@@ -556,8 +558,6 @@ class SamplingParser(BasicParser):
         # Pe_t2i_PtPe_NPt 在 train 中有答案，在 test 中没有答案
         # 已解决：test中无答案则重新抽取
         super().__init__(variables=variables, neural_ops=dict(**neural_ops, **self.fast_ops))
-        for _, qs in query_structures.items():
-            self.eval(qs)
 
 
 class NeuralParser(BasicParser):
