@@ -582,11 +582,11 @@ class FLEX(nn.Module):
         if subsampling_weight is not None:
             subsampling_weight = subsampling_weight[all_idxs + all_union_idxs]
 
+        positive_scores = None
+        negative_scores = None
+
         # 2. 计算正例损失
-        if positive_answer is None:
-            # skip
-            positive_scores = None
-        else:
+        if positive_answer is not None:
             # 2.1 计算 一般的查询
             if len(all_idxs) > 0:
                 # positive samples for non-union queries in this batch
@@ -612,10 +612,7 @@ class FLEX(nn.Module):
             positive_scores = torch.cat([positive_scores, positive_union_scores], dim=0)
 
         # 3. 计算负例损失
-        if negative_answer is None:
-            # skip
-            negative_scores = None
-        else:
+        if negative_answer is not None:
             # 3.1 计算 一般的查询
             if len(all_idxs) > 0:
                 negative_sample_regular = negative_answer[all_idxs]  # (B, N)
