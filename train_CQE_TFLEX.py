@@ -606,6 +606,7 @@ class FLEX(nn.Module):
             scores_t = self.scoring_to_answers(all_idxs_t, positive_answer, all_predict_t, predict_entity=False, DNF_predict=False)
             scores_union_e = self.scoring_to_answers(all_union_idxs_e, positive_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
             scores_union_t = self.scoring_to_answers(all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
+            print([i.shape for i in [scores_e, scores_t, scores_union_e, scores_union_t]])
             positive_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
         # 3. 计算负例损失
@@ -614,6 +615,7 @@ class FLEX(nn.Module):
             scores_t = self.scoring_to_answers(all_idxs_t, negative_answer, all_predict_t, predict_entity=False, DNF_predict=False)
             scores_union_e = self.scoring_to_answers(all_union_idxs_e, negative_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
             scores_union_t = self.scoring_to_answers(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
+            print([i.shape for i in [scores_e, scores_t, scores_union_e, scores_union_t]])
             negative_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
         return positive_scores, negative_scores, subsampling_weight, all_idxs
@@ -747,9 +749,9 @@ class FLEX(nn.Module):
 
     def distance_between_entity_and_query(self, entity_feature, query_feature, query_logic):
         """
-        entity_feature (B, E, d)
-        query_feature  (B, 1, d)
-        query_logic    (B, 1, d)
+        entity_feature (B, 1, N, d)
+        query_feature  (B, 1, 1, dt) or (B, 2, 1, dt)
+        query_logic    (B, 1, 1, dt) or (B, 2, 1, dt)
         query    =                 [(feature - logic) | feature | (feature + logic)]
         entity   = entity_feature            |             |               |
                          |                   |             |               |
