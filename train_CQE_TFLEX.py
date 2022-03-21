@@ -5,7 +5,7 @@
 @description: null
 """
 from collections import defaultdict
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Union
 
 import click
 import torch
@@ -579,6 +579,25 @@ class FLEX(nn.Module):
             embedding_of_args.append(token_embedding)
         return tuple(embedding_of_args)
 
+    def cat_to_tensor(self, token_list: List[TYPE_token]) -> TYPE_token:
+        feature = []
+        logic = []
+        time_feature = []
+        time_logic = []
+        time_density = []
+        for x in token_list:
+            feature.append(x[0])
+            logic.append(x[1])
+            time_feature.append(x[2])
+            time_logic.append(x[3])
+            time_density.append(x[4])
+        feature = torch.cat(feature, dim=0).unsqueeze(1)
+        logic = torch.cat(logic, dim=0).unsqueeze(1)
+        time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
+        time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
+        time_density = torch.cat(time_density, dim=0).unsqueeze(1)
+        return feature, logic, time_feature, time_logic, time_density
+
     def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
         return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
 
@@ -603,23 +622,23 @@ class FLEX(nn.Module):
 
         # 2. 计算正例损失
         if positive_answer is not None:
-            scores_e = self.scoring_to_answers(all_idxs_e, positive_answer, all_predict_e, predict_entity=True, DNF_predict=False)
-            scores_t = self.scoring_to_answers(all_idxs_t, positive_answer, all_predict_t, predict_entity=False, DNF_predict=False)
-            scores_union_e = self.scoring_to_answers(all_union_idxs_e, positive_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
-            scores_union_t = self.scoring_to_answers(all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
+            scores_e = self.scoring_to_answers_by_idxs(all_idxs_e, positive_answer, all_predict_e, predict_entity=True, DNF_predict=False)
+            scores_t = self.scoring_to_answers_by_idxs(all_idxs_t, positive_answer, all_predict_t, predict_entity=False, DNF_predict=False)
+            scores_union_e = self.scoring_to_answers_by_idxs(all_union_idxs_e, positive_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
+            scores_union_t = self.scoring_to_answers_by_idxs(all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             positive_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
         # 3. 计算负例损失
         if negative_answer is not None:
-            scores_e = self.scoring_to_answers(all_idxs_e, negative_answer, all_predict_e, predict_entity=True, DNF_predict=False)
-            scores_t = self.scoring_to_answers(all_idxs_t, negative_answer, all_predict_t, predict_entity=False, DNF_predict=False)
-            scores_union_e = self.scoring_to_answers(all_union_idxs_e, negative_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
-            scores_union_t = self.scoring_to_answers(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
+            scores_e = self.scoring_to_answers_by_idxs(all_idxs_e, negative_answer, all_predict_e, predict_entity=True, DNF_predict=False)
+            scores_t = self.scoring_to_answers_by_idxs(all_idxs_t, negative_answer, all_predict_t, predict_entity=False, DNF_predict=False)
+            scores_union_e = self.scoring_to_answers_by_idxs(all_union_idxs_e, negative_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
+            scores_union_t = self.scoring_to_answers_by_idxs(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             negative_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
         return positive_scores, negative_scores, subsampling_weight, all_idxs
 
-    def single_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor):
+    def single_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor) -> Union[TYPE_token, Tuple[TYPE_token, TYPE_token]]:
         query_name, query_args = query_structure
         if query_contains_union_and_we_should_use_DNF(query_name):
             # transform to DNF
@@ -676,13 +695,13 @@ class FLEX(nn.Module):
                     all_predict_t.append(predict)
                     all_idxs_t.extend(query_idxs)
 
-        def cat_to_tensor(predict_tensor_list: List[TYPE_token]) -> TYPE_token:
+        def cat_to_tensor(token_list: List[TYPE_token]) -> TYPE_token:
             feature = []
             logic = []
             time_feature = []
             time_logic = []
             time_density = []
-            for x in predict_tensor_list:
+            for x in token_list:
                 feature.append(x[0])
                 logic.append(x[1])
                 time_feature.append(x[2])
@@ -712,11 +731,51 @@ class FLEX(nn.Module):
                (all_union_idxs_e, all_union_predict_e), \
                (all_union_idxs_t, all_union_predict_t)
 
-    def scoring_to_answers(self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
+    def grouped_predict(self, grouped_query: Dict[QueryStructure, torch.Tensor], grouped_answer: Dict[QueryStructure, torch.Tensor]) -> Dict[QueryStructure, torch.Tensor]:
+        """
+        return {"Pe": (B, L) }
+        L 是答案个数，预测实体和预测时间戳 的答案个数不一样，所以不能对齐合并
+        不同结构的 L 不同
+        一般用于valid/test，不用于train
+        """
+        grouped_score = {}
+
+        for query_structure in grouped_query:
+            query_name = query_structure
+            query_args = self.parser.fast_args(query_name)
+            query_tensor = grouped_query[query_structure]  # BxL, B for batch size, L for query args length
+            answer = grouped_answer[query_structure]
+            # query_idxs is of shape Bx1.
+            # each element indicates global index of each row in query_tensor.
+            # global index means the index in sample from dataloader.
+            # the sample is grouped by query name and leads to query_tensor here.
+            if query_contains_union_and_we_should_use_DNF(query_name):
+                # transform to DNF
+                func = self.parser.fast_function(query_name + "_DNF")
+                embedding_of_args = self.embed_args(query_args, query_tensor)
+                predict_1, predict_2 = func(*embedding_of_args)  # tuple[B x dt, B x dt]
+                all_union_predict: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
+                if is_to_predict_entity_set(query_name):
+                    grouped_score[query_name] = self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
+                else:
+                    grouped_score[query_name] = self.scoring_to_answers(answer, all_union_predict, predict_entity=False, DNF_predict=True)
+            else:
+                # other query and DM are normal
+                func = self.parser.fast_function(query_name)
+                embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
+                predict = func(*embedding_of_args)  # B x dt
+                if is_to_predict_entity_set(query_name):
+                    grouped_score[query_name] = self.scoring_to_answers(answer, predict, predict_entity=True, DNF_predict=False)
+                else:
+                    grouped_score[query_name] = self.scoring_to_answers(answer, predict, predict_entity=False, DNF_predict=False)
+
+        return grouped_score
+
+    def scoring_to_answers_by_idxs(self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
         """
         B for batch size
         N for negative sampling size (maybe N=1 when positive samples only)
-        all_answer_idxs: (B, N) int
+        all_answer_idxs: (B, ) or (B, N) int
         all_predict:     (B, 1, dt) or (B, 2, dt) float
         return score:    (B, N) float
         """
@@ -724,6 +783,16 @@ class FLEX(nn.Module):
             return torch.Tensor([]).to(self.embedding_range.device)
         answer_ids = answer[all_idxs]
         answer_ids = answer_ids.view(answer_ids.shape[0], -1)
+        return self.scoring_to_answers(answer_ids, q, predict_entity, DNF_predict)
+
+    def scoring_to_answers(self, answer_ids: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
+        """
+        B for batch size
+        N for negative sampling size (maybe N=1 when positive samples only)
+        answer_ids:   (B, N) int
+        all_predict:  (B, 1, dt) or (B, 2, dt) float
+        return score: (B, N) float
+        """
         q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
         if predict_entity:
             feature = self.entity_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
@@ -1041,7 +1110,7 @@ class MyExperiment(Experiment):
                 grouped_query[key] = grouped_query[key].to(device)
                 grouped_candidate_answer[key] = grouped_candidate_answer[key].to(device)
 
-            _, negative_logit, _, idxs = model(None, candidate_answer, None, grouped_query, grouped_idxs)
+            grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
             queries_unflatten = [query_name_list[i] for i in idxs]
             easy_answer_reorder = [easy_answer[i] for i in idxs]
             hard_answer_reorder = [hard_answer[i] for i in idxs]
