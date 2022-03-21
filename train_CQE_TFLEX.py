@@ -729,6 +729,7 @@ class FLEX(nn.Module):
         if len(all_idxs) <= 0:
             return torch.Tensor([]).to(self.embedding_range.device)
         answer_ids = answer[all_idxs]
+        answer_ids = answer_ids.view(answer_ids.shape[0], -1)
         print()
         print("scoring_to_answers")
         print(answer_ids.shape)
