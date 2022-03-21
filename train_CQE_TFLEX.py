@@ -435,20 +435,20 @@ class FLEX(nn.Module):
             feature, logic, time_feature, time_logic, time_density = q
             return self.time_negation(feature, logic, time_feature, time_logic, time_density)
 
-        def EntityProjection2(s, r, t):
-            s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = s
-            r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r
-            t_feature, t_logic, t_time_feature, t_time_logic, t_time_density = t
+        def EntityProjection2(e1, r1, t1):
+            s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = e1
+            r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
+            t_feature, t_logic, t_time_feature, t_time_logic, t_time_density = t1
             return self.entity_projection(
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density
             )
 
-        def TimeProjection2(s, r, o):
-            s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = s
-            r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r
-            o_feature, o_logic, o_time_feature, o_time_logic, o_time_density = o
+        def TimeProjection2(e1, r1, e2):
+            s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = e1
+            r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
+            o_feature, o_logic, o_time_feature, o_time_logic, o_time_density = e2
             return self.entity_projection(
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
