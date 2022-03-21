@@ -552,10 +552,10 @@ class SamplingParser(BasicParser):
         def fast_e2i_NPe(e1, r1, t1, r2, t2, e2, r3, t3):
             # return And(Not(Pe(Pe(e1, r1, t1), r2, t2)), Pe(e2, r3, t3))
             o = random.choice(list(o_srt.keys()))
-            choices = list(all_entity_ids - {o})
-            not_o = random.choice(choices)
+            not_o = random.choice(list(set(all_entity_ids - {o}) & set(o_srt.keys())))
             while not_o not in o_srt:
-                not_o = random.choice(choices)
+                o = random.choice(list(o_srt.keys()))
+                not_o = random.choice(list(set(all_entity_ids - {o}) & set(o_srt.keys())))
             right_o_ids = fast_Pe_targeted(e2, r3, t3, target=o)
             left_o_ids = fast_Pe2_targeted(e1, r1, t1, r2, t2, target=not_o)
             return FixedQuery(answers=left_o_ids & right_o_ids)
