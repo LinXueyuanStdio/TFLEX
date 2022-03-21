@@ -136,11 +136,11 @@ class TestDataset(Dataset):
             for key in batch_queries_idx_dict
         }
         grouped_candidate_answer: Dict[str, torch.Tensor] = {
-            key: torch.cat(batch_candidate_answer_dict[key], dim=0)
+            key: torch.stack(batch_candidate_answer_dict[key], dim=0)
             for key in batch_candidate_answer_dict
         }
         grouped_easy_answer: Dict[str, torch.Tensor] = {
-            key: torch.cat(grouped_easy_answer_dict[key], dim=0)
+            key: torch.stack(grouped_easy_answer_dict[key], dim=0)
             for key in grouped_easy_answer_dict
         }
         return grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer_dict
