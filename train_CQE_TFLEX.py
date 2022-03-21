@@ -765,6 +765,8 @@ class FLEX(nn.Module):
         d_right  = entity_feature -                               (feature + logic)
                          |<----------------------------------------------->|
         """
+        print("entity_feature", entity_feature.shape)
+        print("query_feature", query_feature.shape)
         d_center = entity_feature - query_feature
         d_left = entity_feature - (query_feature - query_logic)
         d_right = entity_feature - (query_feature + query_logic)
