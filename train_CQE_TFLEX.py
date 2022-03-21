@@ -768,6 +768,9 @@ class FLEX(nn.Module):
         d_center = entity_feature - query_feature
         d_left = entity_feature - (query_feature - query_logic)
         d_right = entity_feature - (query_feature + query_logic)
+        print("d_center", d_center.shape)
+        print("d_left", d_left.shape)
+        print("d_right", d_right.shape)
 
         # inner distance
         feature_distance = torch.abs(d_center)
@@ -776,7 +779,10 @@ class FLEX(nn.Module):
         outer_distance = torch.min(torch.abs(d_left), torch.abs(d_right))
         outer_distance[feature_distance < query_logic] = 0.  # if entity is inside, we don't care about outer.
 
+        print("outer_distance", outer_distance.shape)
+        print("inner_distance", inner_distance.shape)
         distance = torch.norm(outer_distance, p=1, dim=-1) + self.cen * torch.norm(inner_distance, p=1, dim=-1)
+        print("distance", distance.shape)
         return distance
 
     def distance_between_timestamp_and_query(self, timestamp_feature, time_feature, time_logic, time_density):
