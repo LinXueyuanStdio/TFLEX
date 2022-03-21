@@ -691,6 +691,7 @@ class FLEX(nn.Module):
                 time_logic.append(x[3])
                 time_density.append(x[4])
             feature = torch.cat(feature, dim=0).unsqueeze(1)
+            print(feature.shape)
             logic = torch.cat(logic, dim=0).unsqueeze(1)
             time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
             time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
@@ -698,17 +699,17 @@ class FLEX(nn.Module):
             return feature, logic, time_feature, time_logic, time_density
 
         if len(all_idxs_e) > 0:
-            all_predict_e = cat_to_tensor(all_predict_e)  # (B, d) * 5
+            all_predict_e = cat_to_tensor(all_predict_e)  # (B, 1, d) * 5
         if len(all_idxs_t) > 0:
-            all_predict_t = cat_to_tensor(all_predict_t)  # (B, d) * 5
+            all_predict_t = cat_to_tensor(all_predict_t)  # (B, 1, d) * 5
         if len(all_union_idxs_e) > 0:
-            all_union_predict_1_e = cat_to_tensor(all_union_predict_1_e)  # (B, d) * 5
-            all_union_predict_2_e = cat_to_tensor(all_union_predict_2_e)  # (B, d) * 5
-            all_union_predict_e: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_e, all_union_predict_2_e)])
+            all_union_predict_1_e = cat_to_tensor(all_union_predict_1_e)  # (B, 1, d) * 5
+            all_union_predict_2_e = cat_to_tensor(all_union_predict_2_e)  # (B, 1, d) * 5
+            all_union_predict_e: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_e, all_union_predict_2_e)]) # (B, 2, d) * 5
         if len(all_union_idxs_t) > 0:
-            all_union_predict_1_t = cat_to_tensor(all_union_predict_1_t)  # (B, d) * 5
-            all_union_predict_2_t = cat_to_tensor(all_union_predict_2_t)  # (B, d) * 5
-            all_union_predict_t: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_t, all_union_predict_2_t)])
+            all_union_predict_1_t = cat_to_tensor(all_union_predict_1_t)  # (B, 1, d) * 5
+            all_union_predict_2_t = cat_to_tensor(all_union_predict_2_t)  # (B, 1, d) * 5
+            all_union_predict_t: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_t, all_union_predict_2_t)]) # (B, 2, d) * 5
         return (all_idxs_e, all_predict_e), \
                (all_idxs_t, all_predict_t), \
                (all_union_idxs_e, all_union_predict_e), \
@@ -725,6 +726,9 @@ class FLEX(nn.Module):
         if len(all_idxs) <= 0:
             return torch.Tensor([]).to(self.embedding_range.device)
         answer_ids = answer[all_idxs]
+        print()
+        print("scoring_to_answers")
+        print(answer_ids.shape)
         q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
         print(type(q), len(q), [i.shape for i in q])
         if predict_entity:
