@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ComplexTemporalQueryData import TYPE_train_queries_answers, TYPE_test_queries_answers
-
+from copy import deepcopy
 
 def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[int], Set[int]]]:
     res = []
@@ -25,7 +25,7 @@ def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str
 
 class TrainDataset(Dataset):
     def __init__(self, queries_answers: TYPE_train_queries_answers, nentity: int, nrelation: int, negative_sample_size: int):
-        self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers).copy()
+        self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.nentity: int = nentity
@@ -37,7 +37,7 @@ class TrainDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        query_name, query, answer = self.all_data[idx]
+        query_name, query, answer = deepcopy(self.all_data[idx])
         tail = np.random.choice(list(answer))  # select one answer
         subsampling_weight = self.count[query_name]  # answer count of query
         subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
@@ -115,5 +115,7 @@ class TestDataset(Dataset):
         candidate_answer, query_name, query, easy_answer, hard_answer = tuple(zip(*data))
         query_name = list(query_name)
         query = list(query)
+        easy_answer = list(easy_answer)
+        hard_answer = list(hard_answer)
         candidate_answer = torch.stack(candidate_answer, dim=0)
         return candidate_answer, query_name, query, easy_answer, hard_answer
