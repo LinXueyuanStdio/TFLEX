@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 import expression
 from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
-from expression.ParamSchema import is_entity, is_relation, is_timestamp, get_param_name_list
+from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
@@ -560,7 +560,7 @@ class FLEX(nn.Module):
         time_density = torch.zeros_like(feature).to(feature.device)
         return feature, logic, time_feature, time_logic, time_density
 
-    def embed_args(self, query_args: List[str], query_tensor: torch.Tensor):
+    def embed_args(self, query_args: List[str], query_tensor: torch.Tensor) -> TYPE_token:
         print(query_args, len(query_args), query_tensor.shape)
         embedding_of_args = []
         for i in range(len(query_args)):
@@ -576,7 +576,7 @@ class FLEX(nn.Module):
             else:
                 raise Exception("Unknown Args %s" % arg_name)
             embedding_of_args.append(token_embedding)
-        return embedding_of_args
+        return tuple([i for i in zip(*embedding_of_args)])
 
     def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
         return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
@@ -668,7 +668,9 @@ class FLEX(nn.Module):
                 # other query and DM are normal
                 func = self.parser.fast_function(query_name)
                 embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
+                print("embedding_of_args", [i.shape for i in embedding_of_args])
                 predict = func(*embedding_of_args)  # B x dt
+                print("predict", predict.shape)
                 if is_to_predict_entity_set(query_name):
                     all_predict_e.extend(predict)
                     all_idxs_e.extend(query_idxs)
@@ -696,7 +698,7 @@ class FLEX(nn.Module):
                (all_union_idxs_e, all_union_predict_e), \
                (all_union_idxs_t, all_union_predict_t)
 
-    def scoring_to_answers(self, all_idxs, answer:torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
+    def scoring_to_answers(self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
         """
         B for batch size
         N for negative sampling size (maybe N=1 when positive samples only)
@@ -708,8 +710,7 @@ class FLEX(nn.Module):
             return torch.Tensor([]).to(self.embedding_range.device)
         answer_ids = answer[all_idxs]
         q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
-        for i in q:
-            print(i.shape)
+        print(type(q), len(q), [i.shape for i in q])
         if predict_entity:
             feature = self.entity_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
             scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
@@ -882,7 +883,7 @@ class MyExperiment(Experiment):
         # 2. build model
         model = FLEX(
             nentity=entity_count,
-            nrelation=relation_count + max_relation_id, # with reverse relations
+            nrelation=relation_count + max_relation_id,  # with reverse relations
             ntimestamp=timestamp_count,
             hidden_dim=hidden_dim,
             gamma=gamma,
