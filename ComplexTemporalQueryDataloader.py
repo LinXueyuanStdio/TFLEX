@@ -116,7 +116,7 @@ class TestDataset(Dataset):
         candidate_answer = torch.LongTensor(range(answer_range))
         easy_answer_vector = torch.zeros(answer_range)
         if len(easy_answer) > 0:
-            easy_answer_vector[easy_answer] = 1
+            easy_answer_vector[list(easy_answer)] = 1
         easy_answer_mask = easy_answer_vector == 1
         return query_name, query, candidate_answer, easy_answer_mask, hard_answer
 
