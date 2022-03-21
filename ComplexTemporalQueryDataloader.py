@@ -25,7 +25,7 @@ def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str
 
 class TrainDataset(Dataset):
     def __init__(self, queries_answers: TYPE_train_queries_answers, nentity: int, nrelation: int, negative_sample_size: int):
-        self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers)
+        self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers).copy()
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.nentity: int = nentity
@@ -65,7 +65,6 @@ class TrainDataset(Dataset):
     @staticmethod
     def collate_fn(data):
         query_name, query, positive_answer, negative_answer, subsampling_weight = tuple(zip(*data))
-        query = [torch.LongTensor(x) for x in query]
         positive_answer = torch.cat(positive_answer, dim=0)
         negative_answer = torch.stack(negative_answer, dim=0)
         subsampling_weight = torch.cat(subsampling_weight, dim=0)
@@ -101,6 +100,7 @@ class TestDataset(Dataset):
 
     def __getitem__(self, idx):
         query_name, query, easy_answer, hard_answer = self.all_data[idx]
+        query = torch.LongTensor(query)  # (N,)
         candidate_answer = torch.LongTensor(range(self.nentity))
         hard_answer = set(hard_answer) - set(easy_answer)
         return candidate_answer, query_name, query, easy_answer, hard_answer
@@ -108,6 +108,5 @@ class TestDataset(Dataset):
     @staticmethod
     def collate_fn(data):
         candidate_answer, query_name, query, easy_answer, hard_answer = tuple(zip(*data))
-        query = [torch.LongTensor(x) for x in query]
         candidate_answer = torch.stack(candidate_answer, dim=0)
         return candidate_answer, query_name, query, easy_answer, hard_answer

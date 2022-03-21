@@ -225,8 +225,7 @@ class Interpreter:
     def unimplemented(self, node):
         """Unimplemented nodes."""
         self.raise_exception(node, exc=NotImplementedError,
-                             msg="'%s' not supported" %
-                                 (node.__class__.__name__))
+                             msg="'%s' not supported" % node.__class__.__name__)
 
     def raise_exception(self, node, exc=None, msg='', expr=None,
                         lineno=None):
@@ -241,7 +240,7 @@ class Interpreter:
         self._interrupt = ast.Raise()
         self.error.append(err)
         if self.error_msg is None:
-            self.error_msg = "at expr='%s'" % (self.expr)
+            self.error_msg = "at expr='%s'" % self.expr
         elif len(msg) > 0:
             self.error_msg = msg
         if exc is None:
