@@ -134,9 +134,9 @@ class TimeProjection(nn.Module):
         return feature, logic, time_feature, time_logic, time_density
 
 
-class Intersection(nn.Module):
+class EntityIntersection(nn.Module):
     def __init__(self, dim):
-        super(Intersection, self).__init__()
+        super(EntityIntersection, self).__init__()
         self.dim = dim
         self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
         self.feature_layer_2 = nn.Linear(self.dim, self.dim)
@@ -196,9 +196,9 @@ class TemporalIntersection(nn.Module):
         return feature, logic, time_feature, time_logic, time_density
 
 
-class Negation(nn.Module):
+class EntityNegation(nn.Module):
     def __init__(self):
-        super(Negation, self).__init__()
+        super(EntityNegation, self).__init__()
 
     def neg_feature(self, feature):
         # f,f' in [-L, L]
@@ -291,9 +291,9 @@ class TemporalNext(nn.Module):
         return feature, logic, time_feature, time_logic, time_density
 
 
-class Union(nn.Module):
+class EntityUnion(nn.Module):
     def __init__(self, dim):
-        super(Union, self).__init__()
+        super(EntityUnion, self).__init__()
         self.dim = dim
         self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
         self.feature_layer_2 = nn.Linear(self.dim, self.dim)
@@ -377,14 +377,17 @@ class FLEX(nn.Module):
         self.relation_time_density_embedding = nn.Embedding(nrelation, self.relation_dim)
 
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
-        self.entity_intersection = Intersection(hidden_dim)
-        self.entity_union = Union(hidden_dim)
-        self.entity_negation = Negation()
+        self.entity_intersection = EntityIntersection(hidden_dim)
+        self.entity_union = EntityUnion(hidden_dim)
+        self.entity_negation = EntityNegation()
 
         self.time_projection = TimeProjection(hidden_dim, drop=drop)
         self.time_intersection = TemporalIntersection(hidden_dim)
         self.time_union = TemporalUnion(hidden_dim)
         self.time_negation = TemporalNegation()
+        self.time_before = TemporalBefore()
+        self.time_after = TemporalAfter()
+        self.time_next = TemporalNext()
 
         self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
         self.epsilon = 2.0
