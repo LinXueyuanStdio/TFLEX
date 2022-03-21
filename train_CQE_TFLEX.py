@@ -1017,7 +1017,7 @@ class MyExperiment(Experiment):
 
         batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
         for key in batch_queries_dict:
-            batch_queries_dict[key] = torch.LongTensor(batch_queries_dict[key]).to(device)
+            batch_queries_dict[key] = batch_queries_dict[key].to(device)
         positive_answer = positive_answer.to(device)
         negative_answer = negative_answer.to(device)
         subsampling_weight = subsampling_weight.to(device)
@@ -1050,7 +1050,7 @@ class MyExperiment(Experiment):
         h10 = None
         for query_name, batch_queries_dict, batch_idxs_dict, candidate_answer, easy_answer, hard_answer in test_dataloader:
             for key in batch_queries_dict:
-                batch_queries_dict[key] = torch.LongTensor(batch_queries_dict[key]).to(device)
+                batch_queries_dict[key] = batch_queries_dict[key].to(device)
             candidate_answer = candidate_answer.to(device)
 
             _, negative_logit, _, idxs = model(None, candidate_answer, None, batch_queries_dict, batch_idxs_dict)

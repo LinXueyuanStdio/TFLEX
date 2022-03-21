@@ -4,9 +4,7 @@
 @date: 2022/3/16
 @description: null
 """
-import random
 from collections import defaultdict
-from copy import deepcopy
 from typing import List, Set, Tuple, Dict
 
 import numpy as np
@@ -29,7 +27,6 @@ def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str
 class TrainDataset(Dataset):
     def __init__(self, queries_answers: TYPE_train_queries_answers, entity_count: int, timestamps_count: int, negative_sample_size: int):
         self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers)
-        random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.entity_count: int = entity_count
         self.timestamps_count: int = timestamps_count
@@ -40,7 +37,7 @@ class TrainDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        query_name, query, answer = deepcopy(self.all_data[idx])
+        query_name, query, answer = self.all_data[idx]
         tail = np.random.choice(list(answer))  # select one answer
         subsampling_weight = self.count[query_name]  # answer count of query
         subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
@@ -71,11 +68,12 @@ class TrainDataset(Dataset):
         positive_answer = torch.cat([_[2] for _ in data], dim=0)
         negative_answer = torch.stack([_[3] for _ in data], dim=0)
         subsampling_weight = torch.cat([_[4] for _ in data], dim=0)
-        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        batch_queries_idx_dict: Dict[str, List[List[int]]] = defaultdict(list)
         batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
         for i, (query_name, query, _, _, _) in enumerate(data):
-            batch_queries_dict[query_name].append(query)
+            batch_queries_idx_dict[query_name].append(query)
             batch_idxs_dict[query_name].append(i)
+        batch_queries_dict: Dict[str, torch.Tensor] = {key: torch.LongTensor(batch_queries_idx_dict[key]) for key in batch_queries_idx_dict}
         return batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
@@ -98,7 +96,6 @@ def flatten_test(queries_answers: TYPE_test_queries_answers) -> List[Tuple[str, 
 class TestDataset(Dataset):
     def __init__(self, queries_answers: TYPE_test_queries_answers, entity_count: int, timestamps_count: int):
         self.all_data: List[Tuple[str, List[int], Set[int], Set[int]]] = flatten_test(queries_answers)
-        random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.entity_count: int = entity_count
         self.timestamps_count: int = timestamps_count
@@ -122,9 +119,10 @@ class TestDataset(Dataset):
         candidate_answer = torch.stack([_[2] for _ in data], dim=0)
         easy_answer = [_[3] for _ in data]
         hard_answer = [_[4] for _ in data]
-        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        batch_queries_idx_dict: Dict[str, List[List[int]]] = defaultdict(list)
         batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
         for i, (query_name, query, _, _, _) in enumerate(data):
-            batch_queries_dict[query_name].append(query)
+            batch_queries_idx_dict[query_name].append(query)
             batch_idxs_dict[query_name].append(i)
+        batch_queries_dict: Dict[str, torch.Tensor] = {key: torch.LongTensor(batch_queries_idx_dict[key]) for key in batch_queries_idx_dict}
         return query_name_list, batch_queries_dict, batch_idxs_dict, candidate_answer, easy_answer, hard_answer
