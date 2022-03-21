@@ -690,6 +690,7 @@ class FLEX(nn.Module):
                 time_feature.append(x[2])
                 time_logic.append(x[3])
                 time_density.append(x[4])
+            print([i.shape for i in feature])
             feature = torch.cat(feature, dim=0).unsqueeze(1)
             print(feature.shape)
             logic = torch.cat(logic, dim=0).unsqueeze(1)
