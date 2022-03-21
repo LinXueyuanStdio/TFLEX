@@ -1132,7 +1132,8 @@ class MyExperiment(Experiment):
                 hits = []
                 for i in range(10):
                     hits.append([])
-                for i in range(ranking.shape[0]):
+                num_queries = ranking.shape[0]
+                for i in range(num_queries):
                     for answer_id in hard_answer[i]:
                         rank = torch.where(ranking[i] == answer_id)[0][0]
                         ranks.append(rank + 1)
@@ -1147,6 +1148,7 @@ class MyExperiment(Experiment):
                     'hits@1': h1,
                     'hits@3': h3,
                     'hits@10': h10,
+                    'num_queries': num_queries,
                 })
 
             step += 1
@@ -1155,8 +1157,10 @@ class MyExperiment(Experiment):
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:
             for metric in logs[query_name][0].keys():
-                metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]]) / len(logs[query_name])
-            metrics[query_name]['num_queries'] = len(logs[query_name])
+                if metric == "num_queries":
+                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]])
+                else:
+                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]]) / len(logs[query_name])
 
         return metrics
 
