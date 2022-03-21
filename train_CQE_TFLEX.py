@@ -67,10 +67,10 @@ class EntityProjection(nn.Module):
         token_dim = dim * 5
         self.layer1 = nn.Linear(token_dim, self.hidden_dim)
         self.layer0 = nn.Linear(self.hidden_dim, token_dim)
-        for nl in range(2, num_layers + 1):
-            setattr(self, "layer{}".format(nl), nn.Linear(self.hidden_dim, self.hidden_dim))
-        for nl in range(num_layers + 1):
-            nn.init.xavier_uniform_(getattr(self, "layer{}".format(nl)).weight)
+        for i in range(2, num_layers + 1):
+            setattr(self, f"layer{i}", nn.Linear(self.hidden_dim, self.hidden_dim))
+        for i in range(num_layers + 1):
+            nn.init.xavier_uniform_(getattr(self, f"layer{i}").weight)
 
     def forward(self,
                 q_feature, q_logic, q_time_feature, q_time_logic, q_time_density,
@@ -83,8 +83,8 @@ class EntityProjection(nn.Module):
             q_time_logic + r_time_logic + t_time_logic,
             q_time_density + r_time_density + t_time_density,
         ], dim=-1)
-        for nl in range(1, self.num_layers + 1):
-            x = F.relu(getattr(self, "layer{}".format(nl))(x))
+        for i in range(1, self.num_layers + 1):
+            x = F.relu(getattr(self, f"layer{i}")(x))
         x = self.layer0(x)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
@@ -377,9 +377,9 @@ class FLEX(nn.Module):
         self.relation_time_density_embedding = nn.Embedding(nrelation, self.relation_dim)
 
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
-        self.intersection = Intersection(hidden_dim)
-        self.union = Union(hidden_dim)
-        self.negation = Negation()
+        self.entity_intersection = Intersection(hidden_dim)
+        self.entity_union = Union(hidden_dim)
+        self.entity_negation = Negation()
 
         self.time_projection = TimeProjection(hidden_dim, drop=drop)
         self.time_intersection = TemporalIntersection(hidden_dim)
@@ -402,7 +402,7 @@ class FLEX(nn.Module):
             time_feature = torch.stack([q1_time_feature, q2_time_feature])
             time_logic = torch.stack([q1_time_logic, q2_time_logic])
             time_density = torch.stack([q1_time_density, q2_time_density])
-            return self.intersection(feature, logic, time_feature, time_logic, time_density)
+            return self.entity_intersection(feature, logic, time_feature, time_logic, time_density)
 
         def And3(q1, q2, q3):
             q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density = q1
@@ -413,7 +413,7 @@ class FLEX(nn.Module):
             time_feature = torch.stack([q1_time_feature, q2_time_feature, q3_time_feature])
             time_logic = torch.stack([q1_time_logic, q2_time_logic, q3_time_logic])
             time_density = torch.stack([q1_time_density, q2_time_density, q3_time_density])
-            return self.intersection(feature, logic, time_feature, time_logic, time_density)
+            return self.entity_intersection(feature, logic, time_feature, time_logic, time_density)
 
         def Or(q1, q2):
             q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density = q1
@@ -423,11 +423,11 @@ class FLEX(nn.Module):
             time_feature = torch.stack([q1_time_feature, q2_time_feature])
             time_logic = torch.stack([q1_time_logic, q2_time_logic])
             time_density = torch.stack([q1_time_density, q2_time_density])
-            return self.union(feature, logic, time_feature, time_logic, time_density)
+            return self.entity_union(feature, logic, time_feature, time_logic, time_density)
 
         def Not(q):
             feature, logic, time_feature, time_logic, time_density = q
-            return self.negation(feature, logic, time_feature, time_logic, time_density)
+            return self.entity_negation(feature, logic, time_feature, time_logic, time_density)
 
         def TimeNot(q):
             feature, logic, time_feature, time_logic, time_density = q
@@ -559,6 +559,7 @@ class FLEX(nn.Module):
         return feature, logic, time_feature, time_logic, time_density
 
     def embed_args(self, query_args: List[str], query_tensor: torch.Tensor):
+        print(query_args, len(query_args), query_tensor.shape)
         embedding_of_args = []
         for i in range(len(query_args)):
             arg_name = query_args[i]
@@ -639,6 +640,7 @@ class FLEX(nn.Module):
 
         for query_structure in batch_queries_dict:
             query_name = query_structure
+            print("embed", query_name)
             query_args = self.parser.fast_args(query_name)
             query_tensor = batch_queries_dict[query_structure]  # BxL, B for batch size, L for query args length
             query_idxs = batch_idxs_dict[query_structure]
