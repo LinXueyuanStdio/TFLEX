@@ -576,7 +576,7 @@ class FLEX(nn.Module):
             else:
                 raise Exception("Unknown Args %s" % arg_name)
             embedding_of_args.append(token_embedding)
-        return tuple([i for i in zip(*embedding_of_args)])
+        return tuple(embedding_of_args)
 
     def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
         return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
