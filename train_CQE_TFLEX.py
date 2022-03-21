@@ -670,7 +670,7 @@ class FLEX(nn.Module):
                 embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
                 print("embedding_of_args", [[j.shape for j in i] for i in embedding_of_args])
                 predict = func(*embedding_of_args)  # B x dt
-                print("predict", predict.shape)
+                print("predict", [i.shape for i in predict])
                 if is_to_predict_entity_set(query_name):
                     all_predict_e.extend(predict)
                     all_idxs_e.extend(query_idxs)
