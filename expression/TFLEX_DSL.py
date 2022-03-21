@@ -511,6 +511,7 @@ class SamplingParser(BasicParser):
             return sro_t[e1_idx][r1_idx][e2_idx]
 
         def fast_Pt_lPe_targeted(e1, r1, t1, r2, e2, target: int):
+            # Pt(Pe(e1, r1, t1), r2, e2)
             e1_idx, r1_idx, e2_idx = random.choice(list(t_sro[target]))
             e1_ids = fast_Pe_targeted(e1, r1, t1, target=e1_idx)
             r2.fill(r1_idx)
@@ -518,6 +519,17 @@ class SamplingParser(BasicParser):
             answers = set()
             for idx in e1_ids:
                 answers = answers | sro_t[idx][r1_idx][e2_idx]
+            return answers
+
+        def fast_Pe2_targeted(e1, r1, t1, r2, t2, target: int):
+            # Pe(Pe(e1, r1, t1), r2, t2)
+            e1_idx, r2_idx, t2_idx = random.choice(list(s_rot[target]))
+            e1_ids = fast_Pe_targeted(e1, r1, t1, target=e1_idx)
+            r2.fill(r2_idx)
+            t2.fill(t2_idx)
+            answers = set()
+            for idx in e1_ids:
+                answers = answers | srt_o[idx][r2_idx][t2_idx]
             return answers
 
         def fast_Pt_lPe(e1, r1, t1, r2, e2):
@@ -536,6 +548,17 @@ class SamplingParser(BasicParser):
             right_t_ids = fast_Pt_targeted(e3, r3, e4, target=t)
             left_t_ids = fast_Pt_lPe_targeted(e1, r1, t1, r2, e2, target=not_t)
             return FixedQuery(timestamps=left_t_ids & right_t_ids)
+
+        def fast_e2i_NPe(e1, r1, t1, r2, t2, e2, r3, t3):
+            # return And(Not(Pe(Pe(e1, r1, t1), r2, t2)), Pe(e2, r3, t3))
+            o = random.choice(list(o_srt.keys()))
+            choices = list(all_entity_ids - {o})
+            not_o = random.choice(choices)
+            while not_o not in o_srt:
+                not_o = random.choice(choices)
+            right_o_ids = fast_Pt_targeted(e2, r3, t3, target=o)
+            left_o_ids = fast_Pe2_targeted(e1, r1, t1, r2, t2, target=not_o)
+            return FixedQuery(answers=left_o_ids & right_o_ids)
 
         def fast_Pe_Pt(e1, r1, e2, r2, e3):
             # return Pe(e1, r1, Pt(e2, r2, e3))
@@ -564,6 +587,7 @@ class SamplingParser(BasicParser):
             "fast_Pt_re2i": fast_Pt_re2i,
             "fast_Pt_lPe": fast_Pt_lPe,
             "fast_t2i_NPt": fast_t2i_NPt,
+            "fast_e2i_NPe": fast_e2i_NPe,
             "fast_Pe_Pt": fast_Pe_Pt,
             "fast_Pe_e2i": fast_Pe_e2i,
         }

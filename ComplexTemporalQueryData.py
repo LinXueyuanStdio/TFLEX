@@ -803,6 +803,8 @@ class ComplexQueryData(TemporalKnowledgeData):
                 for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
                     # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
                     for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
+                        if None in queries:
+                            raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
                         train_queries_answers.append((queries, answers))
                         if len(valid_answers) > len(answers):
                             valid_queries_answers.append((queries, answers, valid_answers))
