@@ -657,12 +657,12 @@ class FLEX(nn.Module):
                 embedding_of_args = self.embed_args(query_args, query_tensor)
                 predict_1, predict_2 = func(*embedding_of_args)  # tuple[B x dt, B x dt]
                 if is_to_predict_entity_set(query_name):
-                    all_union_predict_1_e.extend(predict_1)
-                    all_union_predict_2_e.extend(predict_2)
+                    all_union_predict_1_e.append(predict_1)
+                    all_union_predict_2_e.append(predict_2)
                     all_union_idxs_e.extend(query_idxs)
                 else:
-                    all_union_predict_1_t.extend(predict_1)
-                    all_union_predict_2_t.extend(predict_2)
+                    all_union_predict_1_t.append(predict_1)
+                    all_union_predict_2_t.append(predict_2)
                     all_union_idxs_t.extend(query_idxs)
             else:
                 # other query and DM are normal
@@ -672,10 +672,10 @@ class FLEX(nn.Module):
                 predict = func(*embedding_of_args)  # B x dt
                 print("predict", [i.shape for i in predict])
                 if is_to_predict_entity_set(query_name):
-                    all_predict_e.extend(predict)
+                    all_predict_e.append(predict)
                     all_idxs_e.extend(query_idxs)
                 else:
-                    all_predict_t.extend(predict)
+                    all_predict_t.append(predict)
                     all_idxs_t.extend(query_idxs)
 
         def cat_to_tensor(predict_tensor_list: List[TYPE_token]) -> TYPE_token:
