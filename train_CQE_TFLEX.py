@@ -735,7 +735,7 @@ class FLEX(nn.Module):
         q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
         print(type(q), len(q), [i.shape for i in q])
         if predict_entity:
-            feature = self.entity_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
+            feature = self.entity_feature(answer_ids).unsqueeze(1).unsqueeze(1)  # (B, 1, N, d)
             scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
         else:
             feature = self.timestamp_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
