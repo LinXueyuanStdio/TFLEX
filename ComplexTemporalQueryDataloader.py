@@ -26,12 +26,11 @@ def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str
 
 
 class TrainDataset(Dataset):
-    def __init__(self, queries_answers: TYPE_train_queries_answers, nentity: int, nrelation: int, negative_sample_size: int):
+    def __init__(self, queries_answers: TYPE_train_queries_answers, nentity: int, negative_sample_size: int):
         self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.nentity: int = nentity
-        self.nrelation: int = nrelation
         self.negative_sample_size: int = negative_sample_size
         self.count: Dict[str, int] = self.count_frequency(self.all_data)
 
@@ -94,12 +93,11 @@ def flatten_test(queries_answers: TYPE_test_queries_answers) -> List[Tuple[str, 
 
 
 class TestDataset(Dataset):
-    def __init__(self, queries_answers: TYPE_test_queries_answers, nentity, nrelation):
+    def __init__(self, queries_answers: TYPE_test_queries_answers, nentity):
         self.all_data: List[Tuple[str, List[int], Set[int], Set[int]]] = flatten_test(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
         self.nentity: int = nentity
-        self.nrelation: int = nrelation
 
     def __len__(self):
         return self.len

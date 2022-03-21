@@ -815,6 +815,7 @@ class MyExperiment(Experiment):
         entity_count = data.entity_count
         relation_count = data.relation_count
         timestamp_count = data.timestamp_count
+        max_relation_id = relation_count
         self.log('-------------------------------' * 3)
         self.log('# entity: %d' % entity_count)
         self.log('# relation: %d' % relation_count)
@@ -839,7 +840,7 @@ class MyExperiment(Experiment):
             else:
                 train_other_queries[query_structure_name] = train_queries_answers[query_structure_name]
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-            TrainDataset(train_path_queries, entity_count, relation_count, negative_sample_size),
+            TrainDataset(train_path_queries, entity_count, negative_sample_size),
             batch_size=batch_size,
             shuffle=True,
             num_workers=cpu_num,
@@ -847,7 +848,7 @@ class MyExperiment(Experiment):
         ))
         if len(train_other_queries) > 0:
             train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                TrainDataset(train_other_queries, entity_count, relation_count, negative_sample_size),
+                TrainDataset(train_other_queries, entity_count, negative_sample_size),
                 batch_size=batch_size,
                 shuffle=True,
                 num_workers=cpu_num,
@@ -860,7 +861,7 @@ class MyExperiment(Experiment):
         for query_structure_name in valid_queries_answers:
             self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
         valid_dataloader = DataLoader(
-            TestDataset(valid_queries_answers, entity_count, relation_count),
+            TestDataset(valid_queries_answers, entity_count),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
@@ -870,7 +871,7 @@ class MyExperiment(Experiment):
         for query_structure_name in test_queries_answers:
             self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
         test_dataloader = DataLoader(
-            TestDataset(test_queries_answers, entity_count, relation_count),
+            TestDataset(test_queries_answers, entity_count),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
@@ -879,7 +880,7 @@ class MyExperiment(Experiment):
         # 2. build model
         model = FLEX(
             nentity=entity_count,
-            nrelation=relation_count,
+            nrelation=relation_count + max_relation_id, # with reverse relations
             ntimestamp=timestamp_count,
             hidden_dim=hidden_dim,
             gamma=gamma,
