@@ -745,7 +745,6 @@ class FLEX(nn.Module):
             query_args = self.parser.fast_args(query_name)
             query_tensor = grouped_query[query_structure]  # (B, L), B for batch size, L for query args length
             answer = grouped_answer[query_structure]  # (B, N)
-            print(answer.shape)
             # query_idxs is of shape Bx1.
             # each element indicates global index of each row in query_tensor.
             # global index means the index in sample from dataloader.
@@ -765,7 +764,7 @@ class FLEX(nn.Module):
                 func = self.parser.fast_function(query_name)
                 embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
                 predict = func(*embedding_of_args)  # (B, d)
-                all_predict: TYPE_token = predict.unsqueeze(dim=1)  # (B, 1, d)
+                all_predict: TYPE_token = tuple([i.unsqueeze(dim=1) for i in predict])  # (B, 1, d)
                 if is_to_predict_entity_set(query_name):
                     grouped_score[query_name] = self.scoring_to_answers(answer, all_predict, predict_entity=True, DNF_predict=False)
                 else:
@@ -795,18 +794,18 @@ class FLEX(nn.Module):
         all_predict:  (B, 1, dt) or (B, 2, dt) float
         return score: (B, N) float
         """
-        q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
+        q: TYPE_token = tuple([i.unsqueeze(dim=2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
         if predict_entity:
-            feature = self.entity_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
+            feature = self.entity_feature(answer_ids).unsqueeze(dim=1)  # (B, 1, N, d)
             scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
         else:
-            feature = self.timestamp_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
+            feature = self.timestamp_feature(answer_ids).unsqueeze(dim=1)  # (B, 1, N, d)
             scores = self.scoring_timestamp(feature, q)  # (B, 1, N) or (B, 2, N)
 
         if DNF_predict:
             scores = torch.max(scores, dim=1)[0]  # (B, N)
         else:
-            scores = scores.squeeze(1)  # (B, N)
+            scores = scores.squeeze(dim=1)  # (B, N)
         return scores  # (B, N)
 
     def distance_between_entity_and_query(self, entity_feature, query_feature, query_logic):
