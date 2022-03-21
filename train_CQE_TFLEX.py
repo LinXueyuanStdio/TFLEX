@@ -564,12 +564,10 @@ class FLEX(nn.Module):
         return feature, logic, time_feature, time_logic, time_density
 
     def embed_args(self, query_args: List[str], query_tensor: torch.Tensor) -> TYPE_token:
-        print(query_args, len(query_args), query_tensor.shape)
         embedding_of_args = []
         for i in range(len(query_args)):
             arg_name = query_args[i]
             tensor = query_tensor[:, i]
-            print(tensor.shape, tensor.max(dim=0)[0])
             if is_entity(arg_name):
                 token_embedding = self.entity_token(tensor)
             elif is_relation(arg_name):
@@ -609,9 +607,7 @@ class FLEX(nn.Module):
             scores_t = self.scoring_to_answers(all_idxs_t, positive_answer, all_predict_t, predict_entity=False, DNF_predict=False)
             scores_union_e = self.scoring_to_answers(all_union_idxs_e, positive_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
             scores_union_t = self.scoring_to_answers(all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
-            print([i.shape for i in [scores_e, scores_t, scores_union_e, scores_union_t]])
             positive_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
-            print("positive_scores", positive_scores.shape)
 
         # 3. 计算负例损失
         if negative_answer is not None:
@@ -619,9 +615,7 @@ class FLEX(nn.Module):
             scores_t = self.scoring_to_answers(all_idxs_t, negative_answer, all_predict_t, predict_entity=False, DNF_predict=False)
             scores_union_e = self.scoring_to_answers(all_union_idxs_e, negative_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
             scores_union_t = self.scoring_to_answers(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
-            print([i.shape for i in [scores_e, scores_t, scores_union_e, scores_union_t]])
             negative_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
-            print("negative_scores", negative_scores.shape)
 
         return positive_scores, negative_scores, subsampling_weight, all_idxs
 
@@ -650,7 +644,6 @@ class FLEX(nn.Module):
 
         for query_structure in batch_queries_dict:
             query_name = query_structure
-            print("embed", query_name)
             query_args = self.parser.fast_args(query_name)
             query_tensor = batch_queries_dict[query_structure]  # BxL, B for batch size, L for query args length
             query_idxs = batch_idxs_dict[query_structure]
@@ -675,9 +668,7 @@ class FLEX(nn.Module):
                 # other query and DM are normal
                 func = self.parser.fast_function(query_name)
                 embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
-                print("embedding_of_args", [[j.shape for j in i] for i in embedding_of_args])
                 predict = func(*embedding_of_args)  # B x dt
-                print("predict", [i.shape for i in predict])
                 if is_to_predict_entity_set(query_name):
                     all_predict_e.append(predict)
                     all_idxs_e.extend(query_idxs)
@@ -697,9 +688,7 @@ class FLEX(nn.Module):
                 time_feature.append(x[2])
                 time_logic.append(x[3])
                 time_density.append(x[4])
-            print([i.shape for i in feature])
             feature = torch.cat(feature, dim=0).unsqueeze(1)
-            print(feature.shape)
             logic = torch.cat(logic, dim=0).unsqueeze(1)
             time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
             time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
@@ -735,11 +724,7 @@ class FLEX(nn.Module):
             return torch.Tensor([]).to(self.embedding_range.device)
         answer_ids = answer[all_idxs]
         answer_ids = answer_ids.view(answer_ids.shape[0], -1)
-        print()
-        print("scoring_to_answers")
-        print(answer_ids.shape)
         q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
-        print(type(q), len(q), [i.shape for i in q])
         if predict_entity:
             feature = self.entity_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
             scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
