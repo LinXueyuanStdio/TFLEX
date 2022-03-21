@@ -745,6 +745,7 @@ class FLEX(nn.Module):
             query_args = self.parser.fast_args(query_name)
             query_tensor = grouped_query[query_structure]  # BxL, B for batch size, L for query args length
             answer = grouped_answer[query_structure]
+            print(answer.shape)
             # query_idxs is of shape Bx1.
             # each element indicates global index of each row in query_tensor.
             # global index means the index in sample from dataloader.
