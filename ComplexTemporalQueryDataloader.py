@@ -127,6 +127,8 @@ class TestDataset(Dataset):
         grouped_easy_answer_dict: Dict[str, List[torch.Tensor]] = defaultdict(list)
         grouped_hard_answer_dict: Dict[str, List[Set[int]]] = defaultdict(list)
         for i, (query_name, query, candidate_answer, easy_answer, hard_answer) in enumerate(data):
+            if None in query:
+                print("error", query_name, query)
             batch_queries_idx_dict[query_name].append(query)
             batch_candidate_answer_dict[query_name].append(candidate_answer)
             grouped_easy_answer_dict[query_name].append(easy_answer)
