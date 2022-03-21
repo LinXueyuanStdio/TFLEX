@@ -540,13 +540,15 @@ class SamplingParser(BasicParser):
 
         def fast_t2i_NPt(e1, r1, t1, r2, e2, e3, r3, e4):
             # return TimeAnd(TimeNot(Pt(Pe(e1, r1, t1), r2, e2)), Pt(e3, r3, e4))
-            t = random.choice(list(t_sro.keys()))
-            choices = list(all_timestamp_ids - {t})
-            not_t = random.choice(choices)
-            while not_t not in t_sro:
-                not_t = random.choice(choices)
+            t_choices = list(t_sro.keys())
+            t = random.choice(t_choices)
+            choices = set(all_timestamp_ids - {t}) & set(t_choices)
+            while len(choices) <= 0:
+                t = random.choice(t_choices)
+                choices = set(all_timestamp_ids - {t}) & set(t_choices)
+            not_t = random.choice(list(choices))
             right_t_ids = fast_Pt_targeted(e3, r3, e4, target=t)
-            left_t_ids = fast_Pt_lPe_targeted(e1, r1, t1, r2, e2, target=not_t)
+            left_t_ids = all_timestamp_ids - fast_Pt_lPe_targeted(e1, r1, t1, r2, e2, target=not_t)
             return FixedQuery(timestamps=left_t_ids & right_t_ids)
 
         def fast_e2i_NPe(e1, r1, t1, r2, t2, e2, r3, t3):
@@ -559,8 +561,8 @@ class SamplingParser(BasicParser):
                 choices = set(all_entity_ids - {o}) & set(o_choices)
             not_o = random.choice(list(choices))
             right_o_ids = fast_Pe_targeted(e2, r3, t3, target=o)
-            left_o_ids = fast_Pe2_targeted(e1, r1, t1, r2, t2, target=not_o)
-            return FixedQuery(answers=(all_entity_ids - left_o_ids) & right_o_ids)
+            left_o_ids = all_entity_ids - fast_Pe2_targeted(e1, r1, t1, r2, t2, target=not_o)
+            return FixedQuery(answers=left_o_ids & right_o_ids)
 
         def fast_Pe_Pt(e1, r1, e2, r2, e3):
             # return Pe(e1, r1, Pt(e2, r2, e3))
