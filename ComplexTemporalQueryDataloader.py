@@ -71,9 +71,10 @@ class TrainDataset(Dataset):
         batch_queries_idx_dict: Dict[str, List[List[int]]] = defaultdict(list)
         batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
         for i, (query_name, query, _, _, _) in enumerate(data):
-            print(len(query))
             batch_queries_idx_dict[query_name].append(query)
             batch_idxs_dict[query_name].append(i)
+        for key in batch_queries_idx_dict:
+            print(key, type(batch_queries_idx_dict[key]), len(batch_queries_idx_dict[key]), len(batch_queries_idx_dict[key][0]))
         batch_queries_dict: Dict[str, torch.Tensor] = {
             key: torch.LongTensor(batch_queries_idx_dict[key])
             for key in batch_queries_idx_dict
