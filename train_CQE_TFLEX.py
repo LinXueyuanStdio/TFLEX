@@ -566,6 +566,7 @@ class FLEX(nn.Module):
         for i in range(len(query_args)):
             arg_name = query_args[i]
             tensor = query_tensor[:, i]
+            print(tensor.shape, tensor.max(dim=0))
             if is_entity(arg_name):
                 token_embedding = self.entity_token(tensor)
             elif is_relation(arg_name):
