@@ -566,7 +566,7 @@ class FLEX(nn.Module):
         for i in range(len(query_args)):
             arg_name = query_args[i]
             tensor = query_tensor[:, i]
-            print(tensor.shape, tensor.max(dim=0))
+            print(tensor.shape, tensor.max(dim=0)[0])
             if is_entity(arg_name):
                 token_embedding = self.entity_token(tensor)
             elif is_relation(arg_name):
@@ -679,7 +679,23 @@ class FLEX(nn.Module):
                     all_idxs_t.extend(query_idxs)
 
         def cat_to_tensor(predict_tensor_list: List[TYPE_token]) -> TYPE_token:
-            return tuple([torch.cat(x, dim=0).unsqueeze(1) for x in zip(*predict_tensor_list)])
+            feature = []
+            logic = []
+            time_feature = []
+            time_logic = []
+            time_density = []
+            for x in predict_tensor_list:
+                feature.append(x[0])
+                logic.append(x[1])
+                time_feature.append(x[2])
+                time_logic.append(x[3])
+                time_density.append(x[4])
+            feature = torch.cat(feature, dim=0).unsqueeze(1)
+            logic = torch.cat(logic, dim=0).unsqueeze(1)
+            time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
+            time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
+            time_density = torch.cat(time_density, dim=0).unsqueeze(1)
+            return feature, logic, time_feature, time_logic, time_density
 
         if len(all_idxs_e) > 0:
             all_predict_e = cat_to_tensor(all_predict_e)  # (B, d) * 5
