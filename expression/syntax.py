@@ -60,14 +60,14 @@ def t3i_N(e1, r1, e2, e3, r2, e4, e5, r3, e6): return TimeAnd3(Pt(e1, r1, e2), P
 def e2u(e1, r1, t1, e2, r2, t2): return Or(Pe(e1, r1, t1), Pe(e2, r2, t2))  # 2u
 def Pe_e2u(e1, r1, t1, e2, r2, t2, r3, t3): return Pe(Or(Pe(e1, r1, t1), Pe(e2, r2, t2)), r3, t3)  # up
 def t2u(e1, r1, e2, e3, r2, e4): return TimeOr(Pt(e1, r1, e2), Pt(e3, r2, e4))  # t-2u
-def Pe_t2u(e1, r1, e2, e3, r2, e4, e5, r3, e6): return Pe(e1, r1, TimeOr(Pt(e2, r2, e3), Pt(e4, r3, e5)))  # t-up
+def Pe_t2u(e1, r1, e2, r2, e3, e4, r3, e5): return Pe(e1, r1, TimeOr(Pt(e2, r2, e3), Pt(e4, r3, e5)))  # t-up
 # 8. union-DM
 def e2u_DM(e1, r1, t1, e2, r2, t2): return Not(And(Not(Pe(e1, r1, t1)), Not(Pe(e2, r2, t2))))  # 2u-DM
 def Pe_e2u_DM(e1, r1, t1, e2, r2, t2, r3, t3): return Pe(Not(And(Not(Pe(e1, r1, t1)), Not(Pe(e2, r2, t2)))), r3, t3)  # up-DM
 def t2u_DM(e1, r1, e2, e3, r2, e4): return TimeNot(TimeAnd(TimeNot(Pt(e1, r1, e2)), TimeNot(Pt(e3, r2, e4))))  # t-2u-DM
-def Pe_t2u_DM(e1, r1, e2, e3, r2, e4, e5, r3, e6): return Pe(e1, r1, TimeNot(TimeAnd(TimeNot(Pt(e2, r2, e3)), TimeNot(Pt(e4, r3, e5)))))  # t-up-DM
+def Pe_t2u_DM(e1, r1, e2, r2, e3, e4, r3, e5): return Pe(e1, r1, TimeNot(TimeAnd(TimeNot(Pt(e2, r2, e3)), TimeNot(Pt(e4, r3, e5)))))  # t-up-DM
 # 9. union-DNF
 def e2u_DNF(e1, r1, t1, e2, r2, t2): return Pe(e1, r1, t1), Pe(e2, r2, t2)  # 2u_DNF
 def Pe_e2u_DNF(e1, r1, t1, e2, r2, t2, r3, t3): return Pe(Pe(e1, r1, t1), r3, t3), Pe(Pe(e2, r2, t2), r3, t3)  # up_DNF
 def t2u_DNF(e1, r1, e2, e3, r2, e4): return Pt(e1, r1, e2), Pt(e3, r2, e4)  # t-2u_DNF
-def Pe_t2u_DNF(e1, r1, e2, e3, r2, e4, e5, r3, e6): return Pe(e1, r1, Pt(e2, r2, e3)), Pe(e1, r1, Pt(e4, r3, e5))  # t-up_DNF
+def Pe_t2u_DNF(e1, r1, e2, r2, e3, e4, r3, e5): return Pe(e1, r1, Pt(e2, r2, e3)), Pe(e1, r1, Pt(e4, r3, e5))  # t-up_DNF
