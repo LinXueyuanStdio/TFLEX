@@ -980,13 +980,7 @@ class MyExperiment(Experiment):
         model.to(device)
         optimizer.zero_grad()
 
-        query_name, batch_queries, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
-        batch_queries_dict: Dict[str, list] = defaultdict(list)
-        batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
-        for i, query in enumerate(batch_queries):  # group queries with same structure
-            key = query_name[i]
-            batch_queries_dict[key].append(query)
-            batch_idxs_dict[key].append(i)
+        batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
         for key in batch_queries_dict:
             batch_queries_dict[key] = torch.LongTensor(batch_queries_dict[key]).to(device)
         positive_answer = positive_answer.to(device)
@@ -1019,15 +1013,7 @@ class MyExperiment(Experiment):
         logs = defaultdict(list)
         step = 0
         h10 = None
-        batch_queries_dict = defaultdict(list)
-        batch_idxs_dict = defaultdict(list)
-        for candidate_answer, query_name, args, batch_queries, easy_answer, hard_answer in test_dataloader:
-            batch_queries_dict.clear()
-            batch_idxs_dict.clear()
-            for i, query in enumerate(batch_queries):
-                key = query_name[i]
-                batch_queries_dict[key].append(query)
-                batch_idxs_dict[key].append(i)
+        for query_name, batch_queries_dict, batch_idxs_dict, candidate_answer, easy_answer, hard_answer in test_dataloader:
             for key in batch_queries_dict:
                 batch_queries_dict[key] = torch.LongTensor(batch_queries_dict[key]).to(device)
             candidate_answer = candidate_answer.to(device)

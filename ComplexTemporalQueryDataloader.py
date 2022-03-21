@@ -5,6 +5,8 @@
 @description: null
 """
 import random
+from collections import defaultdict
+from copy import deepcopy
 from typing import List, Set, Tuple, Dict
 
 import numpy as np
@@ -12,7 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ComplexTemporalQueryData import TYPE_train_queries_answers, TYPE_test_queries_answers
-from copy import deepcopy
+
 
 def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[int], Set[int]]]:
     res = []
@@ -52,7 +54,7 @@ class TrainDataset(Dataset):
         negative_answer = np.concatenate(negative_sample_list)[:self.negative_sample_size]
         negative_answer = torch.from_numpy(negative_answer)  # (self.negative_sample_size,)
         positive_answer = torch.LongTensor([tail])  # (1,)
-        query = torch.LongTensor(query)  # (N,)
+        # query = torch.LongTensor(query)  # (N,)
         #                                                                     (s, r, o, t) == (1, 7, 8, 5)
         # query_name         : str                                            'Pe'
         # args               : List[**str]                                    ['e1', 'r1', 't1']
@@ -64,13 +66,15 @@ class TrainDataset(Dataset):
 
     @staticmethod
     def collate_fn(data):
-        query_name, query, positive_answer, negative_answer, subsampling_weight = tuple(zip(*data))
-        query_name = list(query_name)
-        query = list(query)
-        positive_answer = torch.cat(positive_answer, dim=0)
-        negative_answer = torch.stack(negative_answer, dim=0)
-        subsampling_weight = torch.cat(subsampling_weight, dim=0)
-        return query_name, query, positive_answer, negative_answer, subsampling_weight
+        positive_answer = torch.cat([_[2] for _ in data], dim=0)
+        negative_answer = torch.stack([_[3] for _ in data], dim=0)
+        subsampling_weight = torch.cat([_[4] for _ in data], dim=0)
+        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
+        for i, (query_name, query, _, _, _) in enumerate(data):
+            batch_queries_dict[query_name].append(query)
+            batch_idxs_dict[query_name].append(i)
+        return batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
     def count_frequency(all_data: List[Tuple[str, List[int], Set[int]]], start=4) -> Dict[str, int]:
@@ -102,17 +106,22 @@ class TestDataset(Dataset):
 
     def __getitem__(self, idx):
         query_name, query, easy_answer, hard_answer = self.all_data[idx]
-        query = torch.LongTensor(query)  # (N,)
-        candidate_answer = torch.LongTensor(range(self.nentity))
+        # query = torch.LongTensor(query)  # (N,)
+        if len(easy_answer) >= len(hard_answer):
+            easy_answer = set()
         hard_answer = set(hard_answer) - set(easy_answer)
-        return candidate_answer, query_name, query, easy_answer, hard_answer
+        candidate_answer = torch.LongTensor(range(self.nentity))
+        return query_name, query, candidate_answer, easy_answer, hard_answer
 
     @staticmethod
     def collate_fn(data):
-        candidate_answer, query_name, query, easy_answer, hard_answer = tuple(zip(*data))
-        query_name = list(query_name)
-        query = list(query)
-        easy_answer = list(easy_answer)
-        hard_answer = list(hard_answer)
-        candidate_answer = torch.stack(candidate_answer, dim=0)
-        return candidate_answer, query_name, query, easy_answer, hard_answer
+        query_name_list = [_[0] for _ in data]
+        candidate_answer = torch.stack([_[2] for _ in data], dim=0)
+        easy_answer = [_[3] for _ in data]
+        hard_answer = [_[4] for _ in data]
+        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
+        for i, (query_name, query, _, _, _) in enumerate(data):
+            batch_queries_dict[query_name].append(query)
+            batch_idxs_dict[query_name].append(i)
+        return query_name_list, batch_queries_dict, batch_idxs_dict, candidate_answer, easy_answer, hard_answer
