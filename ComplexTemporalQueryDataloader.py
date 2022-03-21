@@ -68,16 +68,16 @@ class TrainDataset(Dataset):
         positive_answer = torch.cat([_[2] for _ in data], dim=0)
         negative_answer = torch.stack([_[3] for _ in data], dim=0)
         subsampling_weight = torch.cat([_[4] for _ in data], dim=0)
-        batch_queries_idx_dict: Dict[str, List[List[int]]] = defaultdict(list)
-        batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
+        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        grouped_idxs: Dict[str, List[int]] = defaultdict(list)
         for i, (query_name, query, _, _, _) in enumerate(data):
-            batch_queries_idx_dict[query_name].append(query)
-            batch_idxs_dict[query_name].append(i)
-        batch_queries_dict: Dict[str, torch.Tensor] = {
-            key: torch.LongTensor(batch_queries_idx_dict[key])
-            for key in batch_queries_idx_dict
+            batch_queries_dict[query_name].append(query)
+            grouped_idxs[query_name].append(i)
+        grouped_query: Dict[str, torch.Tensor] = {
+            key: torch.LongTensor(batch_queries_dict[key])
+            for key in batch_queries_dict
         }
-        return batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight
+        return grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
     def count_frequency(all_data: List[Tuple[str, List[int], Set[int]]], start=4) -> Dict[str, int]:
@@ -119,16 +119,21 @@ class TestDataset(Dataset):
     @staticmethod
     def collate_fn(data):
         query_name_list = [_[0] for _ in data]
-        candidate_answer = torch.stack([_[2] for _ in data], dim=0)
         easy_answer = [_[3] for _ in data]
         hard_answer = [_[4] for _ in data]
         batch_queries_idx_dict: Dict[str, List[List[int]]] = defaultdict(list)
-        batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
-        for i, (query_name, query, _, _, _) in enumerate(data):
+        grouped_idxs: Dict[str, List[int]] = defaultdict(list)
+        batch_candidate_answer_dict: Dict[str, List[torch.Tensor]] = defaultdict(list)
+        for i, (query_name, query, candidate_answer, _, _) in enumerate(data):
             batch_queries_idx_dict[query_name].append(query)
-            batch_idxs_dict[query_name].append(i)
-        batch_queries_dict: Dict[str, torch.Tensor] = {
+            grouped_idxs[query_name].append(i)
+            batch_candidate_answer_dict[query_name].append(candidate_answer)
+        grouped_query: Dict[str, torch.Tensor] = {
             key: torch.LongTensor(batch_queries_idx_dict[key])
             for key in batch_queries_idx_dict
         }
-        return query_name_list, batch_queries_dict, batch_idxs_dict, candidate_answer, easy_answer, hard_answer
+        grouped_candidate_answer: Dict[str, torch.Tensor] = {
+            key: torch.cat(batch_candidate_answer_dict[key], dim=0)
+            for key in batch_candidate_answer_dict
+        }
+        return query_name_list, grouped_query, grouped_idxs, grouped_candidate_answer, easy_answer, hard_answer

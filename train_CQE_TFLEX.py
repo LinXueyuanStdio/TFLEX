@@ -634,7 +634,7 @@ class FLEX(nn.Module):
             predict = func(*embedding_of_args)  # B x dt
             return predict
 
-    def batch_predict(self, batch_queries_dict: Dict[QueryStructure, torch.Tensor], batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
+    def batch_predict(self, grouped_query: Dict[QueryStructure, torch.Tensor], grouped_idxs: Dict[QueryStructure, List[List[int]]]):
         all_idxs_e, all_predict_e = [], []
         all_idxs_t, all_predict_t = [], []
         all_union_idxs_e, all_union_predict_1_e, all_union_predict_2_e = [], [], []
@@ -642,11 +642,11 @@ class FLEX(nn.Module):
         all_union_predict_e: Optional[TYPE_token] = None
         all_union_predict_t: Optional[TYPE_token] = None
 
-        for query_structure in batch_queries_dict:
+        for query_structure in grouped_query:
             query_name = query_structure
             query_args = self.parser.fast_args(query_name)
-            query_tensor = batch_queries_dict[query_structure]  # BxL, B for batch size, L for query args length
-            query_idxs = batch_idxs_dict[query_structure]
+            query_tensor = grouped_query[query_structure]  # BxL, B for batch size, L for query args length
+            query_idxs = grouped_idxs[query_structure]
             # query_idxs is of shape Bx1.
             # each element indicates global index of each row in query_tensor.
             # global index means the index in sample from dataloader.
@@ -1003,14 +1003,14 @@ class MyExperiment(Experiment):
         model.to(device)
         optimizer.zero_grad()
 
-        batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
-        for key in batch_queries_dict:
-            batch_queries_dict[key] = batch_queries_dict[key].to(device)
+        grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
+        for key in grouped_query:
+            grouped_query[key] = grouped_query[key].to(device)
         positive_answer = positive_answer.to(device)
         negative_answer = negative_answer.to(device)
         subsampling_weight = subsampling_weight.to(device)
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, grouped_query, grouped_idxs)
 
         negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
         positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
@@ -1036,13 +1036,13 @@ class MyExperiment(Experiment):
         logs = defaultdict(list)
         step = 0
         h10 = None
-        for query_name, batch_queries_dict, batch_idxs_dict, candidate_answer, easy_answer, hard_answer in test_dataloader:
-            for key in batch_queries_dict:
-                batch_queries_dict[key] = batch_queries_dict[key].to(device)
-            candidate_answer = candidate_answer.to(device)
+        for query_name_list, grouped_query, grouped_idxs, grouped_candidate_answer, easy_answer, hard_answer in test_dataloader:
+            for key in grouped_query:
+                grouped_query[key] = grouped_query[key].to(device)
+                grouped_candidate_answer[key] = grouped_candidate_answer[key].to(device)
 
-            _, negative_logit, _, idxs = model(None, candidate_answer, None, batch_queries_dict, batch_idxs_dict)
-            queries_unflatten = [query_name[i] for i in idxs]
+            _, negative_logit, _, idxs = model(None, candidate_answer, None, grouped_query, grouped_idxs)
+            queries_unflatten = [query_name_list[i] for i in idxs]
             easy_answer_reorder = [easy_answer[i] for i in idxs]
             hard_answer_reorder = [hard_answer[i] for i in idxs]
             argsort = torch.argsort(negative_logit, dim=1, descending=True)
