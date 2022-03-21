@@ -14,6 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ComplexTemporalQueryData import TYPE_train_queries_answers, TYPE_test_queries_answers
+from expression.ParamSchema import is_entity
 
 
 def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[int], Set[int]]]:
@@ -26,11 +27,12 @@ def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str
 
 
 class TrainDataset(Dataset):
-    def __init__(self, queries_answers: TYPE_train_queries_answers, nentity: int, negative_sample_size: int):
+    def __init__(self, queries_answers: TYPE_train_queries_answers, entity_count: int, timestamps_count: int, negative_sample_size: int):
         self.all_data: List[Tuple[str, List[int], Set[int]]] = flatten_train(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
-        self.nentity: int = nentity
+        self.entity_count: int = entity_count
+        self.timestamps_count: int = timestamps_count
         self.negative_sample_size: int = negative_sample_size
         self.count: Dict[str, int] = self.count_frequency(self.all_data)
 
@@ -44,8 +46,9 @@ class TrainDataset(Dataset):
         subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
         negative_sample_list = []
         negative_sample_size = 0
+        answer_range = self.entity_count if is_entity(query_name) else self.timestamps_count
         while negative_sample_size < self.negative_sample_size:
-            negative_answer = np.random.randint(self.nentity, size=self.negative_sample_size * 2)
+            negative_answer = np.random.randint(answer_range, size=self.negative_sample_size * 2)
             mask = np.in1d(negative_answer, answer, assume_unique=True, invert=True)
             negative_answer = negative_answer[mask]
             negative_sample_list.append(negative_answer)
@@ -93,11 +96,12 @@ def flatten_test(queries_answers: TYPE_test_queries_answers) -> List[Tuple[str, 
 
 
 class TestDataset(Dataset):
-    def __init__(self, queries_answers: TYPE_test_queries_answers, nentity):
+    def __init__(self, queries_answers: TYPE_test_queries_answers, entity_count: int, timestamps_count: int):
         self.all_data: List[Tuple[str, List[int], Set[int], Set[int]]] = flatten_test(queries_answers)
         random.shuffle(self.all_data)
         self.len: int = len(self.all_data)
-        self.nentity: int = nentity
+        self.entity_count: int = entity_count
+        self.timestamps_count: int = timestamps_count
 
     def __len__(self):
         return self.len
@@ -108,7 +112,8 @@ class TestDataset(Dataset):
         if len(easy_answer) >= len(hard_answer):
             easy_answer = set()
         hard_answer = set(hard_answer) - set(easy_answer)
-        candidate_answer = torch.LongTensor(range(self.nentity))
+        answer_range = self.entity_count if is_entity(query_name) else self.timestamps_count
+        candidate_answer = torch.LongTensor(range(answer_range))
         return query_name, query, candidate_answer, easy_answer, hard_answer
 
     @staticmethod

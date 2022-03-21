@@ -708,11 +708,11 @@ class FLEX(nn.Module):
         if len(all_union_idxs_e) > 0:
             all_union_predict_1_e = cat_to_tensor(all_union_predict_1_e)  # (B, 1, d) * 5
             all_union_predict_2_e = cat_to_tensor(all_union_predict_2_e)  # (B, 1, d) * 5
-            all_union_predict_e: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_e, all_union_predict_2_e)]) # (B, 2, d) * 5
+            all_union_predict_e: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_e, all_union_predict_2_e)])  # (B, 2, d) * 5
         if len(all_union_idxs_t) > 0:
             all_union_predict_1_t = cat_to_tensor(all_union_predict_1_t)  # (B, 1, d) * 5
             all_union_predict_2_t = cat_to_tensor(all_union_predict_2_t)  # (B, 1, d) * 5
-            all_union_predict_t: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_t, all_union_predict_2_t)]) # (B, 2, d) * 5
+            all_union_predict_t: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_t, all_union_predict_2_t)])  # (B, 2, d) * 5
         return (all_idxs_e, all_predict_e), \
                (all_idxs_t, all_predict_t), \
                (all_union_idxs_e, all_union_predict_e), \
@@ -766,14 +766,9 @@ class FLEX(nn.Module):
         d_right  = entity_feature -                               (feature + logic)
                          |<----------------------------------------------->|
         """
-        print("entity_feature", entity_feature.shape)
-        print("query_feature", query_feature.shape)
         d_center = entity_feature - query_feature
         d_left = entity_feature - (query_feature - query_logic)
         d_right = entity_feature - (query_feature + query_logic)
-        print("d_center", d_center.shape)
-        print("d_left", d_left.shape)
-        print("d_right", d_right.shape)
 
         # inner distance
         feature_distance = torch.abs(d_center)
@@ -782,17 +777,14 @@ class FLEX(nn.Module):
         outer_distance = torch.min(torch.abs(d_left), torch.abs(d_right))
         outer_distance[feature_distance < query_logic] = 0.  # if entity is inside, we don't care about outer.
 
-        print("outer_distance", outer_distance.shape)
-        print("inner_distance", inner_distance.shape)
         distance = torch.norm(outer_distance, p=1, dim=-1) + self.cen * torch.norm(inner_distance, p=1, dim=-1)
-        print("distance", distance.shape)
         return distance
 
     def distance_between_timestamp_and_query(self, timestamp_feature, time_feature, time_logic, time_density):
         """
-        entity_feature (B, E, d)
-        query_feature  (B, 1, d)
-        query_logic    (B, 1, d)
+        entity_feature (B, 1, N, d)
+        query_feature  (B, 1, 1, dt) or (B, 2, 1, dt)
+        query_logic    (B, 1, 1, dt) or (B, 2, 1, dt)
         query    =                 [(feature - logic) | feature | (feature + logic)]
         entity   = entity_feature            |             |               |
                          |                   |             |               |
@@ -875,7 +867,7 @@ class MyExperiment(Experiment):
             else:
                 train_other_queries[query_structure_name] = train_queries_answers[query_structure_name]
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-            TrainDataset(train_path_queries, entity_count, negative_sample_size),
+            TrainDataset(train_path_queries, entity_count, timestamp_count, negative_sample_size),
             batch_size=batch_size,
             shuffle=True,
             num_workers=cpu_num,
@@ -883,7 +875,7 @@ class MyExperiment(Experiment):
         ))
         if len(train_other_queries) > 0:
             train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                TrainDataset(train_other_queries, entity_count, negative_sample_size),
+                TrainDataset(train_other_queries, entity_count, timestamp_count, negative_sample_size),
                 batch_size=batch_size,
                 shuffle=True,
                 num_workers=cpu_num,
@@ -896,7 +888,7 @@ class MyExperiment(Experiment):
         for query_structure_name in valid_queries_answers:
             self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
         valid_dataloader = DataLoader(
-            TestDataset(valid_queries_answers, entity_count),
+            TestDataset(valid_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
@@ -906,7 +898,7 @@ class MyExperiment(Experiment):
         for query_structure_name in test_queries_answers:
             self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
         test_dataloader = DataLoader(
-            TestDataset(test_queries_answers, entity_count),
+            TestDataset(test_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
