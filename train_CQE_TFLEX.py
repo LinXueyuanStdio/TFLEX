@@ -708,6 +708,8 @@ class FLEX(nn.Module):
             return torch.Tensor([]).to(self.embedding_range.device)
         answer_ids = answer[all_idxs]
         q: TYPE_token = tuple([i.unsqueeze(2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
+        for i in q:
+            print(i.shape)
         if predict_entity:
             feature = self.entity_feature(answer_ids).unsqueeze(1)  # (B, 1, N, d)
             scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
