@@ -75,6 +75,7 @@ class TrainDataset(Dataset):
             batch_idxs_dict[query_name].append(i)
         for key in batch_queries_idx_dict:
             print(key, type(batch_queries_idx_dict[key]), len(batch_queries_idx_dict[key]), len(batch_queries_idx_dict[key][0]))
+            print(torch.LongTensor(batch_queries_idx_dict[key]))
         batch_queries_dict: Dict[str, torch.Tensor] = {
             key: torch.LongTensor(batch_queries_idx_dict[key])
             for key in batch_queries_idx_dict
