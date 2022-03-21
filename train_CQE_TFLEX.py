@@ -24,7 +24,7 @@ from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
 
-QueryStructure = Tuple[str, List[str]]
+QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 
@@ -638,7 +638,7 @@ class FLEX(nn.Module):
         all_union_predict_t: Optional[TYPE_token] = None
 
         for query_structure in batch_queries_dict:
-            query_name, query_args = query_structure
+            query_name = query_structure
             query_args = self.parser.fast_args(query_name)
             query_tensor = batch_queries_dict[query_structure]  # BxL, B for batch size, L for query args length
             query_idxs = batch_idxs_dict[query_structure]
