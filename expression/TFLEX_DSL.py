@@ -556,7 +556,7 @@ class SamplingParser(BasicParser):
             not_o = random.choice(choices)
             while not_o not in o_srt:
                 not_o = random.choice(choices)
-            right_o_ids = fast_Pt_targeted(e2, r3, t3, target=o)
+            right_o_ids = fast_Pe_targeted(e2, r3, t3, target=o)
             left_o_ids = fast_Pe2_targeted(e1, r1, t1, r2, t2, target=not_o)
             return FixedQuery(answers=left_o_ids & right_o_ids)
 
