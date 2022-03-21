@@ -664,7 +664,7 @@ class FLEX(nn.Module):
         for query_structure in grouped_query:
             query_name = query_structure
             query_args = self.parser.fast_args(query_name)
-            query_tensor = grouped_query[query_structure]  # BxL, B for batch size, L for query args length
+            query_tensor = grouped_query[query_structure]  # (B, L), B for batch size, L for query args length
             query_idxs = grouped_idxs[query_structure]
             # query_idxs is of shape Bx1.
             # each element indicates global index of each row in query_tensor.
@@ -674,7 +674,7 @@ class FLEX(nn.Module):
                 # transform to DNF
                 func = self.parser.fast_function(query_name + "_DNF")
                 embedding_of_args = self.embed_args(query_args, query_tensor)
-                predict_1, predict_2 = func(*embedding_of_args)  # tuple[B x dt, B x dt]
+                predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
                 if is_to_predict_entity_set(query_name):
                     all_union_predict_1_e.append(predict_1)
                     all_union_predict_2_e.append(predict_2)
@@ -686,8 +686,8 @@ class FLEX(nn.Module):
             else:
                 # other query and DM are normal
                 func = self.parser.fast_function(query_name)
-                embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
-                predict = func(*embedding_of_args)  # B x dt
+                embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
+                predict = func(*embedding_of_args)  # (B, d)
                 if is_to_predict_entity_set(query_name):
                     all_predict_e.append(predict)
                     all_idxs_e.extend(query_idxs)
@@ -743,8 +743,8 @@ class FLEX(nn.Module):
         for query_structure in grouped_query:
             query_name = query_structure
             query_args = self.parser.fast_args(query_name)
-            query_tensor = grouped_query[query_structure]  # BxL, B for batch size, L for query args length
-            answer = grouped_answer[query_structure]
+            query_tensor = grouped_query[query_structure]  # (B, L), B for batch size, L for query args length
+            answer = grouped_answer[query_structure]  # (B, N)
             print(answer.shape)
             # query_idxs is of shape Bx1.
             # each element indicates global index of each row in query_tensor.
@@ -754,7 +754,7 @@ class FLEX(nn.Module):
                 # transform to DNF
                 func = self.parser.fast_function(query_name + "_DNF")
                 embedding_of_args = self.embed_args(query_args, query_tensor)
-                predict_1, predict_2 = func(*embedding_of_args)  # tuple[B x dt, B x dt]
+                predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
                 all_union_predict: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
                 if is_to_predict_entity_set(query_name):
                     grouped_score[query_name] = self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
@@ -763,12 +763,13 @@ class FLEX(nn.Module):
             else:
                 # other query and DM are normal
                 func = self.parser.fast_function(query_name)
-                embedding_of_args = self.embed_args(query_args, query_tensor)  # [B x dt]*L
-                predict = func(*embedding_of_args)  # B x dt
+                embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
+                predict = func(*embedding_of_args)  # (B, d)
+                all_predict: TYPE_token = predict.unsqueeze(dim=1)  # (B, 1, d)
                 if is_to_predict_entity_set(query_name):
-                    grouped_score[query_name] = self.scoring_to_answers(answer, predict, predict_entity=True, DNF_predict=False)
+                    grouped_score[query_name] = self.scoring_to_answers(answer, all_predict, predict_entity=True, DNF_predict=False)
                 else:
-                    grouped_score[query_name] = self.scoring_to_answers(answer, predict, predict_entity=False, DNF_predict=False)
+                    grouped_score[query_name] = self.scoring_to_answers(answer, all_predict, predict_entity=False, DNF_predict=False)
 
         return grouped_score
 
@@ -1116,7 +1117,7 @@ class MyExperiment(Experiment):
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
                 hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
-                score[easy_answer_mask] = -float('inf') # we remove easy answer, because easy answer may exist in training set
+                score[easy_answer_mask] = -float('inf')  # we remove easy answer, because easy answer may exist in training set
                 ranking = score.argsort(dim=1, descending=True)  # sorted idx (B, N)
 
                 ranks = []
