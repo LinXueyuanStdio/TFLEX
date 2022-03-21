@@ -1123,7 +1123,7 @@ class MyExperiment(Experiment):
                 hits = []
                 for i in range(10):
                     hits.append([])
-                for i in range(len(ranking.shape[0])):
+                for i in range(ranking.shape[0]):
                     for answer_id in hard_answer[i]:
                         rank = torch.where(ranking[i] == answer_id)[0][0]
                         ranks.append(rank + 1)
