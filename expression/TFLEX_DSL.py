@@ -523,7 +523,7 @@ class SamplingParser(BasicParser):
 
         def fast_Pe2_targeted(e1, r1, t1, r2, t2, target: int):
             # Pe(Pe(e1, r1, t1), r2, t2)
-            e1_idx, r2_idx, t2_idx = random.choice(list(s_rot[target]))
+            e1_idx, r2_idx, t2_idx = random.choice(list(o_srt[target]))
             e1_ids = fast_Pe_targeted(e1, r1, t1, target=e1_idx)
             r2.fill(r2_idx)
             t2.fill(t2_idx)
