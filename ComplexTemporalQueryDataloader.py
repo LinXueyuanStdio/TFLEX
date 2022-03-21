@@ -123,13 +123,11 @@ class TestDataset(Dataset):
     @staticmethod
     def collate_fn(data):
         batch_queries_idx_dict: Dict[str, List[List[int]]] = defaultdict(list)
-        grouped_idxs: Dict[str, List[int]] = defaultdict(list)
         batch_candidate_answer_dict: Dict[str, List[torch.Tensor]] = defaultdict(list)
         grouped_easy_answer_dict: Dict[str, List[torch.Tensor]] = defaultdict(list)
         grouped_hard_answer_dict: Dict[str, List[Set[int]]] = defaultdict(list)
         for i, (query_name, query, candidate_answer, easy_answer, hard_answer) in enumerate(data):
             batch_queries_idx_dict[query_name].append(query)
-            grouped_idxs[query_name].append(i)
             batch_candidate_answer_dict[query_name].append(candidate_answer)
             grouped_easy_answer_dict[query_name].append(easy_answer)
             grouped_hard_answer_dict[query_name].append(hard_answer)
@@ -145,4 +143,4 @@ class TestDataset(Dataset):
             key: torch.cat(grouped_easy_answer_dict[key], dim=0)
             for key in grouped_easy_answer_dict
         }
-        return grouped_query, grouped_idxs, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer_dict
+        return grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer_dict

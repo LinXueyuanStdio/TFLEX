@@ -988,10 +988,10 @@ class MyExperiment(Experiment):
                 self.debug("Resumed from score %.4f." % best_score)
                 self.debug("Take a look at the performance after resumed.")
                 self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_dataloader, test_batch_size, test_device)
+                result = self.evaluate(model, valid_dataloader, test_device)
                 best_score = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
-                result = self.evaluate(model, test_dataloader, test_batch_size, test_device)
+                result = self.evaluate(model, test_dataloader, test_device)
                 best_test_score = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
@@ -1043,7 +1043,7 @@ class MyExperiment(Experiment):
                 with torch.no_grad():
                     print("")
                     self.debug("Validation (step: %d):" % (step + 1))
-                    result = self.evaluate(model, valid_dataloader, test_batch_size, test_device)
+                    result = self.evaluate(model, valid_dataloader, test_device)
                     score = self.visual_result(step + 1, result, "Valid")
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
@@ -1059,7 +1059,7 @@ class MyExperiment(Experiment):
                 with torch.no_grad():
                     print("")
                     self.debug("Test (step: %d):" % (step + 1))
-                    result = self.evaluate(model, test_dataloader, test_batch_size, test_device)
+                    result = self.evaluate(model, test_dataloader, test_device)
                     score = self.visual_result(step + 1, result, "Test")
                     if score >= best_test_score:
                         best_test_score = score
@@ -1098,7 +1098,7 @@ class MyExperiment(Experiment):
         }
         return log
 
-    def evaluate(self, model, test_dataloader, test_batch_size, device="cuda:0"):
+    def evaluate(self, model, test_dataloader, device="cuda:0"):
         model.to(device)
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
