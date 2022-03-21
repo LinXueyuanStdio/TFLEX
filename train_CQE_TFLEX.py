@@ -608,6 +608,7 @@ class FLEX(nn.Module):
             scores_union_t = self.scoring_to_answers(all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             print([i.shape for i in [scores_e, scores_t, scores_union_e, scores_union_t]])
             positive_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
+            print("positive_scores", positive_scores.shape)
 
         # 3. 计算负例损失
         if negative_answer is not None:
@@ -617,6 +618,7 @@ class FLEX(nn.Module):
             scores_union_t = self.scoring_to_answers(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             print([i.shape for i in [scores_e, scores_t, scores_union_e, scores_union_t]])
             negative_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
+            print("negative_scores", negative_scores.shape)
 
         return positive_scores, negative_scores, subsampling_weight, all_idxs
 

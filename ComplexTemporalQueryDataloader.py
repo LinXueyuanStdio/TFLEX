@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ComplexTemporalQueryData import TYPE_train_queries_answers, TYPE_test_queries_answers
-from expression.ParamSchema import is_entity
+from expression.TFLEX_DSL import is_to_predict_entity_set
 
 
 def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[int], Set[int]]]:
@@ -46,7 +46,7 @@ class TrainDataset(Dataset):
         subsampling_weight = torch.sqrt(1 / torch.Tensor([subsampling_weight]))  # (1,)
         negative_sample_list = []
         negative_sample_size = 0
-        answer_range = self.entity_count if is_entity(query_name) else self.timestamps_count
+        answer_range = self.entity_count if is_to_predict_entity_set(query_name) else self.timestamps_count
         while negative_sample_size < self.negative_sample_size:
             negative_answer = np.random.randint(answer_range, size=self.negative_sample_size * 2)
             mask = np.in1d(negative_answer, answer, assume_unique=True, invert=True)
@@ -112,7 +112,7 @@ class TestDataset(Dataset):
         if len(easy_answer) >= len(hard_answer):
             easy_answer = set()
         hard_answer = set(hard_answer) - set(easy_answer)
-        answer_range = self.entity_count if is_entity(query_name) else self.timestamps_count
+        answer_range = self.entity_count if is_to_predict_entity_set(query_name) else self.timestamps_count
         candidate_answer = torch.LongTensor(range(answer_range))
         return query_name, query, candidate_answer, easy_answer, hard_answer
 
