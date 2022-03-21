@@ -393,7 +393,9 @@ class FLEX(nn.Module):
         embedding_range = self.embedding_range.item()
         self.modulus = nn.Parameter(torch.Tensor([0.5 * embedding_range]), requires_grad=True)
         self.cen = center_reg
+        self.parser = self.build_parser()
 
+    def build_parser(self):
         def And(q1, q2):
             q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density = q1
             q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density = q2
@@ -511,7 +513,7 @@ class FLEX(nn.Module):
             "TimeAfter": TimeAfter,
             "TimeNext": TimeNext,
         }
-        self.parser = expression.NeuralParser(neural_ops)
+        return expression.NeuralParser(neural_ops)
 
     def init(self):
         embedding_range = self.embedding_range.item()
