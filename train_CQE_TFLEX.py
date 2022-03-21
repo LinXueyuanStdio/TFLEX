@@ -17,7 +17,7 @@ import expression
 from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
-from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
+from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF, query_structures
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
@@ -1107,9 +1107,18 @@ class MyExperiment(Experiment):
         step = 0
         h10 = None
         for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
-            for key in grouped_query:
-                grouped_query[key] = grouped_query[key].to(device)
-                grouped_candidate_answer[key] = grouped_candidate_answer[key].to(device)
+            for query_name in grouped_query:
+                grouped_query[query_name] = grouped_query[query_name].to(device)
+                grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].to(device)
+
+                # in FLEX, it has used DNF for union
+                # here we only cope with DM
+                key_DM = f"{query_name}_DM"
+                if key_DM in query_structures:
+                    grouped_query[key_DM] = grouped_query[query_name].clone()
+                    grouped_candidate_answer[key_DM] = grouped_candidate_answer[query_name].clone()
+                    grouped_easy_answer[key_DM] = grouped_easy_answer[query_name].clone()
+                    grouped_hard_answer[key_DM] = grouped_hard_answer[query_name].clone()
 
             grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
             for query_name in grouped_score:
