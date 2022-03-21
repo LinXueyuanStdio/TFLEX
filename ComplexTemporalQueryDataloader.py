@@ -115,8 +115,8 @@ class TestDataset(Dataset):
         answer_range = self.entity_count if is_to_predict_entity_set(query_name) else self.timestamps_count
         candidate_answer = torch.LongTensor(range(answer_range))
         easy_answer_vector = torch.zeros(answer_range)
-        print(easy_answer)
-        easy_answer_vector[set(easy_answer)] = 1
+        if len(easy_answer) > 0:
+            easy_answer_vector[easy_answer] = 1
         easy_answer_mask = easy_answer_vector == 1
         return query_name, query, candidate_answer, easy_answer_mask, hard_answer
 
