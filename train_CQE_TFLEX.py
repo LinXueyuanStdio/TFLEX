@@ -5,7 +5,7 @@
 @description: null
 """
 from collections import defaultdict
-from typing import List, Dict, Tuple, Optional, Union
+from typing import List, Dict, Tuple, Optional, Union, Set
 
 import click
 import torch
@@ -1105,59 +1105,48 @@ class MyExperiment(Experiment):
         logs = defaultdict(list)
         step = 0
         h10 = None
-        for query_name_list, grouped_query, grouped_idxs, grouped_candidate_answer, easy_answer, hard_answer in test_dataloader:
+        for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
             for key in grouped_query:
                 grouped_query[key] = grouped_query[key].to(device)
                 grouped_candidate_answer[key] = grouped_candidate_answer[key].to(device)
 
             grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
-            queries_unflatten = [query_name_list[i] for i in idxs]
-            easy_answer_reorder = [easy_answer[i] for i in idxs]
-            hard_answer_reorder = [hard_answer[i] for i in idxs]
-            argsort = torch.argsort(negative_logit, dim=1, descending=True)
-            ranking = argsort.float()
-            if len(argsort) == test_batch_size:
-                # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
-                ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))  # achieve the ranking of all entities
-            else:
-                # otherwise, create a new torch Tensor for batch_entity_range
-                ranking = ranking.scatter_(1,
-                                           argsort,
-                                           torch.arange(model.nentity).float().repeat(argsort.shape[0], 1).to(device)
-                                           )  # achieve the ranking of all entities
-            for idx, (i, query_structure_name, easy_answer, hard_answer) in enumerate(zip(argsort[:, 0], queries_unflatten, easy_answer_reorder, hard_answer_reorder)):
-                num_hard = len(hard_answer)
-                num_easy = len(easy_answer)
-                assert len(hard_answer.intersection(easy_answer)) == 0
-                cur_ranking = ranking[idx, list(easy_answer) + list(hard_answer)]
-                cur_ranking, indices = torch.sort(cur_ranking)
-                masks = indices >= num_easy
-                answer_list = torch.arange(num_hard + num_easy).float().to(device)
-                cur_ranking = cur_ranking - answer_list + 1  # filtered setting
-                cur_ranking = cur_ranking[masks]  # only take indices that belong to the hard answers
+            for query_name in grouped_score:
+                score = grouped_score[query_name]
+                easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
+                hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
+                score[easy_answer_mask] = -float('inf') # we remove easy answer, because easy answer may exist in training set
+                ranking = score.argsort(dim=1, descending=True)  # sorted idx (B, N)
 
-                mrr = torch.mean(1. / cur_ranking).item()
-                h1 = torch.mean((cur_ranking <= 1).float()).item()
-                h3 = torch.mean((cur_ranking <= 3).float()).item()
-                h10 = torch.mean((cur_ranking <= 10).float()).item()
-                logs[query_structure_name].append({
+                ranks = []
+                hits = []
+                for i in range(10):
+                    hits.append([])
+                for i in range(len(ranking.shape[0])):
+                    for answer_id in hard_answer[i]:
+                        rank = torch.where(ranking[i] == answer_id)[0][0]
+                        ranks.append(rank + 1)
+                        for hits_level in range(10):
+                            hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
+                mrr = 1 / torch.mean(torch.FloatTensor(ranks)).item()
+                h1 = torch.mean(torch.FloatTensor(hits[0])).item()
+                h3 = torch.mean(torch.FloatTensor(hits[2])).item()
+                h10 = torch.mean(torch.FloatTensor(hits[9])).item()
+                logs[query_name].append({
                     'MRR': mrr,
                     'hits@1': h1,
                     'hits@3': h3,
                     'hits@10': h10,
-                    'hard': num_hard,
                 })
 
             step += 1
             progbar.update(step, [("Hits @10", h10)])
 
         metrics = defaultdict(lambda: defaultdict(int))
-        for query_structure_name in logs:
-            for metric in logs[query_structure_name][0].keys():
-                if metric in ['hard']:
-                    continue
-                metrics[query_structure_name][metric] = sum([log[metric] for log in logs[query_structure_name]]) / len(logs[query_structure_name])
-            metrics[query_structure_name]['num_queries'] = len(logs[query_structure_name])
+        for query_name in logs:
+            for metric in logs[query_name][0].keys():
+                metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]]) / len(logs[query_name])
+            metrics[query_name]['num_queries'] = len(logs[query_name])
 
         return metrics
 
