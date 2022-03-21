@@ -69,10 +69,10 @@ class TrainDataset(Dataset):
         negative_answer = torch.stack([_[3] for _ in data], dim=0)
         subsampling_weight = torch.cat([_[4] for _ in data], dim=0)
         batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
-        batch_idxs_dict: Dict[str, List[int]] = defaultdict(list)
+        batch_idxs_dict: Dict[str, List[List[int]]] = defaultdict(list)
         for i, (query_name, query, _, _, _) in enumerate(data):
             batch_queries_dict[query_name].append(query)
-            batch_idxs_dict[query_name].append(i)
+            batch_idxs_dict[query_name].append([i])
         return batch_queries_dict, batch_idxs_dict, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
