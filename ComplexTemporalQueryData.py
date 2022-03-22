@@ -541,27 +541,12 @@ class ComplexQueryData(TemporalKnowledgeData):
         train_triples_ids = append_reverse(self.train_triples_ids)
         valid_triples_ids = append_reverse(self.valid_triples_ids)
         test_triples_ids = append_reverse(self.test_triples_ids)
-        train_sro_t, train_sor_t, train_srt_o, train_str_o, train_sot_r, train_sto_r, \
-        train_ors_t, train_osr_t, train_ort_s, train_otr_s, train_ost_r, train_ots_r, \
-        train_trs_o, train_tsr_o, train_tro_s, train_tor_s, train_tso_r, train_tos_r, \
-        train_rts_o, train_rst_o, train_rto_s, train_rot_s, train_rso_t, train_ros_t, \
-        train_t_sro, train_o_srt, train_s_rot, train_r_sot = build_mapping(train_triples_ids)
-        valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o, valid_sot_r, valid_sto_r, \
-        valid_ors_t, valid_osr_t, valid_ort_s, valid_otr_s, valid_ost_r, valid_ots_r, \
-        valid_trs_o, valid_tsr_o, valid_tro_s, valid_tor_s, valid_tso_r, valid_tos_r, \
-        valid_rts_o, valid_rst_o, valid_rto_s, valid_rot_s, valid_rso_t, valid_ros_t, \
-        valid_t_sro, valid_o_srt, valid_s_rot, valid_r_sot = build_mapping(train_triples_ids + valid_triples_ids)
-        test_sro_t, test_sor_t, test_srt_o, test_str_o, test_sot_r, test_sto_r, \
-        test_ors_t, test_osr_t, test_ort_s, test_otr_s, test_ost_r, test_ots_r, \
-        test_trs_o, test_tsr_o, test_tro_s, test_tor_s, test_tso_r, test_tos_r, \
-        test_rts_o, test_rst_o, test_rto_s, test_rot_s, test_rso_t, test_ros_t, \
-        test_t_sro, test_o_srt, test_s_rot, test_r_sot = build_mapping(train_triples_ids + valid_triples_ids + test_triples_ids)
-
-        # train_not_t_sro, train_not_o_srt = build_not_t2sro_o2srt(self.entities_ids, self.timestamps_ids, train_sro_t, train_srt_o)
-        # valid_not_t_sro, valid_not_o_srt = build_not_t2sro_o2srt(self.entities_ids, self.timestamps_ids, valid_sro_t, valid_srt_o)
-        # test_not_t_sro, test_not_o_srt = build_not_t2sro_o2srt(self.entities_ids, self.timestamps_ids, test_sro_t, test_srt_o)
 
         # 1. 1-hop: Pe, Pt
+        train_sro_t, train_srt_o = build_map_sro2t_and_srt2o(self.train_triples_ids)
+        valid_sro_t, valid_srt_o = build_map_sro2t_and_srt2o(self.valid_triples_ids)
+        test_sro_t, test_srt_o = build_map_sro2t_and_srt2o(self.test_triples_ids)
+
         def build_one_hop(param_name_list: List[str], sro_t, for_test=False):
             queries_answers = []
             for s in sro_t:
@@ -588,31 +573,40 @@ class ComplexQueryData(TemporalKnowledgeData):
         self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t, for_test=True)
 
         # 2. multi-hop: Pe_aPt, Pe_bPt, etc
+        train_sro_t, train_sor_t, train_srt_o, train_str_o, train_sot_r, train_sto_r, \
+        train_ors_t, train_osr_t, train_ort_s, train_otr_s, train_ost_r, train_ots_r, \
+        train_trs_o, train_tsr_o, train_tro_s, train_tor_s, train_tso_r, train_tos_r, \
+        train_rts_o, train_rst_o, train_rto_s, train_rot_s, train_rso_t, train_ros_t, \
+        train_t_sro, train_o_srt, train_s_rot, train_r_sot = build_mapping(train_triples_ids)
+        valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o, valid_sot_r, valid_sto_r, \
+        valid_ors_t, valid_osr_t, valid_ort_s, valid_otr_s, valid_ost_r, valid_ots_r, \
+        valid_trs_o, valid_tsr_o, valid_tro_s, valid_tor_s, valid_tso_r, valid_tos_r, \
+        valid_rts_o, valid_rst_o, valid_rto_s, valid_rot_s, valid_rso_t, valid_ros_t, \
+        valid_t_sro, valid_o_srt, valid_s_rot, valid_r_sot = build_mapping(train_triples_ids + valid_triples_ids)
+        test_sro_t, test_sor_t, test_srt_o, test_str_o, test_sot_r, test_sto_r, \
+        test_ors_t, test_osr_t, test_ort_s, test_otr_s, test_ost_r, test_ots_r, \
+        test_trs_o, test_tsr_o, test_tro_s, test_tor_s, test_tso_r, test_tos_r, \
+        test_rts_o, test_rst_o, test_rto_s, test_rot_s, test_rso_t, test_ros_t, \
+        test_t_sro, test_o_srt, test_s_rot, test_r_sot = build_mapping(train_triples_ids + valid_triples_ids + test_triples_ids)
         # 2.1 parser
         train_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
                                                  train_sro_t, train_sor_t, train_srt_o, train_str_o, train_sot_r, train_sto_r,
                                                  train_ors_t, train_osr_t, train_ort_s, train_otr_s, train_ost_r, train_ots_r,
                                                  train_trs_o, train_tsr_o, train_tro_s, train_tor_s, train_tso_r, train_tos_r,
                                                  train_rts_o, train_rst_o, train_rto_s, train_rot_s, train_rso_t, train_ros_t,
-                                                 train_t_sro, train_o_srt, train_s_rot, train_r_sot
-                                                 # , train_not_t_sro, train_not_o_srt)
-                                                 )
+                                                 train_t_sro, train_o_srt, train_s_rot, train_r_sot)
         valid_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
                                                  valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o, valid_sot_r, valid_sto_r,
                                                  valid_ors_t, valid_osr_t, valid_ort_s, valid_otr_s, valid_ost_r, valid_ots_r,
                                                  valid_trs_o, valid_tsr_o, valid_tro_s, valid_tor_s, valid_tso_r, valid_tos_r,
                                                  valid_rts_o, valid_rst_o, valid_rto_s, valid_rot_s, valid_rso_t, valid_ros_t,
-                                                 valid_t_sro, valid_o_srt, valid_s_rot, valid_r_sot
-                                                 # , valid_not_t_sro, valid_not_o_srt)
-                                                 )
+                                                 valid_t_sro, valid_o_srt, valid_s_rot, valid_r_sot)
         test_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
                                                 test_sro_t, test_sor_t, test_srt_o, test_str_o, test_sot_r, test_sto_r,
                                                 test_ors_t, test_osr_t, test_ort_s, test_otr_s, test_ost_r, test_ots_r,
                                                 test_trs_o, test_tsr_o, test_tro_s, test_tor_s, test_tso_r, test_tos_r,
                                                 test_rts_o, test_rst_o, test_rto_s, test_rot_s, test_rso_t, test_ros_t,
-                                                test_t_sro, test_o_srt, test_s_rot, test_r_sot
-                                                # , test_not_t_sro, test_not_o_srt)
-                                                )
+                                                test_t_sro, test_o_srt, test_s_rot, test_r_sot)
 
         # 2.2. sampling
         # we generate 1p, t-1p according to original train/valid/test triples.
