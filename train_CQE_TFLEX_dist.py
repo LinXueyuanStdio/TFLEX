@@ -601,8 +601,10 @@ class FLEX(nn.Module):
         time_density = torch.cat(time_density, dim=0).unsqueeze(1)
         return feature, logic, time_feature, time_logic, time_density
 
-    def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
-        return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+    def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries, batch_idxs):
+        grouped_query = {k:v for k, v in batch_queries}
+        grouped_idxs = {k:v for k, v in batch_idxs}
+        return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, grouped_query, grouped_idxs)
 
     def forward_FLEX(self,
                      positive_answer: Optional[torch.Tensor],
@@ -1109,8 +1111,10 @@ class MyExperiment(Experiment):
         positive_answer = positive_answer.to(device)
         negative_answer = negative_answer.to(device)
         subsampling_weight = subsampling_weight.to(device)
+        batch_queries = [(k, v) for k, v in grouped_query.items()]
+        batch_idxs = [(k, v) for k, v in grouped_idxs.items()]
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, grouped_query, grouped_idxs)
+        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, batch_queries, batch_idxs)
 
         negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
         positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
@@ -1121,19 +1125,20 @@ class MyExperiment(Experiment):
 
         loss = (positive_sample_loss + negative_sample_loss) / 2
 
+        torch.distributed.barrier()
+
+        reduce_loss = reduce_mean(loss, self.nprocs)
+        reduce_positive_sample_loss = reduce_mean(positive_sample_loss, self.nprocs)
+        reduce_negative_sample_loss = reduce_mean(negative_sample_loss, self.nprocs)
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        torch.distributed.barrier()
-        loss = reduce_mean(loss, self.nprocs)
-        positive_sample_loss = reduce_mean(positive_sample_loss, self.nprocs)
-        negative_sample_loss = reduce_mean(negative_sample_loss, self.nprocs)
-
         log = {
-            'positive_sample_loss': positive_sample_loss.item(),
-            'negative_sample_loss': negative_sample_loss.item(),
-            'loss': loss.item(),
+            'positive_sample_loss': reduce_positive_sample_loss.item(),
+            'negative_sample_loss': reduce_negative_sample_loss.item(),
+            'loss': reduce_loss.item(),
         }
         return log
 
