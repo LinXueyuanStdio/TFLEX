@@ -567,10 +567,20 @@ class ComplexQueryData(TemporalKnowledgeData):
         self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o, for_test=False)
         self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o, for_test=True)
         self.test_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], test_srt_o, for_test=True)
+        print("Pe",
+              "train", len(self.train_queries_answers["Pe"]["queries_answers"]),
+              "valid", len(self.valid_queries_answers["Pe"]["queries_answers"]),
+              "test", len(self.test_queries_answers["Pe"]["queries_answers"]),
+              )
 
         self.train_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], train_sro_t, for_test=False)
         self.valid_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], valid_sro_t, for_test=True)
         self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t, for_test=True)
+        print("Pt",
+              "train", len(self.train_queries_answers["Pt"]["queries_answers"]),
+              "valid", len(self.valid_queries_answers["Pt"]["queries_answers"]),
+              "test", len(self.test_queries_answers["Pt"]["queries_answers"]),
+              )
 
         # 2. multi-hop: Pe_aPt, Pe_bPt, etc
         train_sro_t, train_sor_t, train_srt_o, train_str_o, train_sot_r, train_sto_r, \
