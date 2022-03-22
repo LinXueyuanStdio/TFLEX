@@ -742,35 +742,38 @@ class FLEX(nn.Module):
 
         for query_structure in grouped_query:
             query_name = query_structure
-            query_args = self.parser.fast_args(query_name)
             query_tensor = grouped_query[query_structure]  # (B, L), B for batch size, L for query args length
             answer = grouped_answer[query_structure]  # (B, N)
-            # query_idxs is of shape Bx1.
-            # each element indicates global index of each row in query_tensor.
-            # global index means the index in sample from dataloader.
-            # the sample is grouped by query name and leads to query_tensor here.
-            if query_contains_union_and_we_should_use_DNF(query_name):
-                # transform to DNF
-                func = self.parser.fast_function(query_name + "_DNF")
-                embedding_of_args = self.embed_args(query_args, query_tensor)
-                predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
-                all_union_predict: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
-                if is_to_predict_entity_set(query_name):
-                    grouped_score[query_name] = self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
-                else:
-                    grouped_score[query_name] = self.scoring_to_answers(answer, all_union_predict, predict_entity=False, DNF_predict=True)
-            else:
-                # other query and DM are normal
-                func = self.parser.fast_function(query_name)
-                embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
-                predict = func(*embedding_of_args)  # (B, d)
-                all_predict: TYPE_token = tuple([i.unsqueeze(dim=1) for i in predict])  # (B, 1, d)
-                if is_to_predict_entity_set(query_name):
-                    grouped_score[query_name] = self.scoring_to_answers(answer, all_predict, predict_entity=True, DNF_predict=False)
-                else:
-                    grouped_score[query_name] = self.scoring_to_answers(answer, all_predict, predict_entity=False, DNF_predict=False)
+            grouped_score[query_name] = self.forward_predict(query_structure, query_tensor, answer)
 
         return grouped_score
+
+    def forward_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor, answer: torch.Tensor)->torch.Tensor:
+        # query_tensor  # (B, L), B for batch size, L for query args length
+        # answer  # (B, N)
+        query_name = query_structure
+        query_args = self.parser.fast_args(query_name)
+        # the sample is grouped by query name and leads to query_tensor here.
+        if query_contains_union_and_we_should_use_DNF(query_name):
+            # transform to DNF
+            func = self.parser.fast_function(query_name + "_DNF")
+            embedding_of_args = self.embed_args(query_args, query_tensor)
+            predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
+            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1) for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
+            if is_to_predict_entity_set(query_name):
+                return self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
+            else:
+                return self.scoring_to_answers(answer, all_union_predict, predict_entity=False, DNF_predict=True)
+        else:
+            # other query and DM are normal
+            func = self.parser.fast_function(query_name)
+            embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
+            predict = func(*embedding_of_args)  # (B, d)
+            all_predict: TYPE_token = tuple([i.unsqueeze(dim=1) for i in predict])  # (B, 1, d)
+            if is_to_predict_entity_set(query_name):
+                return self.scoring_to_answers(answer, all_predict, predict_entity=True, DNF_predict=False)
+            else:
+                return self.scoring_to_answers(answer, all_predict, predict_entity=False, DNF_predict=False)
 
     def scoring_to_answers_by_idxs(self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
         """
