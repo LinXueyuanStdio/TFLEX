@@ -601,10 +601,14 @@ class FLEX(nn.Module):
         time_density = torch.cat(time_density, dim=0).unsqueeze(1)
         return feature, logic, time_feature, time_logic, time_density
 
-    def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries, batch_idxs):
+    def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries, batch_idxs, batch_answer):
         grouped_query = {k:v for k, v in batch_queries}
-        grouped_idxs = {k:v for k, v in batch_idxs}
-        return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, grouped_query, grouped_idxs)
+        if batch_answer is None:
+            grouped_idxs = {k:v for k, v in batch_idxs}
+            return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, grouped_query, grouped_idxs)
+        else:
+            grouped_answer = {k:v for k, v in batch_answer}
+            return self.grouped_predict(grouped_query, grouped_answer)
 
     def forward_FLEX(self,
                      positive_answer: Optional[torch.Tensor],
@@ -1114,7 +1118,7 @@ class MyExperiment(Experiment):
         batch_queries = [(k, v) for k, v in grouped_query.items()]
         batch_idxs = [(k, v) for k, v in grouped_idxs.items()]
 
-        positive_logit, negative_logit, subsampling_weight = model(positive_answer, negative_answer, subsampling_weight, batch_queries, batch_idxs)
+        positive_logit, negative_logit, subsampling_weight = model(batch_queries, positive_answer, negative_answer, subsampling_weight, batch_idxs, None)
 
         negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
         positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
@@ -1146,8 +1150,10 @@ class MyExperiment(Experiment):
             for query_name in grouped_query:
                 grouped_query[query_name] = grouped_query[query_name].to(device)
                 grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].to(device)
+            batch_queries = [(k, v) for k, v in grouped_query.items()]
+            batch_answer = [(k, v) for k, v in grouped_candidate_answer.items()]
 
-            grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
+            grouped_score = model(batch_queries, None, None, None, None, batch_answer)
             for query_name in grouped_score:
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
