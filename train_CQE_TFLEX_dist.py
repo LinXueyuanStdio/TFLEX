@@ -646,7 +646,7 @@ class FLEX(nn.Module):
             scores_union_t = self.scoring_to_answers_by_idxs(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             negative_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
-        return positive_scores, negative_scores, subsampling_weight, all_idxs
+        return positive_scores, negative_scores, subsampling_weight
 
     def single_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor) -> Union[TYPE_token, Tuple[TYPE_token, TYPE_token]]:
         query_name, query_args = query_structure
@@ -987,7 +987,7 @@ class MyExperiment(Experiment):
         self.log("Test info:")
         for query_structure_name in test_queries_answers:
             self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
-        test_dataset = TestDataset(test_queries_answers, entity_count, timestamp_count),
+        test_dataset = TestDataset(test_queries_answers, entity_count, timestamp_count)
         test_dataloader = DataLoader(
             test_dataset,
             sampler=DistributedSampler(test_dataset),
@@ -1114,7 +1114,7 @@ class MyExperiment(Experiment):
         batch_queries = [(k, v) for k, v in grouped_query.items()]
         batch_idxs = [(k, v) for k, v in grouped_idxs.items()]
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, batch_queries, batch_idxs)
+        positive_logit, negative_logit, subsampling_weight = model(positive_answer, negative_answer, subsampling_weight, batch_queries, batch_idxs)
 
         negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
         positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
