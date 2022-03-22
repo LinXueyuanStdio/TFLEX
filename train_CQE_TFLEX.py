@@ -605,13 +605,18 @@ class FLEX(nn.Module):
                      positive_answer: Optional[torch.Tensor],
                      negative_answer: Optional[torch.Tensor],
                      subsampling_weight: Optional[torch.Tensor],
-                     batch_queries_dict: Dict[QueryStructure, torch.Tensor],
-                     batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
+                     grouped_query: Dict[QueryStructure, torch.Tensor],
+                     grouped_idxs: Dict[QueryStructure, List[List[int]]]):
+        """
+        positive_answer: None or (B, )
+        negative_answer: None or (B, N)
+        subsampling_weight: None or (B, )
+        """
         # 1. 将 查询 嵌入到低维空间
         (all_idxs_e, all_predict_e), \
         (all_idxs_t, all_predict_t), \
         (all_union_idxs_e, all_union_predict_e), \
-        (all_union_idxs_t, all_union_predict_t) = self.batch_predict(batch_queries_dict, batch_idxs_dict)
+        (all_union_idxs_t, all_union_predict_t) = self.batch_predict(grouped_query, grouped_idxs)
 
         all_idxs = all_idxs_e + all_idxs_t + all_union_idxs_e + all_union_idxs_t
         if subsampling_weight is not None:
@@ -741,10 +746,9 @@ class FLEX(nn.Module):
         grouped_score = {}
 
         for query_structure in grouped_query:
-            query_name = query_structure
-            query_tensor = grouped_query[query_structure]  # (B, L), B for batch size, L for query args length
+            query = grouped_query[query_structure]  # (B, L), B for batch size, L for query args length
             answer = grouped_answer[query_structure]  # (B, N)
-            grouped_score[query_name] = self.forward_predict(query_structure, query_tensor, answer)
+            grouped_score[query_structure] = self.forward_predict(query_structure, query, answer)
 
         return grouped_score
 
@@ -867,9 +871,9 @@ class FLEX(nn.Module):
 
         # inner distance
         feature_distance = torch.abs(d_center)
-        inner_distance = torch.min(feature_distance, time_logic)
+        inner_distance = torch.min(feature_distance, time_logic) * time_density
         # outer distance
-        outer_distance = torch.min(torch.abs(d_left), torch.abs(d_right))
+        outer_distance = torch.min(torch.abs(d_left), torch.abs(d_right)) * time_density
         outer_distance[feature_distance < time_logic] = 0.  # if entity is inside, we don't care about outer.
 
         distance = torch.norm(outer_distance, p=1, dim=-1) + self.cen * torch.norm(inner_distance, p=1, dim=-1)
