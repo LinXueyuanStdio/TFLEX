@@ -17,7 +17,7 @@ import expression
 from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
-from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF, query_structures
+from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
@@ -748,7 +748,7 @@ class FLEX(nn.Module):
 
         return grouped_score
 
-    def forward_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor, answer: torch.Tensor)->torch.Tensor:
+    def forward_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor, answer: torch.Tensor) -> torch.Tensor:
         # query_tensor  # (B, L), B for batch size, L for query args length
         # answer  # (B, N)
         query_name = query_structure
@@ -921,7 +921,6 @@ class MyExperiment(Experiment):
         for query_structure_name in train_queries_answers:
             self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         train_path_queries: TYPE_train_queries_answers = {}
-        # List[Tuple[List[int], Set[int]]]
         train_other_queries: TYPE_train_queries_answers = {}
         path_list = ["Pe", "Pt", "Pe2", 'Pe3']
         for query_structure_name in train_queries_answers:

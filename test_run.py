@@ -20,49 +20,10 @@ import torch.utils.data.distributed
 from torch.utils.data import Dataset
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('-b',
-                    '--batch-size',
-                    default=5,
-                    type=int,
-                    metavar='N',
-                    help='mini-batch size (default: 3200), this is the total '
-                         'batch size of all GPUs on the current node when '
-                         'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr',
-                    '--learning-rate',
-                    default=0.1,
-                    type=float,
-                    metavar='LR',
-                    help='initial learning rate',
-                    dest='lr')
-parser.add_argument('--local_rank',
-                    default=-1,
-                    type=int,
-                    help='node rank for distributed training')
-
-
-def reduce_mean(tensor, nprocs):
-    rt = tensor.clone()
-    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
-    rt /= nprocs
-    return rt
-
-
-def main():
-    args = parser.parse_args()
-    args.nprocs = torch.cuda.device_count()
-
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
-        warnings.warn('You have chosen to seed training. '
-                      'This will turn on the CUDNN deterministic setting, '
-                      'which can slow down your training considerably! '
-                      'You may see unexpected behavior when restarting '
-                      'from checkpoints.')
-
-    main_worker(args.local_rank, args.nprocs, args)
+parser.add_argument('-b', '--batch-size', default=5, type=int, metavar='N', help='mini-batch size (default: 3200), this is the total batch size of all GPUs on the current node when '
+                                                                                 'using Data Parallel or Distributed Data Parallel')
+parser.add_argument('--lr', '--learning-rate', default=0.1, type=float, metavar='LR', help='initial learning rate', dest='lr')
+parser.add_argument('--local_rank', default=-1, type=int, help='node rank for distributed training')
 
 
 class ToyModel(nn.Module):
@@ -154,16 +115,18 @@ def main_worker(local_rank, nprocs, args):
                 }, is_best)
 
 
+def reduce_mean(tensor, nprocs):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= nprocs
+    return rt
+
 def train(train_loader, model, criterion, optimizer, epoch, local_rank, args):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
     top5 = AverageMeter('Acc@5', ':6.2f')
-    progress = ProgressMeter(len(train_loader),
-                             [batch_time, data_time, losses, top1, top5],
-                             prefix="Epoch: [{}]".format(epoch))
-
     # switch to train mode
     model.train()
 
@@ -201,9 +164,6 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args):
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
-
-        if i % args.print_freq == 0:
-            progress.display(i)
 
 
 def validate(val_loader, model, criterion, local_rank, args):
@@ -275,23 +235,6 @@ class AverageMeter(object):
         return fmtstr.format(**self.__dict__)
 
 
-class ProgressMeter(object):
-    def __init__(self, num_batches, meters, prefix=""):
-        self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
-        self.meters = meters
-        self.prefix = prefix
-
-    def display(self, batch):
-        entries = [self.prefix + self.batch_fmtstr.format(batch)]
-        entries += [str(meter) for meter in self.meters]
-        print('\t'.join(entries))
-
-    def _get_batch_fmtstr(self, num_batches):
-        num_digits = len(str(num_batches // 1))
-        fmt = '{:' + str(num_digits) + 'd}'
-        return '[' + fmt + '/' + fmt.format(num_batches) + ']'
-
-
 def adjust_learning_rate(optimizer, epoch, args):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
     lr = args.lr * (0.1 ** (epoch // 30))
@@ -314,6 +257,22 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
+
+
+def main():
+    args = parser.parse_args()
+    args.nprocs = torch.cuda.device_count()
+
+    if args.seed is not None:
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        cudnn.deterministic = True
+        warnings.warn('You have chosen to seed training. '
+                      'This will turn on the CUDNN deterministic setting, '
+                      'which can slow down your training considerably! '
+                      'You may see unexpected behavior when restarting from checkpoints.')
+
+    main_worker(args.local_rank, args.nprocs, args)
 
 
 if __name__ == '__main__':
