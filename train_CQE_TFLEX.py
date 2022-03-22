@@ -1111,15 +1111,6 @@ class MyExperiment(Experiment):
                 grouped_query[query_name] = grouped_query[query_name].to(device)
                 grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].to(device)
 
-                # in FLEX, it has used DNF for union
-                # here we only cope with DM
-                key_DM = f"{query_name}_DM"
-                if key_DM in query_structures:
-                    grouped_query[key_DM] = grouped_query[query_name].clone()
-                    grouped_candidate_answer[key_DM] = grouped_candidate_answer[query_name].clone()
-                    grouped_easy_answer[key_DM] = grouped_easy_answer[query_name].clone()
-                    grouped_hard_answer[key_DM] = grouped_hard_answer[query_name]
-
             grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
             for query_name in grouped_score:
                 score = grouped_score[query_name]

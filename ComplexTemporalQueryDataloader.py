@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ComplexTemporalQueryData import TYPE_train_queries_answers, TYPE_test_queries_answers
-from expression.TFLEX_DSL import is_to_predict_entity_set
+from expression.TFLEX_DSL import is_to_predict_entity_set, query_structures
 
 
 def flatten_train(queries_answers: TYPE_train_queries_answers) -> List[Tuple[str, List[int], Set[int]]]:
@@ -133,6 +133,16 @@ class TestDataset(Dataset):
             batch_candidate_answer_dict[query_name].append(candidate_answer)
             grouped_easy_answer_dict[query_name].append(easy_answer)
             grouped_hard_answer_dict[query_name].append(hard_answer)
+
+            # in FLEX, it has used DNF for union
+            # here we only cope with DM
+            key_DM = f"{query_name}_DM"
+            if key_DM in query_structures:
+                batch_queries_idx_dict[key_DM].append(query)
+                batch_candidate_answer_dict[key_DM].append(candidate_answer)
+                grouped_easy_answer_dict[key_DM].append(easy_answer)
+                grouped_hard_answer_dict[key_DM].append(hard_answer)
+
         grouped_query: Dict[str, torch.Tensor] = {
             key: torch.LongTensor(batch_queries_idx_dict[key])
             for key in batch_queries_idx_dict
