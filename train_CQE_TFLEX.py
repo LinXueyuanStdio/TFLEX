@@ -1118,7 +1118,7 @@ class MyExperiment(Experiment):
                     grouped_query[key_DM] = grouped_query[query_name].clone()
                     grouped_candidate_answer[key_DM] = grouped_candidate_answer[query_name].clone()
                     grouped_easy_answer[key_DM] = grouped_easy_answer[query_name].clone()
-                    grouped_hard_answer[key_DM] = grouped_hard_answer[query_name].clone()
+                    grouped_hard_answer[key_DM] = grouped_hard_answer[query_name]
 
             grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
             for query_name in grouped_score:
