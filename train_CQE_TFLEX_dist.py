@@ -11,6 +11,7 @@ import click
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
 import expression
@@ -23,6 +24,8 @@ from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
+from torch.utils.data.distributed import DistributedSampler
+import torch.distributed as dist
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
@@ -892,6 +895,13 @@ class FLEX(nn.Module):
         return score
 
 
+def reduce_mean(tensor, nprocs):
+    rt = tensor.clone()
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
+    rt /= nprocs
+    return rt
+
+
 class MyExperiment(Experiment):
 
     def __init__(self, output: OutputSchema, data: ComplexQueryData,
@@ -900,7 +910,7 @@ class MyExperiment(Experiment):
                  train_device, test_device,
                  resume, resume_by_score,
                  lr, cpu_num,
-                 hidden_dim, input_dropout, gamma, center_reg,
+                 hidden_dim, input_dropout, gamma, center_reg, local_rank
                  ):
         super(MyExperiment, self).__init__(output)
         self.log(f"{locals()}")
@@ -915,6 +925,12 @@ class MyExperiment(Experiment):
         self.log('# relation: %d' % relation_count)
         self.log('# timestamp: %d' % timestamp_count)
         self.log('# max steps: %d' % max_steps)
+        nprocs = torch.cuda.device_count()
+        self.nprocs = nprocs
+        dist.init_process_group(backend='nccl')
+        torch.cuda.set_device(local_rank)
+        batch_size = batch_size // nprocs
+        test_batch_size = test_batch_size // nprocs
 
         # 1. build train dataset
         train_queries_answers = data.train_queries_answers
@@ -932,18 +948,22 @@ class MyExperiment(Experiment):
                 train_path_queries[query_structure_name] = train_queries_answers[query_structure_name]
             else:
                 train_other_queries[query_structure_name] = train_queries_answers[query_structure_name]
+        train_path_dataset = TrainDataset(train_path_queries, entity_count, timestamp_count, negative_sample_size)
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-            TrainDataset(train_path_queries, entity_count, timestamp_count, negative_sample_size),
+            train_path_dataset,
+            sampler=DistributedSampler(train_path_dataset),
             batch_size=batch_size,
-            shuffle=True,
+            # shuffle=True,
             num_workers=cpu_num,
             collate_fn=TrainDataset.collate_fn
         ))
         if len(train_other_queries) > 0:
+            train_other_dataset = TrainDataset(train_other_queries, entity_count, timestamp_count, negative_sample_size)
             train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                TrainDataset(train_other_queries, entity_count, timestamp_count, negative_sample_size),
+                train_other_dataset,
+                sampler=DistributedSampler(train_other_dataset),
                 batch_size=batch_size,
-                shuffle=True,
+                # shuffle=True,
                 num_workers=cpu_num,
                 collate_fn=TrainDataset.collate_fn
             ))
@@ -953,8 +973,10 @@ class MyExperiment(Experiment):
         self.log("Validation info:")
         for query_structure_name in valid_queries_answers:
             self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
+        valid_dataset = TestDataset(valid_queries_answers, entity_count, timestamp_count)
         valid_dataloader = DataLoader(
-            TestDataset(valid_queries_answers, entity_count, timestamp_count),
+            valid_dataset,
+            sampler=DistributedSampler(valid_dataset),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
@@ -963,8 +985,10 @@ class MyExperiment(Experiment):
         self.log("Test info:")
         for query_structure_name in test_queries_answers:
             self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
+        test_dataset = TestDataset(test_queries_answers, entity_count, timestamp_count),
         test_dataloader = DataLoader(
-            TestDataset(test_queries_answers, entity_count, timestamp_count),
+            test_dataset,
+            sampler=DistributedSampler(test_dataset),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
@@ -980,7 +1004,7 @@ class MyExperiment(Experiment):
             center_reg=center_reg,
             test_batch_size=test_batch_size,
             drop=input_dropout,
-        ).to(train_device)
+        ).cuda(local_rank)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         best_score = 0
         best_test_score = 0
@@ -995,14 +1019,15 @@ class MyExperiment(Experiment):
                 self.debug("Resumed from score %.4f." % best_score)
                 self.debug("Take a look at the performance after resumed.")
                 self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_dataloader, test_device)
+                result = self.evaluate(model, valid_dataloader, local_rank)
                 best_score = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
-                result = self.evaluate(model, test_dataloader, test_device)
+                result = self.evaluate(model, test_dataloader, local_rank)
                 best_test_score = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
             self.dump_model(model)
+        model = DistributedDataParallel(model, device_ids=[local_rank])
 
         current_learning_rate = lr
         hyper = {
@@ -1022,14 +1047,14 @@ class MyExperiment(Experiment):
         progbar = Progbar(max_step=max_steps)
         for step in range(start_step, max_steps):
             model.train()
-            log = self.train(model, opt, train_path_iterator, step, train_device)
+            log = self.train(model, opt, train_path_iterator, step, local_rank)
             for metric in log:
                 self.vis.add_scalar('path_' + metric, log[metric], step)
             if train_other_iterator is not None:
-                log = self.train(model, opt, train_other_iterator, step, train_device)
+                log = self.train(model, opt, train_other_iterator, step, local_rank)
                 for metric in log:
                     self.vis.add_scalar('other_' + metric, log[metric], step)
-                log = self.train(model, opt, train_path_iterator, step, train_device)
+                log = self.train(model, opt, train_path_iterator, step, local_rank)
 
             progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
             if (step + 1) % 10 == 0:
@@ -1050,7 +1075,7 @@ class MyExperiment(Experiment):
                 with torch.no_grad():
                     print("")
                     self.debug("Validation (step: %d):" % (step + 1))
-                    result = self.evaluate(model, valid_dataloader, test_device)
+                    result = self.evaluate(model, valid_dataloader, local_rank)
                     score = self.visual_result(step + 1, result, "Valid")
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
@@ -1066,7 +1091,7 @@ class MyExperiment(Experiment):
                 with torch.no_grad():
                     print("")
                     self.debug("Test (step: %d):" % (step + 1))
-                    result = self.evaluate(model, test_dataloader, test_device)
+                    result = self.evaluate(model, test_dataloader, local_rank)
                     score = self.visual_result(step + 1, result, "Test")
                     if score >= best_test_score:
                         best_test_score = score
@@ -1076,8 +1101,7 @@ class MyExperiment(Experiment):
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
         model.train()
-        model.to(device)
-        optimizer.zero_grad()
+        model.cuda(device)
 
         grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
         for key in grouped_query:
@@ -1096,8 +1120,16 @@ class MyExperiment(Experiment):
         negative_sample_loss /= subsampling_weight.sum()
 
         loss = (positive_sample_loss + negative_sample_loss) / 2
+
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        torch.distributed.barrier()
+        loss = reduce_mean(loss, self.nprocs)
+        positive_sample_loss = reduce_mean(positive_sample_loss, self.nprocs)
+        negative_sample_loss = reduce_mean(negative_sample_loss, self.nprocs)
+
         log = {
             'positive_sample_loss': positive_sample_loss.item(),
             'negative_sample_loss': negative_sample_loss.item(),
@@ -1106,7 +1138,7 @@ class MyExperiment(Experiment):
         return log
 
     def evaluate(self, model, test_dataloader, device="cuda:0"):
-        model.to(device)
+        model.cuda(device)
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
         logs = defaultdict(list)
@@ -1229,13 +1261,14 @@ class MyExperiment(Experiment):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--local_rank', type=int,default=-1, help='node rank for distributed training')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg,
+         hidden_dim, input_dropout, gamma, center_reg, local_rank
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
@@ -1259,7 +1292,7 @@ def main(data_home, dataset, name,
         train_device, test_device,
         resume, resume_by_score,
         lr, cpu_num,
-        hidden_dim, input_dropout, gamma, center_reg,
+        hidden_dim, input_dropout, gamma, center_reg, local_rank
     )
 
 
