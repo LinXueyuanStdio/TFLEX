@@ -1116,30 +1116,23 @@ class MyExperiment(Experiment):
 
         positive_logit, negative_logit, subsampling_weight = model(positive_answer, negative_answer, subsampling_weight, batch_queries, batch_idxs)
 
-        negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_score).sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum()
-        positive_sample_loss /= subsampling_weight.sum()
-        negative_sample_loss /= subsampling_weight.sum()
+        negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
+        positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
+        positive_sample_loss = - (subsampling_weight * positive_sample_loss).sum() / subsampling_weight.sum()
+        negative_sample_loss = - (subsampling_weight * negative_sample_loss).sum() / subsampling_weight.sum()
 
         loss = (positive_sample_loss + negative_sample_loss) / 2
 
         torch.distributed.barrier()
-
-        reduce_loss = reduce_mean(loss, self.nprocs)
-        reduce_positive_sample_loss = reduce_mean(positive_sample_loss, self.nprocs)
-        reduce_negative_sample_loss = reduce_mean(negative_sample_loss, self.nprocs)
+        log = {
+            'positive_sample_loss': reduce_mean(positive_sample_loss, self.nprocs).item(),
+            'negative_sample_loss': reduce_mean(negative_sample_loss, self.nprocs).item(),
+            'loss': reduce_mean(loss, self.nprocs).item(),
+        }
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        log = {
-            'positive_sample_loss': reduce_positive_sample_loss.item(),
-            'negative_sample_loss': reduce_negative_sample_loss.item(),
-            'loss': reduce_loss.item(),
-        }
         return log
 
     def evaluate(self, model, test_dataloader, device="cuda:0"):
