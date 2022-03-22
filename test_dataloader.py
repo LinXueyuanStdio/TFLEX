@@ -41,6 +41,7 @@ dataset = ToyDataset()
 val_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
 val_loader = torch.utils.data.DataLoader(dataset,
                                          batch_size=4,
-                                         sampler=val_sampler)
+                                         sampler=val_sampler,
+                                         collate_fn=ToyDataset.collate_fn)
 for i in val_loader:
     print(i)
