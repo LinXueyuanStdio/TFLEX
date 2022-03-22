@@ -1029,7 +1029,7 @@ class MyExperiment(Experiment):
         else:
             model.init()
             self.dump_model(model)
-        model = DistributedDataParallel(model, device_ids=[local_rank])
+        model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
 
         current_learning_rate = lr
         hyper = {
