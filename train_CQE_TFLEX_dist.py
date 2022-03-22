@@ -1216,7 +1216,7 @@ class MyExperiment(Experiment):
         for row in average_metrics:
             cell = average_metrics[row]
             row_results[row].append(cell)
-        for col in result:
+        for col in sorted(result):
             row_results[header].append(col)
             col_data = result[col]
             for row in col_data:
