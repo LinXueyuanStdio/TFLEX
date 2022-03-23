@@ -1292,20 +1292,23 @@ class MyExperiment(Experiment):
         metrics = defaultdict(lambda: defaultdict(int))
         dist.reduce(all_tensors, dst=0)
         if dist.get_rank() == 0:
-            # only main process gets accumulated, so only divide by
-            # world_size in this case
-            all_tensors /= self.world_size
+            # 1. store to dict
             for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
-                if metric == "num_queries":
-                    metrics[query_name][metric] = value * self.world_size
-                else:
-                    metrics[query_name][metric] = value
+                metrics[query_name][metric] = value
+            # 2. delete empty query
             del_query = []
             for query_name in metrics:
                 if "num_queries" in metrics[query_name] and metrics[query_name]["num_queries"] == 0:
                     del_query.append(query_name)
             for query_name in del_query:
                 del metrics[query_name]
+            # 3. correct values
+            for query_name, metric in zip(query_name_keys, metric_name_keys):
+                value = metrics[query_name][metric]
+                if metric == "num_queries":
+                    metrics[query_name][metric] = int(value)
+                else:
+                    metrics[query_name][metric] = value / metrics[query_name]["num_queries"]
 
         return metrics
 
