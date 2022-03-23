@@ -21,6 +21,7 @@ class OutputPathSchema:
         self.dir_path_log = self.output_path / 'logs'
         self.dir_path_visualize = self.output_path / 'visualize'
         self.dir_path_checkpoint = self.output_path / 'checkpoint'
+        self.dir_path_latex = self.output_path / 'latex'
         self.dir_path_deploy = self.output_path / 'deploy'
         self.dir_path_scripts = self.output_path / 'scripts'
 
@@ -35,6 +36,9 @@ class OutputPathSchema:
     def checkpoint_path(self, filename="checkpoint.tar") -> Path:
         return self.dir_path_checkpoint / filename
 
+    def latex_path(self, filename="best.tex") -> Path:
+        return self.dir_path_latex / filename
+
     def deploy_path(self, filename="model.tar") -> Path:
         return self.dir_path_deploy / filename
 
@@ -46,6 +50,7 @@ class OutputPathSchema:
         self.dir_path_log.mkdir(parents=True, exist_ok=True)
         self.dir_path_visualize.mkdir(parents=True, exist_ok=True)
         self.dir_path_checkpoint.mkdir(parents=True, exist_ok=True)
+        self.dir_path_latex.mkdir(parents=True, exist_ok=True)
         self.dir_path_deploy.mkdir(parents=True, exist_ok=True)
         self.dir_path_scripts.mkdir(parents=True, exist_ok=True)
 

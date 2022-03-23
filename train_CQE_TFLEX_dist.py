@@ -1100,10 +1100,10 @@ class MyExperiment(Experiment):
                     self.debug("Take a look at the performance after resumed.")
                     self.debug("Validation (step: %d):" % start_step)
                     result = self.evaluate(model, valid_dataloader, local_rank)
-                    best_score = self.visual_result(start_step + 1, result, "Valid")
+                    best_score, _ = self.visual_result(start_step + 1, result, "Valid")
                     self.debug("Test (step: %d):" % start_step)
                     result = self.evaluate(model, test_dataloader, local_rank)
-                    best_test_score = self.visual_result(start_step + 1, result, "Test")
+                    best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
             if local_rank == 0:
@@ -1162,15 +1162,17 @@ class MyExperiment(Experiment):
                         self.debug("Validation (step: %d):" % (step + 1))
                     result = self.evaluate(model, valid_dataloader, local_rank)
                     if local_rank == 0:
-                        score = self.visual_result(step + 1, result, "Valid")
+                        score, row_results = self.visual_result(step + 1, result, "Valid")
                         if score >= best_score:
                             self.success("current score=%.4f > best score=%.4f" % (score, best_score))
                             best_score = score
                             self.metric_log_store.add_best_metric({"result": result}, "Valid")
                             self.debug("saving best score %.4f" % score)
                             self.model_param_store.save_best(model, opt, step, 0, score)
+                            self.latex_store.save_best_valid_result(row_results)
                         else:
                             self.model_param_store.save_by_score(model, opt, step, 0, score)
+                            self.latex_store.save_valid_result_by_score(row_results, score)
                             self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
@@ -1180,9 +1182,11 @@ class MyExperiment(Experiment):
                         self.debug("Test (step: %d):" % (step + 1))
                     result = self.evaluate(model, test_dataloader, local_rank)
                     if local_rank == 0:
-                        score = self.visual_result(step + 1, result, "Test")
+                        score, row_results = self.visual_result(step + 1, result, "Test")
+                        self.latex_store.save_test_result_by_score(row_results, score)
                         if score >= best_test_score:
                             best_test_score = score
+                            self.latex_store.save_best_test_result(row_results)
                             self.metric_log_store.add_best_metric({"result": result}, "Test")
                         print("")
         if local_rank == 0:
@@ -1359,8 +1363,9 @@ class MyExperiment(Experiment):
         for i in row_results:
             row = row_results[i]
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
+
         score = average_metrics["MRR"]
-        return score
+        return score, row_results
 
 
 @click.command()

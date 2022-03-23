@@ -4,8 +4,6 @@
 @date: 2022/3/23
 @description: null
 """
-
-
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 

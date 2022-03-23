@@ -1,13 +1,10 @@
 """
 @author: lxy
 @email: linxy59@mail2.sysu.edu.cn
-@date: 2021/12/9
-@description: 这里维护各种模型的复现结果。用户进行实验后，可以拉取实验结果，一键生成对应的 latex 表格，就不用手动抄写到论文中了
-https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
+@date: 2022/3/23
+@description: null
 """
-from typing import *
-
-import pandas as pd
+from typing import List
 
 
 def QueryEmbeddingLeaderboard():
@@ -44,31 +41,3 @@ def append_to_QueryEmbeddingLeaderboard(name: str, FB15k_result: List[float], FB
     NELL.append([name] + NELL_result)
     return header, FB15k, FB237, NELL
 
-
-def QueryEmbeddingLeaderboard_to_latex_table(name: str,
-                                             FB15k_result: List[float],
-                                             FB237_result: List[float],
-                                             NELL_result: List[float],
-                                             output_filename: str = "table.tex"):
-    "Dataset"
-
-
-def dataframe_to_latex_table(df: pd.DataFrame, output_filename: str = "table.tex"):
-    columns = list(df.columns)
-    df.columns = pd.MultiIndex.from_tuples([
-        ("Numeric", "Integers"),
-        ("Numeric", "Floats"),
-        ("Non-Numeric", "Strings")
-    ])
-    df.index = pd.MultiIndex.from_tuples([
-        ("L0", "ix1"), ("L0", "ix2"), ("L1", "ix3")
-    ])
-    s = df.style.highlight_max(
-        props='cellcolor:[HTML]{FFFF00}; color:{red}; itshape:; bfseries:;'
-    )
-    s.to_latex(
-        column_format="rrrrr", position="h", position_float="centering",
-        hrules=True, label="table:5", caption="Styled LaTeX Table",
-        multirow_align="t", multicol_align="r"
-    )
-    pass

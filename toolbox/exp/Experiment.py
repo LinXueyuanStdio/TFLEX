@@ -1,6 +1,7 @@
 import numpy as np
 
 from toolbox.exp.OutputSchema import OutputSchema
+from toolbox.utils.LaTeXSotre import LaTeXStoreSchema, EvaluateLaTeXStoreSchema
 from toolbox.utils.MetricLogStore import MetricLogStoreSchema
 from toolbox.utils.ModelParamStore import ModelParamStoreSchema
 from toolbox.utils.Visualize import VisualizeSchema
@@ -20,6 +21,7 @@ class Experiment:
         self.vis = VisualizeSchema(str(output.pathSchema.dir_path_visualize))
         self.model_param_store = ModelParamStoreSchema(output.pathSchema)
         self.metric_log_store = MetricLogStoreSchema(str(output.pathSchema.dir_path_log))
+        self.latex_store = EvaluateLaTeXStoreSchema(output.pathSchema)
 
     def re_init(self, output: OutputSchema):
         self.output = output
@@ -33,6 +35,7 @@ class Experiment:
         self.vis = VisualizeSchema(str(output.pathSchema.dir_path_visualize))
         self.model_param_store = ModelParamStoreSchema(output.pathSchema)
         self.metric_log_store = MetricLogStoreSchema(str(output.pathSchema.dir_path_log))
+        self.latex_store = EvaluateLaTeXStoreSchema(output.pathSchema)
 
     def dump_model(self, model):
         self.debug(model)
