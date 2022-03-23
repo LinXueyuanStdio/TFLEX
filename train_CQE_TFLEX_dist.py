@@ -1288,7 +1288,7 @@ class MyExperiment(Experiment):
                     all_tensors.append(sum_of_metric_values)
                 else:
                     all_tensors.append(0)
-        all_tensors = torch.FloatTensor(all_tensors)
+        all_tensors = torch.FloatTensor(all_tensors).to(device)
         metrics = defaultdict(lambda: defaultdict(int))
         dist.reduce(all_tensors, dst=0)
         if dist.get_rank() == 0:
