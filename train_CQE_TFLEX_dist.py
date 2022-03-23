@@ -1312,9 +1312,6 @@ class MyExperiment(Experiment):
 
         return metrics
 
-    def get_world_size(self):
-        return self.world_size
-
     def visual_result(self, step_num: int, result, scope: str):
         """Evaluate queries in dataloader"""
         self.metric_log_store.add_metric({scope: result}, step_num, scope)
