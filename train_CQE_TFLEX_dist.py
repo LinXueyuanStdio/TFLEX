@@ -1139,30 +1139,32 @@ class MyExperiment(Experiment):
             if (step + 1) % every_valid_step == 0:
                 model.eval()
                 with torch.no_grad():
-                    print("")
-                    self.debug("Validation (step: %d):" % (step + 1))
                     result = self.evaluate(model, valid_dataloader, local_rank)
-                    score = self.visual_result(step + 1, result, "Valid")
-                    if score >= best_score:
-                        self.success("current score=%.4f > best score=%.4f" % (score, best_score))
-                        best_score = score
-                        self.debug("saving best score %.4f" % score)
-                        self.metric_log_store.add_best_metric({"result": result}, "Valid")
-                        self.model_param_store.save_best(model, opt, step, 0, score)
-                    else:
-                        self.model_param_store.save_by_score(model, opt, step, 0, score)
-                        self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
+                    if local_rank == 0:
+                        print("")
+                        self.debug("Validation (step: %d):" % (step + 1))
+                        score = self.visual_result(step + 1, result, "Valid")
+                        if score >= best_score:
+                            self.success("current score=%.4f > best score=%.4f" % (score, best_score))
+                            best_score = score
+                            self.metric_log_store.add_best_metric({"result": result}, "Valid")
+                            self.debug("saving best score %.4f" % score)
+                            self.model_param_store.save_best(model, opt, step, 0, score)
+                        else:
+                            self.model_param_store.save_by_score(model, opt, step, 0, score)
+                            self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
                 with torch.no_grad():
-                    print("")
-                    self.debug("Test (step: %d):" % (step + 1))
                     result = self.evaluate(model, test_dataloader, local_rank)
-                    score = self.visual_result(step + 1, result, "Test")
-                    if score >= best_test_score:
-                        best_test_score = score
-                        self.metric_log_store.add_best_metric({"result": result}, "Test")
-                    print("")
+                    if local_rank == 0:
+                        print("")
+                        self.debug("Test (step: %d):" % (step + 1))
+                        score = self.visual_result(step + 1, result, "Test")
+                        if score >= best_test_score:
+                            best_test_score = score
+                            self.metric_log_store.add_best_metric({"result": result}, "Test")
+                        print("")
         self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
@@ -1202,7 +1204,7 @@ class MyExperiment(Experiment):
     def evaluate(self, model, test_dataloader, device="cuda:0"):
         model.cuda(device)
         total_steps = len(test_dataloader)
-        # progbar = Progbar(max_step=total_steps)
+        progbar = Progbar(max_step=total_steps)
         logs = defaultdict(list)
         step = 0
         h10 = None
@@ -1244,9 +1246,9 @@ class MyExperiment(Experiment):
                     'num_queries': num_queries,
                 })
 
-            torch.distributed.barrier()
-            # step += 1
-            # progbar.update(step, [("Hits @10", h10)])
+            if device == 0:
+                step += 1
+                progbar.update(step, [("Hits @10", h10)])
 
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:
