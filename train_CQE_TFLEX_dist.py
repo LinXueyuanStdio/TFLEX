@@ -29,6 +29,10 @@ from toolbox.utils.RandomSeeds import set_seeds
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+import resource
+
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
 
 
 def convert_to_logic(x):
@@ -987,28 +991,24 @@ class MyExperiment(Experiment):
         relation_count = data.relation_count
         timestamp_count = data.timestamp_count
         max_relation_id = relation_count
-        if local_rank == 0:
-            self.log('-------------------------------' * 3)
-            self.log('# entity: %d' % entity_count)
-            self.log('# relation: %d' % relation_count)
-            self.log('# timestamp: %d' % timestamp_count)
-            self.log('# max steps: %d' % max_steps)
         nprocs = torch.cuda.device_count()
         self.nprocs = nprocs
         dist.init_process_group(backend='nccl')
         torch.cuda.set_device(local_rank)
         # batch_size = batch_size // nprocs
         # test_batch_size = test_batch_size // nprocs
+        if local_rank == 0:
+            self.log('-------------------------------' * 3)
+            self.log('# entity: %d' % entity_count)
+            self.log('# relation: %d' % relation_count)
+            self.log('# timestamp: %d' % timestamp_count)
+            self.log('# max steps: %d' % max_steps)
 
         # 1. build train dataset
         train_queries_answers = data.train_queries_answers
         valid_queries_answers = data.valid_queries_answers
         test_queries_answers = data.test_queries_answers
 
-        if local_rank == 0:
-            self.log("Training info:")
-            for query_structure_name in train_queries_answers:
-                self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         train_path_queries: TYPE_train_queries_answers = {}
         train_other_queries: TYPE_train_queries_answers = {}
         path_list = ["Pe", "Pt", "Pe2", 'Pe3']
@@ -1039,10 +1039,6 @@ class MyExperiment(Experiment):
         else:
             train_other_iterator = None
 
-        if local_rank == 0:
-            self.log("Validation info:")
-            for query_structure_name in valid_queries_answers:
-                self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
         valid_dataset = TestDataset(valid_queries_answers, entity_count, timestamp_count)
         valid_dataloader = DataLoader(
             valid_dataset,
@@ -1052,10 +1048,6 @@ class MyExperiment(Experiment):
             collate_fn=TestDataset.collate_fn2
         )
 
-        if local_rank == 0:
-            self.log("Test info:")
-            for query_structure_name in test_queries_answers:
-                self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
         test_dataset = TestDataset(test_queries_answers, entity_count, timestamp_count)
         test_dataloader = DataLoader(
             test_dataset,
@@ -1064,6 +1056,16 @@ class MyExperiment(Experiment):
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn2
         )
+        if local_rank == 0:
+            self.log("Training info:")
+            for query_structure_name in train_queries_answers:
+                self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
+            self.log("Validation info:")
+            for query_structure_name in valid_queries_answers:
+                self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
+            self.log("Test info:")
+            for query_structure_name in test_queries_answers:
+                self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
 
         # 2. build model
         model = FLEX(
@@ -1103,14 +1105,14 @@ class MyExperiment(Experiment):
         model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
 
         current_learning_rate = lr
-        hyper = {
-            'center_reg': center_reg,
-            'learning_rate': lr,
-            'batch_size': batch_size,
-            "hidden_dim": hidden_dim,
-            "gamma": gamma,
-        }
         if local_rank == 0:
+            hyper = {
+                'center_reg': center_reg,
+                'learning_rate': lr,
+                'batch_size': batch_size,
+                "hidden_dim": hidden_dim,
+                "gamma": gamma,
+            }
             self.metric_log_store.add_hyper(hyper)
             for k, v in hyper.items():
                 self.log(f'{k} = {v}')
@@ -1189,10 +1191,10 @@ class MyExperiment(Experiment):
             negative_answer = negative_answer.cuda(device, non_blocking=True)
             subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
             cuda_data_list.append((query_name, query_tensor, positive_answer, negative_answer, subsampling_weight))
-        if device == 0:
-            print()
-            print("cuda_data_list", len(cuda_data_list), sum([i.shape[0] for _, i, _, _, _ in cuda_data_list]))
-            print()
+        # if device == 0:
+        #     print()
+        #     print("cuda_data_list", len(cuda_data_list), sum([i.shape[0] for _, i, _, _, _ in cuda_data_list]))
+        #     print()
 
         positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
 
