@@ -29,6 +29,10 @@ from toolbox.utils.RandomSeeds import set_seeds
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+
+# 下面 3 行代码解决 tensor 在不同进程中共享问题。
+# 共享是通过读写文件的，如果同时打开文件的进程数太多，会崩。
+# 这里是把允许的最大进程数设为 4096，比较大了。
 import resource
 
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
