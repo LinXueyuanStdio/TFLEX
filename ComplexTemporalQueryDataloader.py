@@ -84,16 +84,16 @@ class TrainDataset(Dataset):
         positive_answer = torch.cat([_[2] for _ in data], dim=0)
         negative_answer = torch.stack([_[3] for _ in data], dim=0)
         subsampling_weight = torch.cat([_[4] for _ in data], dim=0)
-        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        grouped_query: Dict[str, List[List[int]]] = defaultdict(list)
         grouped_idxs: Dict[str, List[int]] = defaultdict(list)
         for i, (query_name, query, _, _, _) in enumerate(data):
-            batch_queries_dict[query_name].append(query)
+            grouped_query[query_name].append(query)
             grouped_idxs[query_name].append(i)
         data_list = []
-        for query_name in batch_queries_dict:
+        for query_name in grouped_query:
             idx = grouped_idxs[query_name]
             t = (query_name,
-                 torch.LongTensor(batch_queries_dict[query_name]),
+                 torch.LongTensor(grouped_query[query_name]),
                  positive_answer[idx].view(len(idx), -1),
                  negative_answer[idx].view(len(idx), -1),
                  subsampling_weight[idx])

@@ -997,8 +997,8 @@ class MyExperiment(Experiment):
         self.nprocs = nprocs
         dist.init_process_group(backend='nccl')
         torch.cuda.set_device(local_rank)
-        batch_size = batch_size // nprocs
-        test_batch_size = test_batch_size // nprocs
+        # batch_size = batch_size // nprocs
+        # test_batch_size = test_batch_size // nprocs
 
         # 1. build train dataset
         train_queries_answers = data.train_queries_answers
@@ -1189,6 +1189,10 @@ class MyExperiment(Experiment):
             negative_answer = negative_answer.cuda(device, non_blocking=True)
             subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
             cuda_data_list.append((query_name, query_tensor, positive_answer, negative_answer, subsampling_weight))
+        if device == 0:
+            print()
+            print("cuda_data_list", len(cuda_data_list), sum([i.shape[0] for _, i, _, _, _ in cuda_data_list]))
+            print()
 
         positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
 
