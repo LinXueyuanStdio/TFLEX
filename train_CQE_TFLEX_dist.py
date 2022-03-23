@@ -1289,7 +1289,7 @@ class MyExperiment(Experiment):
                 else:
                     all_tensors.append(0)
         all_tensors = torch.FloatTensor(all_tensors).to(device)
-        metrics = defaultdict(lambda: defaultdict(int))
+        metrics = defaultdict(lambda: defaultdict(float))
         dist.reduce(all_tensors, dst=0)
         if dist.get_rank() == 0:
             # 1. store to dict
@@ -1315,32 +1315,7 @@ class MyExperiment(Experiment):
     def get_world_size(self):
         return self.world_size
 
-    def reduce_tensor_dict(self, tensor_dict: Dict[str, torch.Tensor]):
-        """
-        Reduce the tensor dictionary from all processes so that process with rank=0 has the averaged results.
-        Returns a dict with the same fields as tensor_dict, after reduction.
-        {"name": torch.Tensor()}
-        """
-        world_size = self.get_world_size()
-        if world_size < 2:
-            return tensor_dict
-        with torch.no_grad():
-            tensor_names = []
-            all_tensors = []
-            for k in sorted(tensor_dict.keys()):
-                tensor_names.append(k)
-                all_tensors.append(tensor_dict[k])
-            all_tensors = torch.stack(all_tensors, dim=0)
-            dist.reduce(all_tensors, dst=0)
-            if dist.get_rank() == 0:
-                # only main process gets accumulated, so only divide by
-                # world_size in this case
-                all_tensors /= world_size
-            reduced_tensor_dict = {k: v for k, v in zip(tensor_names, all_tensors)}
-        return reduced_tensor_dict
-
     def visual_result(self, step_num: int, result, scope: str):
-
         """Evaluate queries in dataloader"""
         self.metric_log_store.add_metric({scope: result}, step_num, scope)
         average_metrics = defaultdict(float)
