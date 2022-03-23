@@ -1111,10 +1111,10 @@ class MyExperiment(Experiment):
 
         grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
         for key in grouped_query:
-            grouped_query[key] = grouped_query[key].to(device)
-        positive_answer = positive_answer.to(device)
-        negative_answer = negative_answer.to(device)
-        subsampling_weight = subsampling_weight.to(device)
+            grouped_query[key] = grouped_query[key].cuda(device, non_blocking=True)
+        positive_answer = positive_answer.cuda(device, non_blocking=True)
+        negative_answer = negative_answer.cuda(device, non_blocking=True)
+        subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
         batch_queries = [(k, v) for k, v in grouped_query.items()]
         batch_idxs = [(k, v) for k, v in grouped_idxs.items()]
         # [(query_name, positive_answer, negative_answer, subsampling_weight)]
@@ -1149,13 +1149,12 @@ class MyExperiment(Experiment):
         h10 = None
         for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
             for query_name in grouped_query:
-                grouped_query[query_name] = grouped_query[query_name].to(device)
-                grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].to(device)
+                grouped_query[query_name] = grouped_query[query_name].cuda(device, non_blocking=True)
+                grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].cuda(device, non_blocking=True)
             batch_queries = [(k, v) for k, v in grouped_query.items()]
             batch_answer = [(k, v) for k, v in grouped_candidate_answer.items()]
 
             grouped_score = model(batch_queries, None, None, None, None, batch_answer)
-            torch.distributed.barrier()
             for query_name in grouped_score:
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
@@ -1186,6 +1185,7 @@ class MyExperiment(Experiment):
                     'num_queries': num_queries,
                 })
 
+            torch.distributed.barrier()
             step += 1
             progbar.update(step, [("Hits @10", h10)])
 
