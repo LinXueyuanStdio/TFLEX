@@ -601,7 +601,7 @@ class FLEX(nn.Module):
         time_density = torch.cat(time_density, dim=0).unsqueeze(1)
         return feature, logic, time_feature, time_logic, time_density
 
-    def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries, batch_idxs, batch_answer):
+    def forward(self, batch_queries, positive_sample, negative_sample, subsampling_weight, batch_idxs, batch_answer: Optional[torch.Tensor]):
         grouped_query = {k:v for k, v in batch_queries}
         if batch_answer is None:
             grouped_idxs = {k:v for k, v in batch_idxs}
@@ -1117,6 +1117,7 @@ class MyExperiment(Experiment):
         subsampling_weight = subsampling_weight.to(device)
         batch_queries = [(k, v) for k, v in grouped_query.items()]
         batch_idxs = [(k, v) for k, v in grouped_idxs.items()]
+        # [(query_name, positive_answer, negative_answer, subsampling_weight)]
 
         positive_logit, negative_logit, subsampling_weight = model(batch_queries, positive_answer, negative_answer, subsampling_weight, batch_idxs, None)
 
@@ -1154,12 +1155,13 @@ class MyExperiment(Experiment):
             batch_answer = [(k, v) for k, v in grouped_candidate_answer.items()]
 
             grouped_score = model(batch_queries, None, None, None, None, batch_answer)
+            torch.distributed.barrier()
             for query_name in grouped_score:
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
                 hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
                 score[easy_answer_mask] = -float('inf')  # we remove easy answer, because easy answer may exist in training set
-                ranking = score.argsort(dim=1, descending=True)  # sorted idx (B, N)
+                ranking = score.argsort(dim=1, descending=True).cpu()  # sorted idx (B, N)
 
                 ranks = []
                 hits = []

@@ -80,6 +80,27 @@ class TrainDataset(Dataset):
         return grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight
 
     @staticmethod
+    def collate_fn2(data):
+        positive_answer = torch.cat([_[2] for _ in data], dim=0)
+        negative_answer = torch.stack([_[3] for _ in data], dim=0)
+        subsampling_weight = torch.cat([_[4] for _ in data], dim=0)
+        batch_queries_dict: Dict[str, List[List[int]]] = defaultdict(list)
+        grouped_idxs: Dict[str, List[int]] = defaultdict(list)
+        for i, (query_name, query, _, _, _) in enumerate(data):
+            batch_queries_dict[query_name].append(query)
+            grouped_idxs[query_name].append(i)
+        d = []
+        for query_name in batch_queries_dict:
+            q = torch.LongTensor(batch_queries_dict[query_name])
+            idx = grouped_idxs[query_name]
+            pa = positive_answer[idx]
+            na = negative_answer[idx]
+            w = subsampling_weight[idx]
+            t = (q, pa, na, w)
+            d.append(t)
+        return d
+
+    @staticmethod
     def count_frequency(all_data: List[Tuple[str, List[int], Set[int]]], start=4) -> Dict[str, int]:
         count = {}
         for query_name, query, answer in all_data:
