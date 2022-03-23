@@ -979,18 +979,20 @@ class MyExperiment(Experiment):
                  hidden_dim, input_dropout, gamma, center_reg, local_rank
                  ):
         super(MyExperiment, self).__init__(output)
-        self.log(f"{locals()}")
+        if local_rank == 0:
+            self.log(f"{locals()}")
 
         self.model_param_store.save_scripts([__file__])
         entity_count = data.entity_count
         relation_count = data.relation_count
         timestamp_count = data.timestamp_count
         max_relation_id = relation_count
-        self.log('-------------------------------' * 3)
-        self.log('# entity: %d' % entity_count)
-        self.log('# relation: %d' % relation_count)
-        self.log('# timestamp: %d' % timestamp_count)
-        self.log('# max steps: %d' % max_steps)
+        if local_rank == 0:
+            self.log('-------------------------------' * 3)
+            self.log('# entity: %d' % entity_count)
+            self.log('# relation: %d' % relation_count)
+            self.log('# timestamp: %d' % timestamp_count)
+            self.log('# max steps: %d' % max_steps)
         nprocs = torch.cuda.device_count()
         self.nprocs = nprocs
         dist.init_process_group(backend='nccl')
@@ -1003,9 +1005,10 @@ class MyExperiment(Experiment):
         valid_queries_answers = data.valid_queries_answers
         test_queries_answers = data.test_queries_answers
 
-        self.log("Training info:")
-        for query_structure_name in train_queries_answers:
-            self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
+        if local_rank == 0:
+            self.log("Training info:")
+            for query_structure_name in train_queries_answers:
+                self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         train_path_queries: TYPE_train_queries_answers = {}
         train_other_queries: TYPE_train_queries_answers = {}
         path_list = ["Pe", "Pt", "Pe2", 'Pe3']
@@ -1036,9 +1039,10 @@ class MyExperiment(Experiment):
         else:
             train_other_iterator = None
 
-        self.log("Validation info:")
-        for query_structure_name in valid_queries_answers:
-            self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
+        if local_rank == 0:
+            self.log("Validation info:")
+            for query_structure_name in valid_queries_answers:
+                self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
         valid_dataset = TestDataset(valid_queries_answers, entity_count, timestamp_count)
         valid_dataloader = DataLoader(
             valid_dataset,
@@ -1048,9 +1052,10 @@ class MyExperiment(Experiment):
             collate_fn=TestDataset.collate_fn2
         )
 
-        self.log("Test info:")
-        for query_structure_name in test_queries_answers:
-            self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
+        if local_rank == 0:
+            self.log("Test info:")
+            for query_structure_name in test_queries_answers:
+                self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
         test_dataset = TestDataset(test_queries_answers, entity_count, timestamp_count)
         test_dataloader = DataLoader(
             test_dataset,
@@ -1079,20 +1084,22 @@ class MyExperiment(Experiment):
                 start_step, _, best_score = self.model_param_store.load_by_score(model, opt, resume_by_score)
             else:
                 start_step, _, best_score = self.model_param_store.load_best(model, opt)
-            self.dump_model(model)
-            model.eval()
-            with torch.no_grad():
-                self.debug("Resumed from score %.4f." % best_score)
-                self.debug("Take a look at the performance after resumed.")
-                self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_dataloader, local_rank)
-                best_score = self.visual_result(start_step + 1, result, "Valid")
-                self.debug("Test (step: %d):" % start_step)
-                result = self.evaluate(model, test_dataloader, local_rank)
-                best_test_score = self.visual_result(start_step + 1, result, "Test")
+            if local_rank == 0:
+                self.dump_model(model)
+                model.eval()
+                with torch.no_grad():
+                    self.debug("Resumed from score %.4f." % best_score)
+                    self.debug("Take a look at the performance after resumed.")
+                    self.debug("Validation (step: %d):" % start_step)
+                    result = self.evaluate(model, valid_dataloader, local_rank)
+                    best_score = self.visual_result(start_step + 1, result, "Valid")
+                    self.debug("Test (step: %d):" % start_step)
+                    result = self.evaluate(model, test_dataloader, local_rank)
+                    best_test_score = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
-            self.dump_model(model)
+            if local_rank == 0:
+                self.dump_model(model)
         model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
 
         current_learning_rate = lr
@@ -1103,10 +1110,11 @@ class MyExperiment(Experiment):
             "hidden_dim": hidden_dim,
             "gamma": gamma,
         }
-        self.metric_log_store.add_hyper(hyper)
-        for k, v in hyper.items():
-            self.log(f'{k} = {v}')
-        self.metric_log_store.add_progress(max_steps)
+        if local_rank == 0:
+            self.metric_log_store.add_hyper(hyper)
+            for k, v in hyper.items():
+                self.log(f'{k} = {v}')
+            self.metric_log_store.add_progress(max_steps)
         warm_up_steps = max_steps // 2
 
         # 3. training
@@ -1122,14 +1130,16 @@ class MyExperiment(Experiment):
                     self.vis.add_scalar('other_' + metric, log[metric], step)
                 log = self.train(model, opt, train_path_iterator, step, local_rank)
 
-            progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
+            if local_rank == 0:
+                progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
             if (step + 1) % 10 == 0:
                 self.metric_log_store.add_loss(log, step + 1)
 
             if (step + 1) >= warm_up_steps:
                 current_learning_rate = current_learning_rate / 5
-                print("")
-                self.log('Change learning_rate to %f at step %d' % (current_learning_rate, step))
+                if local_rank == 0:
+                    print("")
+                    self.log('Change learning_rate to %f at step %d' % (current_learning_rate, step))
                 opt = torch.optim.Adam(
                     filter(lambda p: p.requires_grad, model.parameters()),
                     lr=current_learning_rate
