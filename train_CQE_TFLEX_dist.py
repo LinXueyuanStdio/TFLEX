@@ -1151,10 +1151,11 @@ class MyExperiment(Experiment):
             if (step + 1) % every_valid_step == 0:
                 model.eval()
                 with torch.no_grad():
-                    result = self.evaluate(model, valid_dataloader, local_rank)
                     if local_rank == 0:
                         print("")
                         self.debug("Validation (step: %d):" % (step + 1))
+                    result = self.evaluate(model, valid_dataloader, local_rank)
+                    if local_rank == 0:
                         score = self.visual_result(step + 1, result, "Valid")
                         if score >= best_score:
                             self.success("current score=%.4f > best score=%.4f" % (score, best_score))
@@ -1168,10 +1169,11 @@ class MyExperiment(Experiment):
             if (step + 1) % every_test_step == 0:
                 model.eval()
                 with torch.no_grad():
-                    result = self.evaluate(model, test_dataloader, local_rank)
                     if local_rank == 0:
                         print("")
                         self.debug("Test (step: %d):" % (step + 1))
+                    result = self.evaluate(model, test_dataloader, local_rank)
+                    if local_rank == 0:
                         score = self.visual_result(step + 1, result, "Test")
                         if score >= best_test_score:
                             best_test_score = score
