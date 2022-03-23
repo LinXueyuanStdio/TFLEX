@@ -89,16 +89,17 @@ class TrainDataset(Dataset):
         for i, (query_name, query, _, _, _) in enumerate(data):
             batch_queries_dict[query_name].append(query)
             grouped_idxs[query_name].append(i)
-        d = []
+        data_list = []
         for query_name in batch_queries_dict:
-            q = torch.LongTensor(batch_queries_dict[query_name])
             idx = grouped_idxs[query_name]
-            pa = positive_answer[idx]
-            na = negative_answer[idx]
-            w = subsampling_weight[idx]
-            t = (q, pa, na, w)
-            d.append(t)
-        return d
+            t = (query_name,
+                 torch.LongTensor(batch_queries_dict[query_name]),
+                 positive_answer[idx].view(len(idx), -1),
+                 negative_answer[idx].view(len(idx), -1),
+                 subsampling_weight[idx])
+            # [(query_name, query_tensor, positive_answer, negative_answer, subsampling_weight)]
+            data_list.append(t)
+        return data_list
 
     @staticmethod
     def count_frequency(all_data: List[Tuple[str, List[int], Set[int]]], start=4) -> Dict[str, int]:
@@ -177,3 +178,35 @@ class TestDataset(Dataset):
             for key in grouped_easy_answer_dict
         }
         return grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer_dict
+
+    @staticmethod
+    def collate_fn2(data):
+        grouped_query: Dict[str, List[List[int]]] = defaultdict(list)
+        grouped_candidate_answer: Dict[str, List[torch.Tensor]] = defaultdict(list)
+        grouped_easy_answer_dict: Dict[str, List[torch.Tensor]] = defaultdict(list)
+        grouped_hard_answer_dict: Dict[str, List[Set[int]]] = defaultdict(list)
+        for i, (query_name, query, candidate_answer, easy_answer, hard_answer) in enumerate(data):
+            if None in query:
+                print("error", query_name, query)
+            grouped_query[query_name].append(query)
+            grouped_candidate_answer[query_name].append(candidate_answer)
+            grouped_easy_answer_dict[query_name].append(easy_answer)
+            grouped_hard_answer_dict[query_name].append(hard_answer)
+
+            # in FLEX, it has used DNF for union
+            # here we only cope with DM
+            key_DM = f"{query_name}_DM"
+            if key_DM in query_structures:
+                grouped_query[key_DM].append(query)
+                grouped_candidate_answer[key_DM].append(candidate_answer)
+                grouped_easy_answer_dict[key_DM].append(easy_answer)
+                grouped_hard_answer_dict[key_DM].append(hard_answer)
+
+        grouped_easy_answer: Dict[str, torch.Tensor] = {
+            key: torch.stack(grouped_easy_answer_dict[key], dim=0)
+            for key in grouped_easy_answer_dict
+        }
+        data_list = []
+        for query_name in grouped_query:
+            data_list.append((query_name, torch.LongTensor(grouped_query[query_name]), torch.stack(grouped_candidate_answer[query_name], dim=0)))
+        return data_list, grouped_easy_answer, grouped_hard_answer_dict

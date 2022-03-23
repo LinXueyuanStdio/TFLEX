@@ -9,10 +9,12 @@ from typing import List, Dict, Tuple, Optional, Union, Set
 
 import click
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 import expression
 from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
@@ -24,8 +26,6 @@ from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
-from torch.utils.data.distributed import DistributedSampler
-import torch.distributed as dist
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
@@ -601,14 +601,43 @@ class FLEX(nn.Module):
         time_density = torch.cat(time_density, dim=0).unsqueeze(1)
         return feature, logic, time_feature, time_logic, time_density
 
-    def forward(self, batch_queries, positive_sample, negative_sample, subsampling_weight, batch_idxs, batch_answer: Optional[torch.Tensor]):
-        grouped_query = {k:v for k, v in batch_queries}
-        if batch_answer is None:
-            grouped_idxs = {k:v for k, v in batch_idxs}
-            return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, grouped_query, grouped_idxs)
+    def forward(self,
+                train_data_list: Optional[List[Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]],
+                test_data_list: Optional[List[Tuple[str, torch.Tensor, torch.Tensor]]]):
+        if train_data_list is not None:
+            return self.forward_train(train_data_list)
+        elif train_data_list is not None:
+            return self.forward_test(test_data_list)
         else:
-            grouped_answer = {k:v for k, v in batch_answer}
-            return self.grouped_predict(grouped_query, grouped_answer)
+            raise Exception("Train or Test, please choose one!")
+
+    def forward_train(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]):
+        positive_scores, negative_scores, subsampling_weights = [], [], []
+        for query_structure, query, positive_answer, negative_answer, subsampling_weight in data_list:
+            positive_score, negative_score = self.forward_predict_2(query_structure, query, positive_answer, negative_answer)
+            positive_scores.append(positive_score)
+            negative_scores.append(negative_score)
+            subsampling_weights.append(subsampling_weight)
+        positive_scores = torch.cat(positive_scores, dim=0)
+        negative_scores = torch.cat(negative_scores, dim=0)
+        subsampling_weights = torch.cat(subsampling_weights, dim=0)
+        return positive_scores, negative_scores, subsampling_weights
+
+    def forward_test(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor]]) -> Dict[QueryStructure, torch.Tensor]:
+        """
+        return {"Pe": (B, L) }
+        L 是答案个数，预测实体和预测时间戳 的答案个数不一样，所以不能对齐合并
+        不同结构的 L 不同
+        一般用于valid/test，不用于train
+        """
+        grouped_score = {}
+
+        for query_structure, query, answer in data_list:
+            # query (B, L), B for batch size, L for query args length
+            # answer (B, N)
+            grouped_score[query_structure] = self.forward_predict(query_structure, query, answer)
+
+        return grouped_score
 
     def forward_FLEX(self,
                      positive_answer: Optional[torch.Tensor],
@@ -772,7 +801,7 @@ class FLEX(nn.Module):
             func = self.parser.fast_function(query_name + "_DNF")
             embedding_of_args = self.embed_args(query_args, query_tensor)
             predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
-            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1) for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
+            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1).unsqueeze(dim=2) for x, y in zip(predict_1, predict_2)])  # (B, 1, 1, dt) or (B, 2, 1, dt)
             if is_to_predict_entity_set(query_name):
                 return self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
             else:
@@ -782,11 +811,43 @@ class FLEX(nn.Module):
             func = self.parser.fast_function(query_name)
             embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
             predict = func(*embedding_of_args)  # (B, d)
-            all_predict: TYPE_token = tuple([i.unsqueeze(dim=1) for i in predict])  # (B, 1, d)
+            all_predict: TYPE_token = tuple([i.unsqueeze(dim=1).unsqueeze(dim=1) for i in predict])  # (B, 1, 1, dt) or (B, 2, 1, dt)
             if is_to_predict_entity_set(query_name):
                 return self.scoring_to_answers(answer, all_predict, predict_entity=True, DNF_predict=False)
             else:
                 return self.scoring_to_answers(answer, all_predict, predict_entity=False, DNF_predict=False)
+
+    def forward_predict_2(self, query_structure: QueryStructure, query_tensor: torch.Tensor,
+                          positive_answer: torch.Tensor, negative_answer: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # query_tensor  # (B, L), B for batch size, L for query args length
+        # answer  # (B, N)
+        query_name = query_structure
+        query_args = self.parser.fast_args(query_name)
+        # the sample is grouped by query name and leads to query_tensor here.
+        if query_contains_union_and_we_should_use_DNF(query_name):
+            # transform to DNF
+            func = self.parser.fast_function(query_name + "_DNF")
+            embedding_of_args = self.embed_args(query_args, query_tensor)
+            predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
+            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1).unsqueeze(dim=2) for x, y in zip(predict_1, predict_2)])  # (B, 1, 1, dt) or (B, 2, 1, dt)
+            if is_to_predict_entity_set(query_name):
+                return self.scoring_to_answers(positive_answer, all_union_predict, predict_entity=True, DNF_predict=True), \
+                       self.scoring_to_answers(negative_answer, all_union_predict, predict_entity=True, DNF_predict=True)
+            else:
+                return self.scoring_to_answers(positive_answer, all_union_predict, predict_entity=False, DNF_predict=True), \
+                       self.scoring_to_answers(negative_answer, all_union_predict, predict_entity=False, DNF_predict=True)
+        else:
+            # other query and DM are normal
+            func = self.parser.fast_function(query_name)
+            embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
+            predict = func(*embedding_of_args)  # (B, d)
+            all_predict: TYPE_token = tuple([i.unsqueeze(dim=1).unsqueeze(dim=1) for i in predict])  # (B, 1, 1, dt) or (B, 2, 1, dt)
+            if is_to_predict_entity_set(query_name):
+                return self.scoring_to_answers(positive_answer, all_predict, predict_entity=True, DNF_predict=False), \
+                       self.scoring_to_answers(negative_answer, all_predict, predict_entity=True, DNF_predict=False)
+            else:
+                return self.scoring_to_answers(positive_answer, all_predict, predict_entity=False, DNF_predict=False), \
+                       self.scoring_to_answers(negative_answer, all_predict, predict_entity=False, DNF_predict=False)
 
     def scoring_to_answers_by_idxs(self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
         """
@@ -807,10 +868,9 @@ class FLEX(nn.Module):
         B for batch size
         N for negative sampling size (maybe N=1 when positive samples only)
         answer_ids:   (B, N) int
-        all_predict:  (B, 1, dt) or (B, 2, dt) float
+        all_predict:  (B, 1, 1, dt) or (B, 2, 1, dt) float
         return score: (B, N) float
         """
-        q: TYPE_token = tuple([i.unsqueeze(dim=2) for i in q])  # (B, 1, 1, dt) or (B, 2, 1, dt)
         if predict_entity:
             feature = self.entity_feature(answer_ids).unsqueeze(dim=1)  # (B, 1, N, d)
             scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
@@ -961,7 +1021,7 @@ class MyExperiment(Experiment):
             batch_size=batch_size,
             # shuffle=True,
             num_workers=cpu_num,
-            collate_fn=TrainDataset.collate_fn
+            collate_fn=TrainDataset.collate_fn2
         ))
         if len(train_other_queries) > 0:
             train_other_dataset = TrainDataset(train_other_queries, entity_count, timestamp_count, negative_sample_size)
@@ -971,7 +1031,7 @@ class MyExperiment(Experiment):
                 batch_size=batch_size,
                 # shuffle=True,
                 num_workers=cpu_num,
-                collate_fn=TrainDataset.collate_fn
+                collate_fn=TrainDataset.collate_fn2
             ))
         else:
             train_other_iterator = None
@@ -985,7 +1045,7 @@ class MyExperiment(Experiment):
             sampler=DistributedSampler(valid_dataset),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
-            collate_fn=TestDataset.collate_fn
+            collate_fn=TestDataset.collate_fn2
         )
 
         self.log("Test info:")
@@ -997,7 +1057,7 @@ class MyExperiment(Experiment):
             sampler=DistributedSampler(test_dataset),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
-            collate_fn=TestDataset.collate_fn
+            collate_fn=TestDataset.collate_fn2
         )
 
         # 2. build model
@@ -1109,17 +1169,16 @@ class MyExperiment(Experiment):
         model.train()
         model.cuda(device)
 
-        grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
-        for key in grouped_query:
-            grouped_query[key] = grouped_query[key].cuda(device, non_blocking=True)
-        positive_answer = positive_answer.cuda(device, non_blocking=True)
-        negative_answer = negative_answer.cuda(device, non_blocking=True)
-        subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
-        batch_queries = [(k, v) for k, v in grouped_query.items()]
-        batch_idxs = [(k, v) for k, v in grouped_idxs.items()]
-        # [(query_name, positive_answer, negative_answer, subsampling_weight)]
+        data_list = next(train_iterator)
+        cuda_data_list = []
+        for query_name, query_tensor, positive_answer, negative_answer, subsampling_weight in data_list:
+            query_tensor = query_tensor.cuda(device, non_blocking=True)
+            positive_answer = positive_answer.cuda(device, non_blocking=True)
+            negative_answer = negative_answer.cuda(device, non_blocking=True)
+            subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
+            cuda_data_list.append((query_name, query_tensor, positive_answer, negative_answer, subsampling_weight))
 
-        positive_logit, negative_logit, subsampling_weight = model(batch_queries, positive_answer, negative_answer, subsampling_weight, batch_idxs, None)
+        positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
 
         negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
         positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
@@ -1143,18 +1202,18 @@ class MyExperiment(Experiment):
     def evaluate(self, model, test_dataloader, device="cuda:0"):
         model.cuda(device)
         total_steps = len(test_dataloader)
-        progbar = Progbar(max_step=total_steps)
+        # progbar = Progbar(max_step=total_steps)
         logs = defaultdict(list)
         step = 0
         h10 = None
-        for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
-            for query_name in grouped_query:
-                grouped_query[query_name] = grouped_query[query_name].cuda(device, non_blocking=True)
-                grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].cuda(device, non_blocking=True)
-            batch_queries = [(k, v) for k, v in grouped_query.items()]
-            batch_answer = [(k, v) for k, v in grouped_candidate_answer.items()]
+        for data_list, grouped_easy_answer, grouped_hard_answer in test_dataloader:
+            cuda_data_list = []
+            for query_name, query_tensor, candidate_answer in data_list:
+                query_tensor = query_tensor.cuda(device, non_blocking=True)
+                candidate_answer = candidate_answer.cuda(device, non_blocking=True)
+                cuda_data_list.append((query_name, query_tensor, candidate_answer))
 
-            grouped_score = model(batch_queries, None, None, None, None, batch_answer)
+            grouped_score = model(None, cuda_data_list)
             for query_name in grouped_score:
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
@@ -1186,8 +1245,8 @@ class MyExperiment(Experiment):
                 })
 
             torch.distributed.barrier()
-            step += 1
-            progbar.update(step, [("Hits @10", h10)])
+            # step += 1
+            # progbar.update(step, [("Hits @10", h10)])
 
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:
@@ -1267,7 +1326,7 @@ class MyExperiment(Experiment):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--local_rank', type=int,default=-1, help='node rank for distributed training')
+@click.option('--local_rank', type=int, default=-1, help='node rank for distributed training')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
