@@ -606,7 +606,7 @@ class FLEX(nn.Module):
                 test_data_list: Optional[List[Tuple[str, torch.Tensor, torch.Tensor]]]):
         if train_data_list is not None:
             return self.forward_train(train_data_list)
-        elif train_data_list is not None:
+        elif test_data_list is not None:
             return self.forward_test(test_data_list)
         else:
             raise Exception("Train or Test, please choose one!")
