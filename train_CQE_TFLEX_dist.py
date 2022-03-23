@@ -20,7 +20,7 @@ import expression
 from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
-from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
+from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF, test_query_structures
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
@@ -993,6 +993,8 @@ class MyExperiment(Experiment):
         max_relation_id = relation_count
         nprocs = torch.cuda.device_count()
         self.nprocs = nprocs
+        world_size = nprocs  # TODO 暂时用单机多卡。多机多卡需要重新设置
+        self.world_size = world_size
         dist.init_process_group(backend='nccl')
         torch.cuda.set_device(local_rank)
         # batch_size = batch_size // nprocs
@@ -1179,7 +1181,8 @@ class MyExperiment(Experiment):
                             best_test_score = score
                             self.metric_log_store.add_best_metric({"result": result}, "Test")
                         print("")
-        self.metric_log_store.finish()
+        if local_rank == 0:
+            self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
         model.train()
@@ -1268,17 +1271,71 @@ class MyExperiment(Experiment):
                 step += 1
                 progbar.update(step, [("Hits @10", h10)])
 
-        metrics = defaultdict(lambda: defaultdict(int))
-        for query_name in logs:
-            for metric in logs[query_name][0].keys():
-                if metric == "num_queries":
-                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]])
+        # sync and reduce
+        torch.distributed.barrier()
+        query_name_keys = []
+        metric_name_keys = []
+        all_tensors = []
+        metric_names = list(logs[list(logs.keys())[0]][0].keys())
+        for query_name in test_query_structures:
+            for metric_name in metric_names:
+                query_name_keys.append(query_name)
+                metric_name_keys.append(metric_name)
+                if query_name in logs:
+                    sum_of_metric_values = sum([log[metric_name] for log in logs[query_name]])
+                    all_tensors.append(sum_of_metric_values)
                 else:
-                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]]) / len(logs[query_name])
+                    all_tensors.append(0)
+        all_tensors = torch.FloatTensor(all_tensors)
+        metrics = defaultdict(lambda: defaultdict(int))
+        dist.reduce(all_tensors, dst=0)
+        if dist.get_rank() == 0:
+            # only main process gets accumulated, so only divide by
+            # world_size in this case
+            all_tensors /= self.world_size
+            for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
+                if metric == "num_queries":
+                    metrics[query_name][metric] = value * self.world_size
+                else:
+                    metrics[query_name][metric] = value
+            del_query = []
+            for query_name in metrics:
+                if "num_queries" in metrics[query_name] and metrics[query_name]["num_queries"] == 0:
+                    del_query.append(query_name)
+            for query_name in del_query:
+                del metrics[query_name]
 
         return metrics
 
+    def get_world_size(self):
+        return self.world_size
+
+    def reduce_tensor_dict(self, tensor_dict: Dict[str, torch.Tensor]):
+        """
+        Reduce the tensor dictionary from all processes so that process with rank=0 has the averaged results.
+        Returns a dict with the same fields as tensor_dict, after reduction.
+        {"name": torch.Tensor()}
+        """
+        world_size = self.get_world_size()
+        if world_size < 2:
+            return tensor_dict
+        with torch.no_grad():
+            tensor_names = []
+            all_tensors = []
+            for k in sorted(tensor_dict.keys()):
+                tensor_names.append(k)
+                all_tensors.append(tensor_dict[k])
+            all_tensors = torch.stack(all_tensors, dim=0)
+            dist.reduce(all_tensors, dst=0)
+            if dist.get_rank() == 0:
+                # only main process gets accumulated, so only divide by
+                # world_size in this case
+                all_tensors /= world_size
+            reduced_tensor_dict = {k: v for k, v in zip(tensor_names, all_tensors)}
+        return reduced_tensor_dict
+
     def visual_result(self, step_num: int, result, scope: str):
+
         """Evaluate queries in dataloader"""
         self.metric_log_store.add_metric({scope: result}, step_num, scope)
         average_metrics = defaultdict(float)
