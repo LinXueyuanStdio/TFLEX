@@ -1272,6 +1272,8 @@ class MyExperiment(Experiment):
                 progbar.update(step, [("Hits @10", h10)])
 
         # sync and reduce
+        # 分布式评估 很麻烦，多任务学习的分布式评估更麻烦，因为每个进程采样到的任务数不一样
+        # 下面这坨就是在绝对视野里强行对齐所有进程的任务结果，进行 reduce，最后汇总给 rank=0 的 master node 展示到命令行
         torch.distributed.barrier()
         query_name_keys = []
         metric_name_keys = []
