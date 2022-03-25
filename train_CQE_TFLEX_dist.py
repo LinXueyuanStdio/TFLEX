@@ -38,6 +38,7 @@ import resource
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
 
+L = 1
 
 def convert_to_logic(x):
     # [0, 1]
@@ -47,13 +48,13 @@ def convert_to_logic(x):
 
 def convert_to_feature(x):
     # [-1, 1]
-    y = torch.tanh(x) * -1
+    y = torch.tanh(x) * L
     return y
 
 
 def convert_to_time_feature(x):
     # [-1, 1]
-    y = torch.tanh(x) * -1
+    y = torch.tanh(x) * L
     return y
 
 
@@ -249,18 +250,13 @@ class TemporalBefore(nn.Module):
     def __init__(self):
         super(TemporalBefore, self).__init__()
 
-    def neg_feature(self, feature):
-        # f,f' in [-L, L]
-        # f' = (f + 2L) % (2L) - L, where L=1
-        indicator_positive = feature >= 0
-        indicator_negative = feature < 0
-        feature[indicator_positive] = feature[indicator_positive] - 1
-        feature[indicator_negative] = feature[indicator_negative] + 1
-        return feature
-
     def forward(self, feature, logic, time_feature, time_logic, time_density):
-        time_feature = self.neg_feature(time_feature)
-        time_logic = 1 - time_logic
+        # theta_x_left = theta_x - theta_y / 2
+        theta_left = time_feature - time_logic / 2
+        center = theta_left + L
+        time_feature = center / 2
+        time_logic = center
+        time_density = (time_logic * time_density) / center
         return feature, logic, time_feature, time_logic, time_density
 
 
@@ -268,18 +264,13 @@ class TemporalAfter(nn.Module):
     def __init__(self):
         super(TemporalAfter, self).__init__()
 
-    def neg_feature(self, feature):
-        # f,f' in [-L, L]
-        # f' = (f + 2L) % (2L) - L, where L=1
-        indicator_positive = feature >= 0
-        indicator_negative = feature < 0
-        feature[indicator_positive] = feature[indicator_positive] - 1
-        feature[indicator_negative] = feature[indicator_negative] + 1
-        return feature
-
     def forward(self, feature, logic, time_feature, time_logic, time_density):
-        time_feature = self.neg_feature(time_feature)
-        time_logic = 1 - time_logic
+        # theta_x_right = theta_x + theta_y / 2
+        theta_right = time_feature + time_logic / 2
+        center = L - theta_right
+        time_feature = center / 2
+        time_logic = center
+        time_density = (time_logic * time_density) / center
         return feature, logic, time_feature, time_logic, time_density
 
 
@@ -287,18 +278,13 @@ class TemporalNext(nn.Module):
     def __init__(self):
         super(TemporalNext, self).__init__()
 
-    def neg_feature(self, feature):
-        # f,f' in [-L, L]
-        # f' = (f + 2L) % (2L) - L, where L=1
-        indicator_positive = feature >= 0
-        indicator_negative = feature < 0
-        feature[indicator_positive] = feature[indicator_positive] - 1
-        feature[indicator_negative] = feature[indicator_negative] + 1
+    def next_feature(self, feature):
+        feature = feature + 1
+        feature[feature >= 1] = 1
         return feature
 
     def forward(self, feature, logic, time_feature, time_logic, time_density):
-        time_feature = self.neg_feature(time_feature)
-        time_logic = 1 - time_logic
+        time_feature = self.next_feature(time_feature)
         return feature, logic, time_feature, time_logic, time_density
 
 
@@ -327,8 +313,9 @@ class EntityUnion(nn.Module):
         time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
         logic, _ = torch.max(logic, dim=0)
-        time_logic, _ = torch.max(time_logic, dim=0)
-        time_density, _ = torch.max(time_density, dim=0)
+        # for time, it is intersection
+        time_logic, _ = torch.min(time_logic, dim=0)
+        time_density, _ = torch.min(time_density, dim=0)
         # logic = torch.prod(logic, dim=0)
         return feature, logic, time_feature, time_logic, time_density
 
@@ -357,7 +344,9 @@ class TemporalUnion(nn.Module):
         feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(logits))), dim=0)
         time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
-        logic, _ = torch.max(logic, dim=0)
+        # for entity, it is intersection
+        logic, _ = torch.min(logic, dim=0)
+        # for time, it is union
         time_logic, _ = torch.max(time_logic, dim=0)
         time_density, _ = torch.max(time_density, dim=0)
         # logic = torch.prod(logic, dim=0)

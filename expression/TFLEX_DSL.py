@@ -87,6 +87,9 @@ test_query_structures = train_query_structures + [
     # time
     "t2i_Pe", "Pe_t2i",  # t-pi, t-ip
     "t2u", "Pe_t2u",  # t-2u, t-up
+    # union-DM
+    "e2u_DM", "Pe_e2u_DM",  # 2u-DM, up-DM
+    "t2u_DM", "Pe_t2u_DM",  # t-2u-DM, t-up-DM
 ]
 
 

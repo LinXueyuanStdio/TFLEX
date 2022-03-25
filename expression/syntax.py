@@ -19,6 +19,9 @@ def TimeAnd3(q1, q2, q3): return 0
 def TimeNot(t): return 0
 def TimeOr(q1, q2): return 0
 
+
+# 1. 1-hop Pe and Pt, manually
+# 2. entity multi-hop
 def Pe2(e1, r1, t1, r2, t2): return Pe(Pe(e1, r1, t1), r2, t2)  # 2p
 def Pe3(e1, r1, t1, r2, t2, r3, t3): return Pe(Pe(Pe(e1, r1, t1), r2, t2), r3, t3)  # 3p
 # 3. time multi-hop
