@@ -545,12 +545,10 @@ class FLEX(nn.Module):
             feature = feature.view(B, self.timestamp_dim)
         else:
             feature = feature.view(B, -1, self.timestamp_dim)
-        print("timestamp_feature", feature.shape, idx.shape)
         return convert_to_time_feature(self.scale(feature))
 
     def entity_token(self, idx) -> TYPE_token:
         feature = self.entity_feature(idx)
-        print("entity_feature", feature.shape, idx.shape)
         logic = torch.zeros_like(feature).to(feature.device)
         time_feature = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
