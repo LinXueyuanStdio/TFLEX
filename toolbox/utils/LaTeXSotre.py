@@ -99,7 +99,7 @@ def generate_body(dataframe: pd.DataFrame, striped: bool = True, is_numeric: boo
 
     for row_index, row in dataframe.iterrows():
 
-        if (row_index % 2) == 0:
+        if isinstance(row_index, int) and (row_index % 2) == 0:
             body += '\\rowcolor{gray} '
 
         for index, item in enumerate(row):
@@ -142,7 +142,7 @@ def save_dataframe_to_latex_by_path(dataframe: pd.DataFrame,
                                     caption: str = 'Table',
                                     striped: bool = True,
                                     is_numeric: bool = False,
-                                    decimal_sep: str = ',',
+                                    decimal_sep: str = '.',
                                     overwrite: bool = True,
                                     complete_document: bool = False,
                                     disable_debug: bool = False) -> None:
@@ -159,7 +159,7 @@ def save_dataframe_to_latex(dataframe: pd.DataFrame,
                             caption: str = 'Table',
                             striped: bool = True,
                             is_numeric: bool = False,
-                            decimal_sep: str = ',',
+                            decimal_sep: str = '.',
                             overwrite: bool = True,
                             complete_document: bool = False,
                             disable_debug: bool = False) -> None:
@@ -213,21 +213,17 @@ class LaTeXStoreSchema:
 
     def save_best_result(self, result_dict: Dict[str, List[Union[str, int, float]]]):
         df = result_dict_to_dataframe(result_dict)
-        print(result_dict)
-        print(df)
         self.save_best(df)
 
     def save_result_by_score(self, result_dict: Dict[str, List[Union[str, int, float]]], score):
         df = result_dict_to_dataframe(result_dict)
-        print(result_dict)
-        print(df)
         self.save_by_score(df, score)
 
     def save_best(self, df: pd.DataFrame):
         save_dataframe_to_latex_by_path(df, self.best_latex_path)
 
     def save_by_score(self, df: pd.DataFrame, score: float):
-        save_dataframe_to_latex_by_path(df, self.latex_path_with_score(score))
+        save_dataframe_to_latex_by_path(df, self.latex_path_with_score(score), caption=f"Table-score-{score}")
 
     def latex_path_with_score(self, score: float):
         return self.path.latex_path(self.scope + "-score-" + str(score) + ".tex")
