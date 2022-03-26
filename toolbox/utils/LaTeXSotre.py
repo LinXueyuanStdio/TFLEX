@@ -213,10 +213,14 @@ class LaTeXStoreSchema:
 
     def save_best_result(self, result_dict: Dict[str, List[Union[str, int, float]]]):
         df = result_dict_to_dataframe(result_dict)
+        print(result_dict)
+        print(df)
         self.save_best(df)
 
     def save_result_by_score(self, result_dict: Dict[str, List[Union[str, int, float]]], score):
         df = result_dict_to_dataframe(result_dict)
+        print(result_dict)
+        print(df)
         self.save_by_score(df, score)
 
     def save_best(self, df: pd.DataFrame):
