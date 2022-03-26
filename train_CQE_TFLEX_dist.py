@@ -541,7 +541,10 @@ class FLEX(nn.Module):
     def timestamp_feature(self, idx):
         B = idx.shape[0]
         feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
-        feature = feature.view(B, -1, self.timestamp_dim)
+        if len(idx.shape) == 1:
+            feature = feature.view(B, self.timestamp_dim)
+        else:
+            feature = feature.view(B, -1, self.timestamp_dim)
         print("timestamp_feature", feature.shape, idx.shape)
         return convert_to_time_feature(self.scale(feature))
 
