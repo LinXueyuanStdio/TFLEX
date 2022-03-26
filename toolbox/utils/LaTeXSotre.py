@@ -192,8 +192,14 @@ def save_dataframe_to_latex(dataframe: pd.DataFrame,
 
 
 def result_dict_to_dataframe(result_dict: Dict[str, List[Union[str, int, float]]]) -> pd.DataFrame:
-    header = result_dict[list(result_dict.keys())[0]]
-    return pd.DataFrame.from_dict(result_dict, orient='index', columns=header)
+    header_key = list(result_dict.keys())[0]
+    header = result_dict[header_key]
+    new_dict = {}
+    for key, value in result_dict.items():
+        if key == header_key:
+            continue
+        new_dict[key] = value
+    return pd.DataFrame.from_dict(new_dict, orient='index', columns=header)
 
 
 class LaTeXStoreSchema:
