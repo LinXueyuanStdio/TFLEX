@@ -540,6 +540,7 @@ class FLEX(nn.Module):
 
     def timestamp_feature(self, idx):
         feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
+        print(feature.shape)
         return convert_to_time_feature(self.scale(feature))
 
     def entity_token(self, idx) -> TYPE_token:
