@@ -368,8 +368,9 @@ class FLEX(nn.Module):
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
-        self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
+        # self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
+        # self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
+        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
 
         self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
@@ -523,8 +524,9 @@ class FLEX(nn.Module):
         embedding_range = self.embedding_range.item()
         nn.init.uniform_(tensor=self.entity_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
-        nn.init.uniform_(tensor=self.timestamp_origin, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.timestamp_delta, a=-embedding_range, b=embedding_range)
+        # nn.init.uniform_(tensor=self.timestamp_origin, a=-embedding_range, b=embedding_range)
+        # nn.init.uniform_(tensor=self.timestamp_delta, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
         nn.init.uniform_(tensor=self.relation_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
@@ -539,12 +541,13 @@ class FLEX(nn.Module):
         return convert_to_feature(self.scale(self.entity_feature_embedding(idx)))
 
     def timestamp_feature(self, idx):
-        B = idx.shape[0]
-        feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
-        if len(idx.shape) == 1:
-            feature = feature.view(B, self.timestamp_dim)
-        else:
-            feature = feature.view(B, -1, self.timestamp_dim)
+        # B = idx.shape[0]
+        # feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
+        # if len(idx.shape) == 1:
+        #     feature = feature.view(B, self.timestamp_dim)
+        # else:
+        #     feature = feature.view(B, -1, self.timestamp_dim)
+        feature = self.timestamp_time_feature_embedding(idx)
         return convert_to_time_feature(self.scale(feature))
 
     def entity_token(self, idx) -> TYPE_token:
