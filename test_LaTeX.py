@@ -4,7 +4,9 @@
 @date: 2022/3/26
 @description: null
 """
-from toolbox.utils.LaTeXSotre import save_dataframe_to_latex, result_dict_to_dataframe
+from pathlib import Path
+
+from toolbox.utils.LaTeXSotre import result_dict_to_dataframe, save_dataframe_to_latex_by_path
 
 result = {'Test    ': ['avg', 'Pe', 'Pe2', 'Pe3', 'Pe_Pt', 'Pe_aPt', 'Pe_at2i', 'Pe_bPt', 'Pe_bt2i', 'Pe_e2i', 'Pe_e2i_Pe_NPe', 'Pe_e2u', 'Pe_e2u_DM', 'Pe_nPt', 'Pe_nt2i', 'Pe_t2i', 'Pe_t2i_PtPe_NPt',
                        'Pe_t2u', 'Pe_t2u_DM', 'Pt', 'Pt_lPe', 'Pt_le2i', 'Pt_rPe', 'Pt_re2i', 'between', 'e2i', 'e2i_N', 'e2i_NPe', 'e2i_Pe', 'e2i_PeN', 'e2u', 'e2u_DM', 'e3i', 'e3i_N', 't2i',
@@ -35,4 +37,5 @@ result = {'Test    ': ['avg', 'Pe', 'Pe2', 'Pe3', 'Pe_Pt', 'Pe_aPt', 'Pe_at2i', 
                       0.018806764855980873, 0.03283106908202171, 0.03283106908202171, 0.017196429893374443, 0.019191576167941093]}
 df = result_dict_to_dataframe(result)
 print(df)
-save_dataframe_to_latex(df, "a.tex")
+# save_dataframe_to_latex(df, "a.tex")
+save_dataframe_to_latex_by_path(df, Path(".") / "a.tex")

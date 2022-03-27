@@ -147,8 +147,8 @@ def save_dataframe_to_latex_by_path(dataframe: pd.DataFrame,
                                     complete_document: bool = False,
                                     disable_debug: bool = False) -> None:
     save_dataframe_to_latex(dataframe,
-                            str(path.parent.absolute()),
                             str(path.name),
+                            str(path.parent.absolute()),
                             orientation, caption, striped, is_numeric, decimal_sep, overwrite, complete_document, disable_debug)
 
 
