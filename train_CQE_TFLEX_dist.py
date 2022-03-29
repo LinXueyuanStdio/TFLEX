@@ -40,6 +40,7 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
 
 L = 1
 
+
 def convert_to_logic(x):
     # [0, 1]
     y = torch.sigmoid(2 * x)
@@ -247,8 +248,14 @@ class TemporalNegation(nn.Module):
 
 
 class TemporalBefore(nn.Module):
-    def __init__(self):
+    def __init__(self, dim):
         super(TemporalBefore, self).__init__()
+        self.dim = dim
+        self.time_density_layer_1 = nn.Linear(self.dim * 3, self.dim)
+        self.time_density_layer_2 = nn.Linear(self.dim, self.dim)
+
+        nn.init.xavier_uniform_(self.time_density_layer_1.weight)
+        nn.init.xavier_uniform_(self.time_density_layer_2.weight)
 
     def forward(self, feature, logic, time_feature, time_logic, time_density):
         # theta_x_left = theta_x - theta_y / 2
@@ -256,13 +263,23 @@ class TemporalBefore(nn.Module):
         center = theta_left + L
         time_feature = center / 2
         time_logic = center
-        time_density = (time_logic * time_density) / center
+
+        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 2d
+        density_attention = F.softmax(self.time_density_layer_2(F.relu(self.time_density_layer_1(logits))), dim=0)
+        time_density = convert_to_time_density(torch.sum(density_attention * time_density, dim=0))
+        # time_density = convert_to_time_density (time_logic * time_density) / center
         return feature, logic, time_feature, time_logic, time_density
 
 
 class TemporalAfter(nn.Module):
-    def __init__(self):
+    def __init__(self, dim):
         super(TemporalAfter, self).__init__()
+        self.dim = dim
+        self.time_density_layer_1 = nn.Linear(self.dim * 3, self.dim)
+        self.time_density_layer_2 = nn.Linear(self.dim, self.dim)
+
+        nn.init.xavier_uniform_(self.time_density_layer_1.weight)
+        nn.init.xavier_uniform_(self.time_density_layer_2.weight)
 
     def forward(self, feature, logic, time_feature, time_logic, time_density):
         # theta_x_right = theta_x + theta_y / 2
@@ -270,18 +287,29 @@ class TemporalAfter(nn.Module):
         center = L - theta_right
         time_feature = center / 2
         time_logic = center
-        time_density = (time_logic * time_density) / center
+
+        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 2d
+        density_attention = F.softmax(self.time_density_layer_2(F.relu(self.time_density_layer_1(logits))), dim=0)
+        time_density = convert_to_time_density(torch.sum(density_attention * time_density, dim=0))
+        # time_density = (time_logic * time_density) / center
         return feature, logic, time_feature, time_logic, time_density
 
 
 class TemporalNext(nn.Module):
-    def __init__(self):
+    def __init__(self, timestamp_dim, get_timestamps_delta, get_timestamps_origin):
         super(TemporalNext, self).__init__()
+        self.timestamp_dim = timestamp_dim
+        self.get_timestamps_origin = get_timestamps_origin
+        self.get_timestamps_delta = get_timestamps_delta
 
-    def next_feature(self, feature):
-        feature = feature + 1
-        feature[feature >= 1] = 1
-        return feature
+    def next_feature(self, time_feature):
+        timestamp_delta = self.get_timestamps_delta()
+        if len(time_feature.shape) == 2:
+            time_feature = time_feature + timestamp_delta
+        else:
+            time_feature = time_feature + timestamp_delta.unsqueeze(dim=0)
+        time_feature = convert_to_time_feature(time_feature)
+        return time_feature
 
     def forward(self, feature, logic, time_feature, time_logic, time_density):
         time_feature = self.next_feature(time_feature)
@@ -368,9 +396,9 @@ class FLEX(nn.Module):
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        # self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
-        # self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
-        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
+        self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
+        # self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
 
         self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
@@ -387,9 +415,9 @@ class FLEX(nn.Module):
         self.time_intersection = TemporalIntersection(hidden_dim)
         self.time_union = TemporalUnion(hidden_dim)
         self.time_negation = TemporalNegation()
-        self.time_before = TemporalBefore()
-        self.time_after = TemporalAfter()
-        self.time_next = TemporalNext()
+        self.time_before = TemporalBefore(hidden_dim)
+        self.time_after = TemporalAfter(hidden_dim)
+        self.time_next = TemporalNext(hidden_dim, get_timestamps_delta=lambda: self.timestamp_delta.detach(), get_timestamps_origin=lambda: self.timestamp_origin.detach())
 
         self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
         self.epsilon = 2.0
@@ -524,9 +552,9 @@ class FLEX(nn.Module):
         embedding_range = self.embedding_range.item()
         nn.init.uniform_(tensor=self.entity_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
-        # nn.init.uniform_(tensor=self.timestamp_origin, a=-embedding_range, b=embedding_range)
-        # nn.init.uniform_(tensor=self.timestamp_delta, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.timestamp_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_origin, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_delta, a=-embedding_range, b=embedding_range)
+        # nn.init.uniform_(tensor=self.timestamp_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
         nn.init.uniform_(tensor=self.relation_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
@@ -541,13 +569,13 @@ class FLEX(nn.Module):
         return convert_to_feature(self.scale(self.entity_feature_embedding(idx)))
 
     def timestamp_feature(self, idx):
-        # B = idx.shape[0]
-        # feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
-        # if len(idx.shape) == 1:
-        #     feature = feature.view(B, self.timestamp_dim)
-        # else:
-        #     feature = feature.view(B, -1, self.timestamp_dim)
-        feature = self.timestamp_time_feature_embedding(idx)
+        B = idx.shape[0]
+        feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
+        if len(idx.shape) == 1:
+            feature = feature.view(B, self.timestamp_dim)
+        else:
+            feature = feature.view(B, -1, self.timestamp_dim)
+        # feature = self.timestamp_time_feature_embedding(idx)
         return convert_to_time_feature(self.scale(feature))
 
     def entity_token(self, idx) -> TYPE_token:
