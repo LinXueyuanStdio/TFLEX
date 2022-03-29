@@ -264,9 +264,8 @@ class TemporalBefore(nn.Module):
         time_feature = center / 2
         time_logic = center
 
-        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 2d
-        density_attention = F.softmax(self.time_density_layer_2(F.relu(self.time_density_layer_1(logits))), dim=0)
-        time_density = convert_to_time_density(torch.sum(density_attention * time_density, dim=0))
+        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 3d
+        time_density = convert_to_time_density(self.time_density_layer_2(F.relu(self.time_density_layer_1(logits))))
         # time_density = convert_to_time_density (time_logic * time_density) / center
         return feature, logic, time_feature, time_logic, time_density
 
@@ -288,9 +287,8 @@ class TemporalAfter(nn.Module):
         time_feature = center / 2
         time_logic = center
 
-        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 2d
-        density_attention = F.softmax(self.time_density_layer_2(F.relu(self.time_density_layer_1(logits))), dim=0)
-        time_density = convert_to_time_density(torch.sum(density_attention * time_density, dim=0))
+        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 3d
+        time_density = convert_to_time_density(self.time_density_layer_2(F.relu(self.time_density_layer_1(logits))))
         # time_density = (time_logic * time_density) / center
         return feature, logic, time_feature, time_logic, time_density
 
