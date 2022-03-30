@@ -1,11 +1,11 @@
 import argparse
 
 from load_data import Data
-from toolbox.nn.TuckERCPD import TuckERCPD
-from toolbox.nn.TuckERT import TuckERT
-from toolbox.nn.TuckERTNT import TuckERTNT
-from toolbox.nn.TuckERTTR import TuckERTTR
-from toolbox.nn.TuckERTTT import TuckERTTT
+from ..toolbox.nn.TuckERCPD import TuckERCPD
+from ..toolbox.nn.TuckERT import TuckERT
+from ..toolbox.nn.TuckERTNT import TuckERTNT
+from ..toolbox.nn.TuckERTTR import TuckERTTR
+from ..toolbox.nn.TuckERTTT import TuckERTTT
 from train import train_temporal
 
 
