@@ -67,7 +67,7 @@ class TuckERTNT(nn.Module):
         ### Non temporal part
         # mode 3 product with identity matrix
         x = x.view(-1, self.dt)  # (B*E, dt)
-        x = torch.mm(x, torch.ones(self.dt).view(self.dt, 1))  # (B*E, dt) * (dt, 1) = (B*E, 1)
+        x = torch.mm(x, torch.ones(self.dt).to(self.device).view(self.dt, 1))  # (B*E, dt) * (dt, 1) = (B*E, 1)
         x = x.view(-1, self.ne)  # (B, E)
 
         # Sum of the 2 models
