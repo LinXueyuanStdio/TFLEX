@@ -4,9 +4,9 @@ import numpy as np
 class Data:
     def __init__(self, data_dir='data/icews14/'):
         # load data
-        self.train_data = self._load_data(data_dir, "train.txt")
-        self.valid_data = self._load_data(data_dir, "valid.txt")
-        self.test_data = self._load_data(data_dir, "test.txt")
+        self.train_data = self._load_data(data_dir, "train")
+        self.valid_data = self._load_data(data_dir, "valid")
+        self.test_data = self._load_data(data_dir, "test")
 
         # Put it in 1 big matrix
         self.data = np.vstack((self.train_data, self.test_data))
