@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 
-from metrics import get_ranks, compute_hits, compute_MRR
+from temp.metrics import get_ranks, compute_hits, compute_MRR
 
 
 def get_ert_vocab(data):

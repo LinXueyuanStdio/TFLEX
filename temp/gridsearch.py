@@ -5,10 +5,10 @@ import pandas as pd
 import torch
 from sklearn.model_selection import ParameterGrid
 
-from load_data import Data
+from temp.load_data import Data
+from temp.train import train_temporal
 from toolbox.nn.TuckERCPD import TuckERCPD
 from toolbox.nn.TuckERTTR import TuckERTTR
-from train import train_temporal
 
 
 def grid_search(model, data, param_model_grid, learning_grid, file, cols):
