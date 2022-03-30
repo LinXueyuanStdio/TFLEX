@@ -46,9 +46,6 @@ class TuckERTTR(nn.Module):
 
         # batchnorm layers
         self.bne = nn.BatchNorm1d(de)
-        self.bn1 = nn.BatchNorm1d()  # TODO
-        self.bn2 = nn.BatchNorm1d()
-        self.bn3 = nn.BatchNorm1d()
 
         # loss
         self.loss = nn.BCELoss()
