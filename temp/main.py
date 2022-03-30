@@ -1,6 +1,11 @@
 import argparse
 
 from load_data import Data
+from toolbox.nn.TuckERCPD import TuckERCPD
+from toolbox.nn.TuckERT import TuckERT
+from toolbox.nn.TuckERTNT import TuckERTNT
+from toolbox.nn.TuckERTTR import TuckERTTR
+from toolbox.nn.TuckERTTT import TuckERTTT
 from train import train_temporal
 
 
@@ -32,7 +37,14 @@ def train_model_from_args(args, print_scores=True):
     data_dir = "data/" + args.dataset + "/"
     data = Data(data_dir=data_dir)
 
-    model = globals()[args.model](d=data, **vars(args)).to(args.device)
+    model_dict = {
+        "TuckERCPD": TuckERCPD,
+        "TuckERT": TuckERT,
+        "TuckERTNT": TuckERTNT,
+        "TuckERTTR": TuckERTTR,
+        "TuckERTTT": TuckERTTT,
+    }
+    model = model_dict[args.model](d=data, **vars(args)).to(args.device)
 
     print("\n----------------------------------- TRAINING -------------------------")
     model, metrics = train_temporal(model, data, device=args.device, n_iter=args.n_iter, learning_rate=args.learning_rate, batch_size=args.batch_size, early_stopping=args.early_stopping)
