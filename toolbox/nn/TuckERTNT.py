@@ -46,30 +46,29 @@ class TuckERTNT(nn.Module):
         e1 = self.E(e1_idx)
         x = self.bne(e1)
         x = self.input_dropout(x)
-        x = e1
-        x = x.view(-1, 1, self.de)
+        x = x.view(-1, 1, self.de)  # (B, 1, de)
 
         # Mode 2 product with relation vector
-        r = self.R(r_idx)
-        W_mat = torch.mm(r, self.W.view(r.size(1), -1))
-        W_mat = W_mat.view(-1, self.de, self.de * self.dt)
-        x = torch.bmm(x, W_mat)
+        r = self.R(r_idx)  # (B, dr)
+        W_mat = torch.mm(r, self.W.view(r.size(1), -1))  # (B, dr) * (dr, de*de*dt) = (B, de*de*dt)
+        W_mat = W_mat.view(-1, self.de, self.de * self.dt)  # (B, de, de*dt)
+        x = torch.bmm(x, W_mat)  # (B, 1, de) * (B, de, de*dt) = (B, 1, de*dt)
 
         # Mode 4 product with entity matrix 
-        x = x.view(-1, self.de)
-        x = torch.mm(x, self.E.weight.transpose(1, 0))
+        x = x.view(-1, self.de)  # (B, de*dt) -> (B*dt, de)
+        x = torch.mm(x, self.E.weight.transpose(1, 0))  # (B*dt, de) * (E, de)^T = (B*dt, E)
 
         # Mode 3 product with time vector
-        t = self.T(t_idx)
-        xt = x.view(-1, self.dt, self.ne)
-        xt = torch.bmm(t.view(*t.shape, -1), xt)
-        xt = xt.view(-1, self.ne)
+        t = self.T(t_idx).view(-1, 1, self.dt)  # (B, 1, dt)
+        xt = x.view(-1, self.dt, self.ne)  # (B, dt, E)
+        xt = torch.bmm(t, xt)  # (B, 1, dt) * (B, dt, E) -> (B, 1, E)
+        xt = xt.view(-1, self.ne)  # (B, E)
 
         ### Non temporal part
         # mode 3 product with identity matrix
-        x = x.view(-1, self.dt)
-        x = torch.mm(x, torch.ones(self.dt).view(self.dt, 1))
-        x = x.view(-1, self.ne)
+        x = x.view(-1, self.dt)  # (B*E, dt)
+        x = torch.mm(x, torch.ones(self.dt).view(self.dt, 1))  # (B*E, dt) * (dt, 1) = (B*E, 1)
+        x = x.view(-1, self.ne)  # (B, E)
 
         # Sum of the 2 models
         x = x + xt
