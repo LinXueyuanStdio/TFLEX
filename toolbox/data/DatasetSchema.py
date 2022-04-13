@@ -30,7 +30,7 @@ import zipfile
 from pathlib import Path
 from typing import Dict, Union
 
-from toolbox.utils.Download import download_to_path
+from toolbox.utils.Download import DownloadManager
 from toolbox.utils.Log import Log
 
 
@@ -70,6 +70,7 @@ def extract_zip(zip_path, extract_path='.'):
 
 
 # region 2. remote dataset
+downloader = None
 class RemoteDataset:
     def __init__(self, name: str, url: str, root_path: Path):
         root_path.mkdir(parents=True, exist_ok=True)
@@ -85,14 +86,18 @@ class RemoteDataset:
         """ Downloads the given dataset from url"""
         self._logger.info("Downloading the dataset %s" % self.name)
 
+        global downloader
+        if downloader is None:
+            downloader = DownloadManager()
+
         if self.url.endswith('.tar.gz') or self.url.endswith('.tgz'):
             if self.tar.exists():
                 return
-            download_to_path([self.url], str(self.tar))
+            downloader.download_to_path([self.url], str(self.tar))
         elif self.url.endswith('.zip'):
             if self.zip.exists():
                 return
-            download_to_path([self.url], str(self.zip))
+            downloader.download_to_path([self.url], str(self.zip))
         else:
             raise NotImplementedError("Unknown compression format")
 

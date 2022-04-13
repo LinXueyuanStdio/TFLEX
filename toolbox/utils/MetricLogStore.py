@@ -15,7 +15,6 @@ from copy import deepcopy
 from typing import Union
 
 import numpy as np
-import requests
 
 
 class MetricLogStoreSchema:
@@ -435,6 +434,7 @@ class Logger:
                         }
                     }
                 }
+                import requests
                 requests.post(url=send_to_bot, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
             else:
                 print("[send_to_bot] 应该设置为飞书机器人的 webhook 地址")
