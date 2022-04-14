@@ -74,6 +74,44 @@ def convert_to_time_density(x):
     return y
 
 
+class CoreConvE(nn.Module):
+    def __init__(self, embedding_dim, img_h=10, input_dropout=0.2, hidden_dropout1=0.3, hidden_dropout2=0.2):
+        super(CoreConvE, self).__init__()
+        self.inp_drop = nn.Dropout(input_dropout)
+        self.feature_map_drop = nn.Dropout2d(hidden_dropout1)
+        self.hidden_drop = nn.Dropout(hidden_dropout2)
+
+        self.img_h = img_h
+        self.img_w = embedding_dim // self.img_h
+
+        self.conv1 = nn.Conv2d(1, 32, (3, 3), 1, 0, bias=True)
+        self.bn0 = nn.BatchNorm2d(1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm1d(embedding_dim)
+
+        hidden_size = (self.img_h * 3 - 3 + 1) * (self.img_w - 3 + 1) * 32
+        self.fc = nn.Linear(hidden_size, embedding_dim)
+
+    def forward(self, s, r, t):
+        s = s.view(-1, 1, self.img_h, self.img_w)
+        r = r.view(-1, 1, self.img_h, self.img_w)
+        t = t.view(-1, 1, self.img_h, self.img_w)
+
+        x = torch.cat([s, r, t], dim=2)
+        x = self.bn0(x)
+        x = self.inp_drop(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+        x = self.feature_map_drop(x)
+        x = x.view(x.shape[0], -1)
+        x = self.fc(x)
+        x = self.hidden_drop(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+        return x
+
+
 class EntityProjection(nn.Module):
     def __init__(self, dim, hidden_dim=800, num_layers=2, drop=0.1):
         super(EntityProjection, self).__init__()
@@ -81,27 +119,16 @@ class EntityProjection(nn.Module):
         self.num_layers = num_layers
         self.dropout = nn.Dropout(drop)
         token_dim = dim * 5
-        self.layer1 = nn.Linear(token_dim, self.hidden_dim)
-        self.layer0 = nn.Linear(self.hidden_dim, token_dim)
-        for i in range(2, num_layers + 1):
-            setattr(self, f"layer{i}", nn.Linear(self.hidden_dim, self.hidden_dim))
-        for i in range(num_layers + 1):
-            nn.init.xavier_uniform_(getattr(self, f"layer{i}").weight)
+        self.core = CoreConvE(token_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1)
 
     def forward(self,
                 q_feature, q_logic, q_time_feature, q_time_logic, q_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density):
-        x = torch.cat([
-            q_feature + r_feature + t_feature,
-            q_logic + r_logic + t_logic,
-            q_time_feature + r_time_feature + t_time_feature,
-            q_time_logic + r_time_logic + t_time_logic,
-            q_time_density + r_time_density + t_time_density,
-        ], dim=-1)
-        for i in range(1, self.num_layers + 1):
-            x = F.relu(getattr(self, f"layer{i}")(x))
-        x = self.layer0(x)
+        q = torch.cat([q_feature, q_logic, q_time_feature, q_time_logic, q_time_density], dim=-1)
+        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
+        t = torch.cat([t_feature, t_logic, t_time_feature, t_time_logic, t_time_density], dim=-1)
+        x = self.core(q, r, t)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
         feature = convert_to_feature(feature)
@@ -119,27 +146,16 @@ class TimeProjection(nn.Module):
         self.num_layers = num_layers
         self.dropout = nn.Dropout(drop)
         token_dim = dim * 5
-        self.layer1 = nn.Linear(token_dim, self.hidden_dim)
-        self.layer0 = nn.Linear(self.hidden_dim, token_dim)
-        for nl in range(2, num_layers + 1):
-            setattr(self, "layer{}".format(nl), nn.Linear(self.hidden_dim, self.hidden_dim))
-        for nl in range(num_layers + 1):
-            nn.init.xavier_uniform_(getattr(self, "layer{}".format(nl)).weight)
+        self.core = CoreConvE(token_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1)
 
     def forward(self,
                 q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density):
-        x = torch.cat([
-            q1_feature + r_feature + q2_feature,
-            q1_logic + r_logic + q2_logic,
-            q1_time_feature + r_time_feature + q2_time_feature,
-            q1_time_logic + r_time_logic + q2_time_logic,
-            q1_time_density + r_time_density + q2_time_density,
-        ], dim=-1)
-        for nl in range(1, self.num_layers + 1):
-            x = F.relu(getattr(self, "layer{}".format(nl))(x))
-        x = self.layer0(x)
+        q1 = torch.cat([q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density], dim=-1)
+        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
+        q2 = torch.cat([q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density], dim=-1)
+        x = self.core(q1, r, q2)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
         feature = convert_to_feature(feature)
