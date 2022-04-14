@@ -12,10 +12,12 @@ import collections
 
 import click
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from ComplexQueryData import *
 from dataloader import TestDataset, TrainDataset
@@ -25,8 +27,6 @@ from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
 from util import flatten_query
-from torch.utils.data.distributed import DistributedSampler
-import torch.distributed as dist
 
 
 def convert_to_logic(x):
@@ -37,7 +37,7 @@ def convert_to_logic(x):
 
 def convert_to_feature(x):
     # [-1, 1]
-    y = torch.tanh(x) * 1/2
+    y = torch.tanh(x) * 1 / 2
     return y
 
 
@@ -770,14 +770,14 @@ class MyExperiment(Experiment):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--local_rank', type=int,default=-1, help='node rank for distributed training')
+@click.option('--local_rank', type=int, default=-1, help='node rank for distributed training')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, tasks, evaluate_union, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg,local_rank
+         hidden_dim, input_dropout, gamma, center_reg, local_rank
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
@@ -799,7 +799,7 @@ def main(data_home, dataset, name,
         train_device, test_device,
         resume, resume_by_score,
         lr, tasks, evaluate_union, cpu_num,
-        hidden_dim, input_dropout, gamma, center_reg,local_rank
+        hidden_dim, input_dropout, gamma, center_reg, local_rank
     )
 
 
