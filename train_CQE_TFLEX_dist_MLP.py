@@ -1355,8 +1355,11 @@ class MyExperiment(Experiment):
                     del_query.append(query_name)
             for query_name in del_query:
                 del metrics[query_name]
+                query_name_keys.remove(query_name)
             # 3. correct values
             for query_name, metric in zip(query_name_keys, metric_name_keys):
+                if query_name not in metrics:
+                    continue
                 value = metrics[query_name][metric]
                 if metric == "num_queries":
                     metrics[query_name][metric] = int(value)
