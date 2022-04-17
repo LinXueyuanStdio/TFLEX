@@ -89,11 +89,13 @@ class EntityProjection(nn.Module):
                 q_feature, q_logic, q_time_feature, q_time_logic, q_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density):
-        q = torch.cat([q_feature, q_logic, q_time_feature, q_time_logic, q_time_density], dim=-1)
-        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
-        t = torch.cat([t_feature, t_logic, t_time_feature, t_time_logic, t_time_density], dim=-1)
+        feature = torch.stack([q_feature, r_feature, t_feature])
+        logic = torch.stack([q_logic, r_logic, t_logic])
+        time_feature = torch.stack([q_time_feature, r_time_feature, t_time_feature])
+        time_logic = torch.stack([q_time_logic, r_time_logic, t_time_logic])
+        time_density = torch.stack([q_time_density, r_time_density, t_time_density])
 
-        logits = torch.cat([q, r, t], dim=0)  # N x B x nd
+        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=0)  # N x B x nd
         logits = self.input_dropout(logits)
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         x = torch.sum(feature_attention * logits, dim=0)
@@ -122,11 +124,13 @@ class TimeProjection(nn.Module):
                 q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density):
-        q1 = torch.cat([q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density], dim=-1)
-        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
-        q2 = torch.cat([q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density], dim=-1)
+        feature = torch.stack([q1_feature, r_feature, q2_feature])
+        logic = torch.stack([q1_logic, r_logic, q2_logic])
+        time_feature = torch.stack([q1_time_feature, r_time_feature, q2_time_feature])
+        time_logic = torch.stack([q1_time_logic, r_time_logic, q2_time_logic])
+        time_density = torch.stack([q1_time_density, r_time_density, q2_time_density])
 
-        logits = torch.cat([q1, r, q2], dim=0)  # N x B x nd
+        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=0)  # N x B x nd
         logits = self.input_dropout(logits)
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         x = torch.sum(feature_attention * logits, dim=0)
