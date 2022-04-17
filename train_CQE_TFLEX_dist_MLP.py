@@ -75,7 +75,7 @@ def convert_to_time_density(x):
 
 
 class CoreConvE(nn.Module):
-    def __init__(self, embedding_dim, img_h=10, input_dropout=0.2, hidden_dropout1=0.3, hidden_dropout2=0.2):
+    def __init__(self, embedding_dim, img_h=10, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1):
         super(CoreConvE, self).__init__()
         self.inp_drop = nn.Dropout(input_dropout)
         self.feature_map_drop = nn.Dropout2d(hidden_dropout1)
@@ -112,6 +112,36 @@ class CoreConvE(nn.Module):
         return x
 
 
+class CoreTuckERT(nn.Module):
+    def __init__(self, embedding_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1):
+        super(CoreTuckERT, self).__init__()
+        self.embedding_dim = embedding_dim
+        self.de = embedding_dim
+        self.dr = embedding_dim
+        self.dt = embedding_dim
+        self.input_dropout = nn.Dropout(input_dropout)
+        self.feature_map_drop = nn.Dropout2d(hidden_dropout1)
+        self.hidden_drop = nn.Dropout(hidden_dropout2)
+        self.bne = nn.BatchNorm1d(embedding_dim)
+
+    def forward(self, W, s, r, t):
+        x = self.bne(s)
+        x = self.input_dropout(x)
+        x = x.view(-1, 1, self.de)  # (B, 1, de)
+
+        r = r.view(-1, self.dr)  # (B, dr)
+        W = W.view(self.dr, -1)  # (dr, de*de*dt)
+        W_mat = torch.mm(r, W)  # (B, dr) * (dr, de*de*dt) = (B, de*de*dt)
+        W_mat = W_mat.view(-1, self.de, self.de * self.dt)  # (B, de, de*dt)
+        x = torch.bmm(x, W_mat)  # (B, 1, de) * (B, de, de*dt) = (B, 1, de*dt)
+
+        x = x.view(-1, self.de, self.dt)  # (B, de*dt) -> (B, de, dt)
+        t = t.view(-1, self.dt, 1)  # (B, dt, 1)
+        ans = torch.bmm(x, t) # (B, de, dt) * (B, dt, 1) = (B, de, 1)
+        ans = ans.view(-1, self.de)
+        return ans
+
+
 class EntityProjection(nn.Module):
     def __init__(self, dim, hidden_dim=800, num_layers=2, drop=0.1):
         super(EntityProjection, self).__init__()
@@ -119,16 +149,37 @@ class EntityProjection(nn.Module):
         self.num_layers = num_layers
         self.dropout = nn.Dropout(drop)
         token_dim = dim * 5
-        self.core = CoreConvE(token_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1)
+        # self.core = CoreConvE(token_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1)
+        self.de = token_dim
+        self.dr = token_dim
+        self.dt = token_dim
+        self.input_dropout = nn.Dropout(0.1)
+        self.bne = nn.BatchNorm1d(token_dim)
 
     def forward(self,
+                shared_tensor,
                 q_feature, q_logic, q_time_feature, q_time_logic, q_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density):
         q = torch.cat([q_feature, q_logic, q_time_feature, q_time_logic, q_time_density], dim=-1)
         r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
         t = torch.cat([t_feature, t_logic, t_time_feature, t_time_logic, t_time_density], dim=-1)
-        x = self.core(q, r, t)
+
+        W = shared_tensor
+        x = self.bne(q)
+        x = self.input_dropout(x)
+        x = x.view(-1, 1, self.de)  # (B, 1, de)
+
+        r = r.view(-1, self.dr)  # (B, dr)
+        W = W.view(self.dr, -1)  # (dr, de*de*dt)
+        W_mat = torch.mm(r, W)  # (B, dr) * (dr, de*de*dt) = (B, de*de*dt)
+        W_mat = W_mat.view(-1, self.de, self.de * self.dt)  # (B, de, de*dt)
+        x = torch.bmm(x, W_mat)  # (B, 1, de) * (B, de, de*dt) = (B, 1, de*dt)
+
+        x = x.view(-1, self.de, self.dt)  # (B, de*dt) -> (B, de, dt)
+        t = t.view(-1, self.dt, 1)  # (B, dt, 1)
+        x = torch.bmm(x, t)  # (B, de, dt) * (B, dt, 1) = (B, de, 1)
+        x = x.view(-1, self.de)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
         feature = convert_to_feature(feature)
@@ -147,15 +198,36 @@ class TimeProjection(nn.Module):
         self.dropout = nn.Dropout(drop)
         token_dim = dim * 5
         self.core = CoreConvE(token_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1)
+        self.de = token_dim
+        self.dr = token_dim
+        self.dt = token_dim
+        self.input_dropout = nn.Dropout(0.1)
+        self.bne = nn.BatchNorm1d(token_dim)
 
     def forward(self,
+                shared_tensor,
                 q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density):
         q1 = torch.cat([q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density], dim=-1)
         r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
         q2 = torch.cat([q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density], dim=-1)
-        x = self.core(q1, r, q2)
+
+        W = shared_tensor
+        x = self.bne(q1)
+        x = self.input_dropout(x)
+        x = x.view(-1, 1, self.de)  # (B, 1, de)
+
+        r = r.view(-1, self.dr)  # (B, dr)
+        W = W.view(self.dr, -1)  # (dr, de*de*dt)
+        W_mat = torch.mm(r, W)  # (B, dr) * (dr, de*de*dt) = (B, de*de*dt)
+        W_mat = W_mat.view(-1, self.de, self.de * self.dt)  # (B, de, de*dt)
+        x = torch.bmm(x, W_mat)  # (B, 1, de) * (B, de, de*dt) = (B, 1, de*dt)
+
+        x = x.view(-1, self.de, self.dt).transpose(1, 2)  # (B, de*dt) -> (B, de, dt) -> (B, dt, de)
+        q2 = q2.view(-1, self.de, 1)  # (B, de, 1)
+        x = torch.bmm(x, q2)  # (B, dt, de) * (B, de, 1) = (B, dt, 1)
+        x = x.view(-1, self.dt)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
         feature = convert_to_feature(feature)
@@ -423,6 +495,8 @@ class FLEX(nn.Module):
         self.relation_time_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_time_density_embedding = nn.Embedding(nrelation, self.relation_dim)
 
+        self.W = nn.Parameter(torch.rand(self.relation_dim, self.entity_dim, self.timestamp_dim, self.entity_dim), requires_grad=True)
+
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
         self.entity_intersection = EntityIntersection(hidden_dim)
         self.entity_union = EntityUnion(hidden_dim)
@@ -490,6 +564,7 @@ class FLEX(nn.Module):
             r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
             t_feature, t_logic, t_time_feature, t_time_logic, t_time_density = t1
             return self.entity_projection(
+                self.W,
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density
@@ -499,7 +574,8 @@ class FLEX(nn.Module):
             s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = e1
             r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
             o_feature, o_logic, o_time_feature, o_time_logic, o_time_density = e2
-            return self.entity_projection(
+            return self.time_projection(
+                self.W,
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 o_feature, o_logic, o_time_feature, o_time_logic, o_time_density
@@ -578,6 +654,7 @@ class FLEX(nn.Module):
         nn.init.uniform_(tensor=self.relation_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.W, a=-0.1, b=0.1)
 
     def scale(self, embedding):
         return embedding / self.embedding_range
