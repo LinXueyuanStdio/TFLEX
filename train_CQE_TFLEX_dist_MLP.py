@@ -95,7 +95,7 @@ class EntityProjection(nn.Module):
         time_logic = torch.stack([q_time_logic, r_time_logic, t_time_logic])
         time_density = torch.stack([q_time_density, r_time_density, t_time_density])
 
-        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=0)  # N x B x nd
+        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=-1)  # N x B x nd
         logits = self.input_dropout(logits)
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         x = torch.sum(feature_attention * logits, dim=0)
@@ -132,7 +132,7 @@ class TimeProjection(nn.Module):
 
         logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=0)  # N x B x nd
         logits = self.input_dropout(logits)
-        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=-1)
         x = torch.sum(feature_attention * logits, dim=0)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
