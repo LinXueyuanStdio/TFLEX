@@ -1327,12 +1327,12 @@ class MyExperiment(Experiment):
         # sync and reduce
         # 分布式评估 很麻烦，多任务学习的分布式评估更麻烦，因为每个进程采样到的任务数不一样
         # 下面这坨就是在绝对视野里强行对齐所有进程的任务结果，进行 reduce，最后汇总给 rank=0 的 master node 展示到命令行
-        torch.distributed.barrier() # 所有进程运行到这里时，都等待一下，直到所有进程都在这行，然后一起同时往后分别运行
+        torch.distributed.barrier()  # 所有进程运行到这里时，都等待一下，直到所有进程都在这行，然后一起同时往后分别运行
         query_name_keys = []
         metric_name_keys = []
         all_tensors = []
         metric_names = list(logs[list(logs.keys())[0]][0].keys())
-        for query_name in test_query_structures: # test_query_structures 内是所有任务
+        for query_name in test_query_structures:  # test_query_structures 内是所有任务
             for metric_name in metric_names:
                 query_name_keys.append(query_name)
                 metric_name_keys.append(metric_name)
@@ -1343,8 +1343,8 @@ class MyExperiment(Experiment):
                     all_tensors.append(0)
         all_tensors = torch.FloatTensor(all_tensors).to(device)
         metrics = defaultdict(lambda: defaultdict(float))
-        dist.reduce(all_tensors, dst=0) # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
-        if dist.get_rank() == 0: # 我们只在 master 节点上处理，其他进程的结果丢弃了
+        dist.reduce(all_tensors, dst=0)  # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
+        if dist.get_rank() == 0:  # 我们只在 master 节点上处理，其他进程的结果丢弃了
             # 1. store to dict
             for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
                 metrics[query_name][metric] = value
@@ -1457,6 +1457,16 @@ def main(data_home, dataset, name,
         "meta",
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
+    tasks = ["Pe", "Pt"]
+    for query_name in data.train_queries_answers:
+        if query_name in tasks:
+            del data.train_queries_answers[query_name]
+    for query_name in data.valid_queries_answers:
+        if query_name in tasks:
+            del data.valid_queries_answers[query_name]
+    for query_name in data.test_queries_answers:
+        if query_name in tasks:
+            del data.test_queries_answers[query_name]
 
     MyExperiment(
         output, data,
