@@ -1315,14 +1315,14 @@ class MyExperiment(Experiment):
                 query_name_keys.append(query_name)
                 metric_name_keys.append(metric_name)
                 if query_name in logs:
-                    if query_name == "num_queries":
+                    if metric_name == "num_queries":
                         value = sum([log[metric_name] for log in logs[query_name]])
                     else:
                         values = []
                         for log in logs[query_name]:
                             values.extend(log[metric_name])
                         value = torch.mean(torch.FloatTensor(values)).item()
-                        if query_name == "MRR":
+                        if metric_name == "MRR":
                             value = 1 / value
                     all_tensors.append(value)
                 else:
