@@ -130,7 +130,7 @@ class TimeProjection(nn.Module):
         time_logic = torch.stack([q1_time_logic, r_time_logic, q2_time_logic])
         time_density = torch.stack([q1_time_density, r_time_density, q2_time_density])
 
-        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=0)  # N x B x nd
+        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=-1)  # N x B x nd
         logits = self.input_dropout(logits)
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         x = torch.sum(feature_attention * logits, dim=0)
