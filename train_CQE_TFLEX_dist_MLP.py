@@ -495,7 +495,8 @@ class FLEX(nn.Module):
         self.relation_time_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_time_density_embedding = nn.Embedding(nrelation, self.relation_dim)
 
-        self.W = nn.Parameter(torch.rand(self.relation_dim, self.entity_dim, self.timestamp_dim, self.entity_dim), requires_grad=True)
+        token_dim = 5 * self.entity_dim
+        self.W = nn.Parameter(torch.rand(token_dim, token_dim, token_dim, token_dim), requires_grad=True)
 
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
         self.entity_intersection = EntityIntersection(hidden_dim)
