@@ -46,7 +46,7 @@ class Projection(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.layer1 = nn.Linear(self.entity_dim + self.relation_dim, self.hidden_dim)
-        self.layer0 = nn.Linear(self.hidden_dim, self.entity_dim + self.relation_dim)
+        self.layer0 = nn.Linear(self.hidden_dim, self.entity_dim)
         for nl in range(2, num_layers + 1):
             setattr(self, "layer{}".format(nl), nn.Linear(self.hidden_dim, self.hidden_dim))
 
