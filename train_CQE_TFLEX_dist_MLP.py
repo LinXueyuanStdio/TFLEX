@@ -101,11 +101,11 @@ class EntityProjection(nn.Module):
         x = torch.sum(feature_attention * logits, dim=0)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
-        feature = convert_to_feature(feature)
-        logic = convert_to_logic(logic)
-        time_feature = convert_to_time_feature(time_feature)
-        time_logic = convert_to_time_logic(time_logic)
-        time_density = convert_to_time_density(time_density)
+        # feature = convert_to_feature(feature)
+        # logic = convert_to_logic(logic)
+        # time_feature = convert_to_time_feature(time_feature)
+        # time_logic = convert_to_time_logic(time_logic)
+        # time_density = convert_to_time_density(time_density)
         return feature, logic, time_feature, time_logic, time_density
 
 
@@ -132,15 +132,15 @@ class TimeProjection(nn.Module):
 
         logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=0)  # N x B x nd
         logits = self.input_dropout(logits)
-        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=-1)
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         x = torch.sum(feature_attention * logits, dim=0)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
-        feature = convert_to_feature(feature)
-        logic = convert_to_logic(logic)
-        time_feature = convert_to_time_feature(time_feature)
-        time_logic = convert_to_time_logic(time_logic)
-        time_density = convert_to_time_density(time_density)
+        # feature = convert_to_feature(feature)
+        # logic = convert_to_logic(logic)
+        # time_feature = convert_to_time_feature(time_feature)
+        # time_logic = convert_to_time_logic(time_logic)
+        # time_density = convert_to_time_density(time_density)
         return feature, logic, time_feature, time_logic, time_density
 
 
@@ -1438,7 +1438,7 @@ def main(data_home, dataset, name,
         "meta",
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
-    tasks = ["Pe"]
+    tasks = ["Pe", "Pt"]
     for query_name in set(data.train_queries_answers.keys()) - set(tasks):
         data.train_queries_answers.pop(query_name)
     for query_name in set(data.valid_queries_answers.keys()) - set(tasks):
