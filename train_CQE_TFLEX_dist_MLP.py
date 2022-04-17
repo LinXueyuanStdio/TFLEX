@@ -1458,13 +1458,13 @@ def main(data_home, dataset, name,
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
     tasks = ["Pe", "Pt"]
-    for query_name in data.train_queries_answers:
+    for query_name in data.train_queries_answers.keys():
         if query_name in tasks:
             del data.train_queries_answers[query_name]
-    for query_name in data.valid_queries_answers:
+    for query_name in data.valid_queries_answers.keys():
         if query_name in tasks:
             del data.valid_queries_answers[query_name]
-    for query_name in data.test_queries_answers:
+    for query_name in data.test_queries_answers.keys():
         if query_name in tasks:
             del data.test_queries_answers[query_name]
 
