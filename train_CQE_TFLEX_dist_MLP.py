@@ -1315,7 +1315,8 @@ class MyExperiment(Experiment):
                 query_name_keys.append(query_name)
                 metric_name_keys.append(metric_name)
                 if query_name in logs:
-                    sum_of_metric_values = sum([log[metric_name] for log in logs[query_name]])
+                    values = [log[metric_name] for log in logs[query_name]]
+                    sum_of_metric_values = sum(values) / len(values)
                     all_tensors.append(sum_of_metric_values)
                 else:
                     all_tensors.append(0)
@@ -1342,7 +1343,7 @@ class MyExperiment(Experiment):
                 if metric == "num_queries":
                     metrics[query_name][metric] = int(value)
                 else:
-                    metrics[query_name][metric] = value / metrics[query_name]["num_queries"]
+                    metrics[query_name][metric] = value
 
         return metrics
 
