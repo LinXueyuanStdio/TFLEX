@@ -1330,6 +1330,7 @@ class MyExperiment(Experiment):
         all_tensors = torch.FloatTensor(all_tensors).to(device)
         metrics = defaultdict(lambda: defaultdict(float))
         dist.reduce(all_tensors, dst=0)  # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
+        # 每个进程看到的数据都是所有数据的和，如果有 n 个进程，则有 all_tensors = 0.all_tensors + 1.all_tensors + ... + n.all_tensors
         if dist.get_rank() == 0:  # 我们只在 master 节点上处理，其他进程的结果丢弃了
             # 1. store to dict
             for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
