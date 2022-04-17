@@ -1316,8 +1316,8 @@ class MyExperiment(Experiment):
                 metric_name_keys.append(metric_name)
                 if query_name in logs:
                     values = [log[metric_name] for log in logs[query_name]]
-                    sum_of_metric_values = sum(values) / len(values)
-                    all_tensors.append(sum_of_metric_values)
+                    value = sum(values) / len(values)
+                    all_tensors.append(value)
                 else:
                     all_tensors.append(0)
         all_tensors = torch.FloatTensor(all_tensors).to(device)
