@@ -1291,10 +1291,10 @@ class MyExperiment(Experiment):
                 h3 = torch.mean(torch.FloatTensor(hits[2])).item()
                 h10 = torch.mean(torch.FloatTensor(hits[9])).item()
                 logs[query_name].append({
-                    'MRR': mrr,
-                    'hits@1': h1,
-                    'hits@3': h3,
-                    'hits@10': h10,
+                    'MRR': ranks,
+                    'hits@1': hits[0],
+                    'hits@3': hits[2],
+                    'hits@10': hits[9],
                     'num_queries': num_queries,
                 })
 
@@ -1315,8 +1315,15 @@ class MyExperiment(Experiment):
                 query_name_keys.append(query_name)
                 metric_name_keys.append(metric_name)
                 if query_name in logs:
-                    values = [log[metric_name] for log in logs[query_name]]
-                    value = sum(values) / len(values)
+                    if query_name == "num_queries":
+                        value = sum([log[metric_name] for log in logs[query_name]])
+                    else:
+                        values = []
+                        for log in logs[query_name]:
+                            values.extend(log[metric_name])
+                        value = torch.mean(torch.FloatTensor(values)).item()
+                        if query_name == "MRR":
+                            value = 1 / value
                     all_tensors.append(value)
                 else:
                     all_tensors.append(0)
