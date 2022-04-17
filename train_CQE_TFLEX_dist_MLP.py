@@ -552,7 +552,6 @@ class FLEX(nn.Module):
         nn.init.uniform_(tensor=self.relation_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.W, a=-0.1, b=0.1)
 
     def scale(self, embedding):
         return embedding / self.embedding_range
