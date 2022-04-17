@@ -1538,7 +1538,7 @@ def main(data_home, dataset, name,
         "meta",
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
-    tasks = ["Pe", "Pt"]
+    tasks = ["Pe"]
     for query_name in set(data.train_queries_answers.keys()) - set(tasks):
         data.train_queries_answers.pop(query_name)
     for query_name in set(data.valid_queries_answers.keys()) - set(tasks):
