@@ -50,8 +50,8 @@ class Projection(nn.Module):
         for nl in range(2, num_layers + 1):
             setattr(self, "layer{}".format(nl), nn.Linear(self.hidden_dim, self.hidden_dim))
 
-        self.layer_logic_0 = nn.Linear(self.hidden_dim, self.entity_dim + self.relation_dim)
-        self.layer_logic_1 = nn.Linear(self.entity_dim + self.relation_dim, self.hidden_dim)
+        self.layer_logic_0 = nn.Linear(self.entity_dim, self.hidden_dim)
+        self.layer_logic_1 = nn.Linear(self.hidden_dim, self.entity_dim)
         for nl in range(num_layers + 1):
             nn.init.xavier_uniform_(getattr(self, "layer{}".format(nl)).weight)
         nn.init.xavier_uniform_(self.layer_logic_0.weight)
@@ -62,7 +62,9 @@ class Projection(nn.Module):
         for nl in range(1, self.num_layers + 1):
             x = F.relu(getattr(self, "layer{}".format(nl))(x))
         x = self.layer0(x)
-        logic = self.layer_logic_1(F.relu(self.layer_logic_0(q_logic + r_logic)))
+        logic = self.layer_logic_0(q_logic + r_logic)
+        logic = F.relu(logic)
+        logic = self.layer_logic_1(logic)
 
         feature = convert_to_feature(x)
         logic = convert_to_logic(logic)
