@@ -1350,7 +1350,7 @@ class MyExperiment(Experiment):
                 if metric == "num_queries":
                     metrics[query_name][metric] = int(value)
                 else:
-                    metrics[query_name][metric] = value
+                    metrics[query_name][metric] = value / self.nprocs
 
         return metrics
 
