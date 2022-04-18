@@ -1259,6 +1259,7 @@ class MyExperiment(Experiment):
         progbar = Progbar(max_step=total_steps)
         logs = defaultdict(list)
         step = 0
+        mrr = None
         h10 = None
         for data_list, grouped_easy_answer, grouped_hard_answer in test_dataloader:
             cuda_data_list = []
@@ -1302,7 +1303,7 @@ class MyExperiment(Experiment):
 
             if device == 0:
                 step += 1
-                progbar.update(step, [("Hits @10", h10)])
+                progbar.update(step, [("MRR", mrr), ("Hits @10", h10)])
 
         # sync and reduce
         # 分布式评估 很麻烦，多任务学习的分布式评估更麻烦，因为每个进程采样到的任务数不一样
