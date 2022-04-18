@@ -40,7 +40,7 @@ class Experiment:
         self.latex_store = EvaluateLaTeXStoreSchema(output.pathSchema)
 
     def log_in_main_node(self, log_func):
-        if self.local_rank == 1:
+        if self.local_rank == 0:
             return log_func
         return lambda x: [x]
 
