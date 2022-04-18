@@ -1071,11 +1071,11 @@ class FLEX(nn.Module):
     def scoring_entity(self, entity_token: TYPE_token, q: TYPE_token):
         e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = entity_token
         feature, logic, time_feature, time_logic, time_density = q
-        distance = (e_feature * feature).sum() + \
-                   (e_logic * logic).sum()+ \
-                   (e_time_feature * time_feature).sum()+\
-                   (e_time_logic * time_logic).sum()+ \
-                   (e_time_density * time_density).sum()
+        distance = torch.norm(e_feature * feature, p=1, dim=-1) + \
+                   torch.norm(e_logic * logic, p=1, dim=-1) + \
+                   torch.norm(e_time_feature * time_feature, p=1, dim=-1) + \
+                   torch.norm(e_time_logic * time_logic, p=1, dim=-1) + \
+                   torch.norm(e_time_density * time_density, p=1, dim=-1)
         # distance = self.distance_between_entity_and_query(entity_feature, feature, logic)
         score = self.gamma - distance * self.modulus
         return score
@@ -1083,11 +1083,11 @@ class FLEX(nn.Module):
     def scoring_timestamp(self, timestamp_feature, q: TYPE_token):
         e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = timestamp_feature
         feature, logic, time_feature, time_logic, time_density = q
-        distance = (e_feature * feature).sum() + \
-                   (e_logic * logic).sum() + \
-                   (e_time_feature * time_feature).sum() + \
-                   (e_time_logic * time_logic).sum() + \
-                   (e_time_density * time_density).sum()
+        distance = torch.norm(e_feature * feature, p=1, dim=-1) + \
+                   torch.norm(e_logic * logic, p=1, dim=-1) + \
+                   torch.norm(e_time_feature * time_feature, p=1, dim=-1) + \
+                   torch.norm(e_time_logic * time_logic, p=1, dim=-1) + \
+                   torch.norm(e_time_density * time_density, p=1, dim=-1)
         # distance = self.distance_between_timestamp_and_query(timestamp_feature, time_feature, time_logic, time_density)
         score = self.gamma - distance * self.modulus
         return score
