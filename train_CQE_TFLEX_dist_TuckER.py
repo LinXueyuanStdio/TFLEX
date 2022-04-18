@@ -131,12 +131,12 @@ class EntityProjection(nn.Module):
 
     def forward(self,
                 shared_tensor,
-                q_feature,
-                r_feature,
-                t_feature):
-        q = q_feature
-        r = r_feature
-        t = t_feature
+                q_feature, q_logic, q_time_feature, q_time_logic, q_time_density,
+                r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
+                t_feature, t_logic, t_time_feature, t_time_logic, t_time_density):
+        q = torch.cat([q_feature, q_logic, q_time_feature, q_time_logic, q_time_density], dim=-1)
+        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
+        t = torch.cat([t_feature, t_logic, t_time_feature, t_time_logic, t_time_density], dim=-1)
 
         W = shared_tensor
         x = self.bne(q)
@@ -154,8 +154,8 @@ class EntityProjection(nn.Module):
         x = torch.bmm(x, t)  # (B, de, dt) * (B, dt, 1) = (B, de, 1)
         x = x.view(-1, self.de)
 
-        feature = x
-        return feature
+        feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
+        return feature, logic, time_feature, time_logic, time_density
 
 
 class TimeProjection(nn.Module):
@@ -173,12 +173,12 @@ class TimeProjection(nn.Module):
 
     def forward(self,
                 shared_tensor,
-                q1_feature,
-                r_feature,
-                q2_feature):
-        q1 = q1_feature
-        r = r_feature
-        q2 = q2_feature
+                q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density,
+                r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
+                q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density):
+        q1 = torch.cat([q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density], dim=-1)
+        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
+        q2 = torch.cat([q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density], dim=-1)
 
         W = shared_tensor
         x = self.bne(q1)
@@ -196,8 +196,8 @@ class TimeProjection(nn.Module):
         x = torch.bmm(x, q2)  # (B, dt, de) * (B, de, 1) = (B, dt, 1)
         x = x.view(-1, self.dt)
 
-        feature = x
-        return feature
+        feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
+        return feature, logic, time_feature, time_logic, time_density
 
 
 class EntityIntersection(nn.Module):
@@ -635,17 +635,18 @@ class FLEX(nn.Module):
         return embedding / self.embedding_range
 
     def entity_feature(self, idx):
-        return convert_to_feature(self.scale(self.entity_feature_embedding(idx)))
+        # return convert_to_feature(self.scale(self.entity_feature_embedding(idx)))
+        return self.scale(self.entity_feature_embedding(idx))
 
     def timestamp_feature(self, idx):
-        B = idx.shape[0]
-        feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
-        if len(idx.shape) == 1:
-            feature = feature.view(B, self.timestamp_dim)
-        else:
-            feature = feature.view(B, -1, self.timestamp_dim)
-        # feature = self.timestamp_time_feature_embedding(idx)
-        return convert_to_time_feature(self.scale(feature))
+        # B = idx.shape[0]
+        # feature = self.timestamp_origin + torch.mm(idx.view(-1, 1).float(), self.timestamp_delta)
+        # if len(idx.shape) == 1:
+        #     feature = feature.view(B, self.timestamp_dim)
+        # else:
+        #     feature = feature.view(B, -1, self.timestamp_dim)
+        return self.scale(self.timestamp_time_feature_embedding(idx))
+        # return convert_to_time_feature(self.scale(feature))
 
     def entity_token(self, idx) -> TYPE_token:
         feature = self.scale(self.entity_feature_embedding(idx))
