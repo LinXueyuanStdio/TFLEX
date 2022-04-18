@@ -1349,6 +1349,8 @@ class MyExperiment(Experiment):
                 value = m[query_name][metric]
                 if metric == "num_queries":
                     metrics[query_name][metric] = int(value[0])
+                elif metric == "MRR":
+                    metrics[query_name][metric] = value[1] / value[0]
                 else:
                     metrics[query_name][metric] = value[0] / value[1]
 
