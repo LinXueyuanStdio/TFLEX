@@ -1385,7 +1385,7 @@ class MyExperiment(Experiment):
                 for i in range(num_queries):
                     for answer_id in hard_answer[i]:
                         rank = torch.where(ranking[i] == answer_id)[0][0]
-                        ranks.append(1 / rank + 1)
+                        ranks.append(1 / (rank + 1))
                         for hits_level in range(10):
                             hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
                 mrr = torch.mean(torch.FloatTensor(ranks)).item()
