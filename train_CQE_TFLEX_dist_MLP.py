@@ -391,9 +391,9 @@ class FLEX(nn.Module):
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        # self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
-        # self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
-        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
+        self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
+        # self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
 
         self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
