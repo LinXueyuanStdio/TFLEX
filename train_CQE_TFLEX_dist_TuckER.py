@@ -446,10 +446,16 @@ class FLEX(nn.Module):
 
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
+        self.entity_logic_embedding = nn.Embedding(nentity, self.entity_dim)
+        self.entity_time_feature_embedding = nn.Embedding(nentity, self.entity_dim)
+        self.entity_time_logic_embedding = nn.Embedding(nentity, self.entity_dim)
+        self.entity_time_density_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        # self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
-        # self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
         self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_logic_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_time_logic_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_time_density_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
 
         self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
@@ -606,11 +612,17 @@ class FLEX(nn.Module):
 
     def init(self):
         embedding_range = self.embedding_range.item()
-        nn.init.uniform_(tensor=self.entity_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entitty_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entitty_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entitty_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entitty_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entitty_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
-        nn.init.uniform_(tensor=self.timestamp_origin, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.timestamp_delta, a=-embedding_range, b=embedding_range)
-        # nn.init.uniform_(tensor=self.timestamp_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
         nn.init.uniform_(tensor=self.relation_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
@@ -636,27 +648,27 @@ class FLEX(nn.Module):
         return convert_to_time_feature(self.scale(feature))
 
     def entity_token(self, idx) -> TYPE_token:
-        feature = self.entity_feature(idx)
-        logic = torch.zeros_like(feature).to(feature.device)
-        time_feature = torch.zeros_like(feature).to(feature.device)
-        time_logic = torch.zeros_like(feature).to(feature.device)
-        time_density = torch.zeros_like(feature).to(feature.device)
+        feature = self.scale(self.entity_feature_embedding(idx))
+        logic = self.scale(self.entity_logic_embedding(idx))
+        time_feature = self.scale(self.entity_time_feature_embedding(idx))
+        time_logic = self.scale(self.entity_time_logic_embedding(idx))
+        time_density = self.scale(self.entity_time_density_embedding(idx))
         return feature, logic, time_feature, time_logic, time_density
 
     def relation_token(self, idx) -> TYPE_token:
-        feature = convert_to_feature(self.scale(self.relation_feature_embedding(idx)))
-        logic = convert_to_logic(self.scale(self.relation_logic_embedding(idx)))
-        time_feature = convert_to_time_feature(self.scale(self.relation_time_feature_embedding(idx)))
-        time_logic = convert_to_time_logic(self.scale(self.relation_time_logic_embedding(idx)))
-        time_density = convert_to_time_density(self.scale(self.relation_time_density_embedding(idx)))
+        feature = self.scale(self.relation_feature_embedding(idx))
+        logic = self.scale(self.relation_logic_embedding(idx))
+        time_feature = self.scale(self.relation_time_feature_embedding(idx))
+        time_logic = self.scale(self.relation_time_logic_embedding(idx))
+        time_density = self.scale(self.relation_time_density_embedding(idx))
         return feature, logic, time_feature, time_logic, time_density
 
     def timestamp_token(self, idx) -> TYPE_token:
-        time_feature = self.timestamp_feature(idx)
-        feature = torch.zeros_like(time_feature).to(time_feature.device)
-        logic = torch.zeros_like(feature).to(feature.device)
-        time_logic = torch.zeros_like(feature).to(feature.device)
-        time_density = torch.ones_like(feature).to(feature.device)
+        feature = self.scale(self.timestamp_feature_embedding(idx))
+        logic = self.scale(self.timestamp_logic_embedding(idx))
+        time_feature = self.scale(self.timestamp_time_feature_embedding(idx))
+        time_logic = self.scale(self.timestamp_time_logic_embedding(idx))
+        time_density = self.scale(self.timestamp_time_density_embedding(idx))
         return feature, logic, time_feature, time_logic, time_density
 
     def embed_args(self, query_args: List[str], query_tensor: torch.Tensor) -> TYPE_token:
