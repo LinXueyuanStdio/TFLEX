@@ -1434,13 +1434,14 @@ class MyExperiment(Experiment):
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--local_rank', type=int, default=-1, help='node rank for distributed training')
+@click.option('--tasks', type=str, default="Pe,Pt", help='tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg, local_rank
+         hidden_dim, input_dropout, gamma, center_reg, local_rank, tasks
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
@@ -1456,7 +1457,7 @@ def main(data_home, dataset, name,
         "meta",
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
-    tasks = ["Pe", "Pt"]
+    tasks = tasks.split(",")
     for query_name in set(data.train_queries_answers.keys()) - set(tasks):
         data.train_queries_answers.pop(query_name)
     for query_name in set(data.valid_queries_answers.keys()) - set(tasks):
