@@ -1,7 +1,7 @@
 import numpy as np
 
 from toolbox.exp.OutputSchema import OutputSchema
-from toolbox.utils.LaTeXSotre import LaTeXStoreSchema, EvaluateLaTeXStoreSchema
+from toolbox.utils.LaTeXSotre import EvaluateLaTeXStoreSchema
 from toolbox.utils.MetricLogStore import MetricLogStoreSchema
 from toolbox.utils.ModelParamStore import ModelParamStoreSchema
 from toolbox.utils.Visualize import VisualizeSchema
@@ -9,33 +9,40 @@ from toolbox.utils.Visualize import VisualizeSchema
 
 class Experiment:
 
-    def __init__(self, output: OutputSchema):
+    def __init__(self, output: OutputSchema, local_rank: int = -1):
         self.output = output
-        self.debug = output.logger.debug
-        self.log = output.logger.info
-        self.warn = output.logger.warn
-        self.error = output.logger.error
-        self.critical = output.logger.critical
-        self.success = output.logger.success
-        self.fail = output.logger.failed
+        self.local_rank = local_rank
+        self.debug = self.log_in_main_node(output.logger.debug)
+        self.log = self.log_in_main_node(output.logger.info)
+        self.warn = self.log_in_main_node(output.logger.warn)
+        self.error = self.log_in_main_node(output.logger.error)
+        self.critical = self.log_in_main_node(output.logger.critical)
+        self.success = self.log_in_main_node(output.logger.success)
+        self.fail = self.log_in_main_node(output.logger.failed)
         self.vis = VisualizeSchema(str(output.pathSchema.dir_path_visualize))
         self.model_param_store = ModelParamStoreSchema(output.pathSchema)
         self.metric_log_store = MetricLogStoreSchema(str(output.pathSchema.dir_path_log))
         self.latex_store = EvaluateLaTeXStoreSchema(output.pathSchema)
 
-    def re_init(self, output: OutputSchema):
+    def re_init(self, output: OutputSchema, local_rank: int = -1):
         self.output = output
-        self.debug = output.logger.debug
-        self.log = output.logger.info
-        self.warn = output.logger.warn
-        self.error = output.logger.error
-        self.critical = output.logger.critical
-        self.success = output.logger.success
-        self.fail = output.logger.failed
+        self.local_rank = local_rank
+        self.debug = self.log_in_main_node(output.logger.debug)
+        self.log = self.log_in_main_node(output.logger.info)
+        self.warn = self.log_in_main_node(output.logger.warn)
+        self.error = self.log_in_main_node(output.logger.error)
+        self.critical = self.log_in_main_node(output.logger.critical)
+        self.success = self.log_in_main_node(output.logger.success)
+        self.fail = self.log_in_main_node(output.logger.failed)
         self.vis = VisualizeSchema(str(output.pathSchema.dir_path_visualize))
         self.model_param_store = ModelParamStoreSchema(output.pathSchema)
         self.metric_log_store = MetricLogStoreSchema(str(output.pathSchema.dir_path_log))
         self.latex_store = EvaluateLaTeXStoreSchema(output.pathSchema)
+
+    def log_in_main_node(self, log_func):
+        if self.local_rank == 1:
+            return log_func
+        return lambda x: [x]
 
     def dump_model(self, model):
         self.debug(model)

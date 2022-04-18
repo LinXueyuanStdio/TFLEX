@@ -1009,7 +1009,7 @@ class MyExperiment(Experiment):
                  lr, cpu_num,
                  hidden_dim, input_dropout, gamma, center_reg, local_rank
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank)
         if local_rank == 0:
             self.log(f"{locals()}")
 
@@ -1293,7 +1293,9 @@ class MyExperiment(Experiment):
                 logs[query_name].append({
                     'MRR': ranks,
                     'hits@1': hits[0],
+                    'hits@2': hits[1],
                     'hits@3': hits[2],
+                    'hits@5': hits[4],
                     'hits@10': hits[9],
                     'num_queries': num_queries,
                 })
