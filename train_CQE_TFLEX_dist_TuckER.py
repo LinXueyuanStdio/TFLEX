@@ -29,9 +29,50 @@ from toolbox.utils.RandomSeeds import set_seeds
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-TYPE_query_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-TYPE_relation_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-TYPE_timestamp_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+TYPE_query_token = TYPE_token
+TYPE_relation_token = TYPE_token
+TYPE_timestamp_token = TYPE_token
+
+
+def cat_token(token_list: List[TYPE_token]) -> TYPE_token:
+    feature = []
+    logic = []
+    time_feature = []
+    time_logic = []
+    time_density = []
+    for x in token_list:
+        feature.append(x[0])
+        logic.append(x[1])
+        time_feature.append(x[2])
+        time_logic.append(x[3])
+        time_density.append(x[4])
+    feature = torch.cat(feature, dim=0).unsqueeze(1)
+    logic = torch.cat(logic, dim=0).unsqueeze(1)
+    time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
+    time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
+    time_density = torch.cat(time_density, dim=0).unsqueeze(1)
+    return feature, logic, time_feature, time_logic, time_density
+
+
+def stack_token(token_list: List[TYPE_token]) -> TYPE_token:
+    feature = []
+    logic = []
+    time_feature = []
+    time_logic = []
+    time_density = []
+    for x in token_list:
+        feature.append(x[0])
+        logic.append(x[1])
+        time_feature.append(x[2])
+        time_logic.append(x[3])
+        time_density.append(x[4])
+    feature = torch.stack(feature)
+    logic = torch.stack(logic)
+    time_feature = torch.stack(time_feature)
+    time_logic = torch.stack(time_logic)
+    time_density = torch.stack(time_density)
+    return feature, logic, time_feature, time_logic, time_density
+
 
 # 下面 3 行代码解决 tensor 在不同进程中共享问题。
 # 共享是通过读写文件的，如果同时打开文件的进程数太多，会崩。
@@ -406,9 +447,9 @@ class FLEX(nn.Module):
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
-        self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
-        # self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        # self.timestamp_origin = nn.Parameter(torch.zeros((1, self.timestamp_dim)))
+        # self.timestamp_delta = nn.Parameter(torch.ones((1, self.timestamp_dim)))
+        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
 
         self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
@@ -640,9 +681,7 @@ class FLEX(nn.Module):
         time_feature = []
         time_logic = []
         time_density = []
-
-
-            for x in token_list:
+        for x in token_list:
             feature.append(x[0])
             logic.append(x[1])
             time_feature.append(x[2])
@@ -1032,7 +1071,7 @@ class MyExperiment(Experiment):
                  lr, cpu_num,
                  hidden_dim, input_dropout, gamma, center_reg, local_rank
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank)
         if local_rank == 0:
             self.log(f"{locals()}")
 
@@ -1314,10 +1353,12 @@ class MyExperiment(Experiment):
                 h3 = torch.mean(torch.FloatTensor(hits[2])).item()
                 h10 = torch.mean(torch.FloatTensor(hits[9])).item()
                 logs[query_name].append({
-                    'MRR': mrr,
-                    'hits@1': h1,
-                    'hits@3': h3,
-                    'hits@10': h10,
+                    'MRR': ranks,
+                    'hits@1': hits[0],
+                    'hits@2': hits[1],
+                    'hits@3': hits[2],
+                    'hits@5': hits[4],
+                    'hits@10': hits[9],
                     'num_queries': num_queries,
                 })
 
@@ -1338,34 +1379,44 @@ class MyExperiment(Experiment):
                 query_name_keys.append(query_name)
                 metric_name_keys.append(metric_name)
                 if query_name in logs:
-                    sum_of_metric_values = sum([log[metric_name] for log in logs[query_name]])
-                    all_tensors.append(sum_of_metric_values)
+                    if metric_name == "num_queries":
+                        value = sum([log[metric_name] for log in logs[query_name]])
+                        all_tensors.append([value, 1])
+                    else:
+                        values = []
+                        for log in logs[query_name]:
+                            values.extend(log[metric_name])
+                        all_tensors.append([sum(values), len(values)])
                 else:
-                    all_tensors.append(0)
+                    all_tensors.append([0, 1])
         all_tensors = torch.FloatTensor(all_tensors).to(device)
         metrics = defaultdict(lambda: defaultdict(float))
         dist.reduce(all_tensors, dst=0)  # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
+        # 每个进程看到的数据都是所有数据的和，如果有 n 个进程，则有 all_tensors = 0.all_tensors + 1.all_tensors + ... + n.all_tensors
         if dist.get_rank() == 0:  # 我们只在 master 节点上处理，其他进程的结果丢弃了
             # 1. store to dict
+            m = defaultdict(lambda: defaultdict(lambda x:[0, 1]))
             for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
-                metrics[query_name][metric] = value
+                m[query_name][metric] = value
             # 2. delete empty query
             del_query = []
-            for query_name in metrics:
-                if "num_queries" in metrics[query_name] and metrics[query_name]["num_queries"] == 0:
+            for query_name in m:
+                if m[query_name]["num_queries"][0] == 0:
                     del_query.append(query_name)
             for query_name in del_query:
-                del metrics[query_name]
+                del m[query_name]
                 query_name_keys.remove(query_name)
             # 3. correct values
             for query_name, metric in zip(query_name_keys, metric_name_keys):
-                if query_name not in metrics:
+                if query_name not in m:
                     continue
-                value = metrics[query_name][metric]
+                value = m[query_name][metric]
                 if metric == "num_queries":
-                    metrics[query_name][metric] = int(value)
+                    metrics[query_name][metric] = int(value[0])
+                elif metric == "MRR":
+                    metrics[query_name][metric] = value[1] / value[0]
                 else:
-                    metrics[query_name][metric] = value / metrics[query_name]["num_queries"]
+                    metrics[query_name][metric] = value[0] / value[1]
 
         return metrics
 
