@@ -1284,10 +1284,10 @@ class MyExperiment(Experiment):
                 for i in range(num_queries):
                     for answer_id in hard_answer[i]:
                         rank = torch.where(ranking[i] == answer_id)[0][0]
-                        ranks.append(rank + 1)
+                        ranks.append(1 / (rank + 1))
                         for hits_level in range(10):
                             hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
-                mrr = 1 / torch.mean(torch.FloatTensor(ranks)).item()
+                mrr = torch.mean(torch.FloatTensor(ranks)).item()
                 h1 = torch.mean(torch.FloatTensor(hits[0])).item()
                 h3 = torch.mean(torch.FloatTensor(hits[2])).item()
                 h10 = torch.mean(torch.FloatTensor(hits[9])).item()
@@ -1352,8 +1352,6 @@ class MyExperiment(Experiment):
                 value = m[query_name][metric]
                 if metric == "num_queries":
                     metrics[query_name][metric] = int(value[0])
-                elif metric == "MRR":
-                    metrics[query_name][metric] = value[1] / value[0]
                 else:
                     metrics[query_name][metric] = value[0] / value[1]
 
