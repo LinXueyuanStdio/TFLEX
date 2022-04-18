@@ -439,10 +439,12 @@ class FLEX(nn.Module):
         super(FLEX, self).__init__()
         self.nentity = nentity
         self.nrelation = nrelation
+        self.ntimestamp = ntimestamp
         self.hidden_dim = hidden_dim
         self.entity_dim = hidden_dim
         self.relation_dim = hidden_dim
         self.timestamp_dim = hidden_dim
+        print(locals())
 
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
@@ -463,7 +465,7 @@ class FLEX(nn.Module):
         self.relation_time_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_time_density_embedding = nn.Embedding(nrelation, self.relation_dim)
 
-        token_dim = 5 * self.entity_dim
+        token_dim = 5 * hidden_dim
         self.W = nn.Parameter(torch.rand(token_dim, token_dim, token_dim, token_dim), requires_grad=True)
 
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
