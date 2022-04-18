@@ -1317,41 +1317,40 @@ class MyExperiment(Experiment):
                 if query_name in logs:
                     if metric_name == "num_queries":
                         value = sum([log[metric_name] for log in logs[query_name]])
+                        all_tensors.append([value, 1])
                     else:
                         values = []
                         for log in logs[query_name]:
                             values.extend(log[metric_name])
-                        value = torch.mean(torch.FloatTensor(values)).item()
-                        if metric_name == "MRR":
-                            value = 1 / value
-                    all_tensors.append(value)
+                        all_tensors.append([sum(values), len(values)])
                 else:
-                    all_tensors.append(0)
+                    all_tensors.append([0, 1])
         all_tensors = torch.FloatTensor(all_tensors).to(device)
         metrics = defaultdict(lambda: defaultdict(float))
         dist.reduce(all_tensors, dst=0)  # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
         # 每个进程看到的数据都是所有数据的和，如果有 n 个进程，则有 all_tensors = 0.all_tensors + 1.all_tensors + ... + n.all_tensors
         if dist.get_rank() == 0:  # 我们只在 master 节点上处理，其他进程的结果丢弃了
             # 1. store to dict
+            m = defaultdict(lambda: defaultdict(lambda x:[0, 1]))
             for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
-                metrics[query_name][metric] = value
+                m[query_name][metric] = value
             # 2. delete empty query
             del_query = []
-            for query_name in metrics:
-                if "num_queries" in metrics[query_name] and metrics[query_name]["num_queries"] == 0:
+            for query_name in m:
+                if m[query_name]["num_queries"][0] == 0:
                     del_query.append(query_name)
             for query_name in del_query:
-                del metrics[query_name]
+                del m[query_name]
                 query_name_keys.remove(query_name)
             # 3. correct values
             for query_name, metric in zip(query_name_keys, metric_name_keys):
-                if query_name not in metrics:
+                if query_name not in m:
                     continue
-                value = metrics[query_name][metric]
+                value = m[query_name][metric]
                 if metric == "num_queries":
-                    metrics[query_name][metric] = int(value)
+                    metrics[query_name][metric] = int(value[0])
                 else:
-                    metrics[query_name][metric] = value / self.nprocs
+                    metrics[query_name][metric] = value[0] / value[1]
 
         return metrics
 
