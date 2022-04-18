@@ -978,11 +978,23 @@ class FLEX(nn.Module):
         return score: (B, N) float
         """
         if predict_entity:
-            feature = self.entity_feature(answer_ids).unsqueeze(dim=1)  # (B, 1, N, d)
-            scores = self.scoring_entity(feature, q)  # (B, 1, N) or (B, 2, N)
+            feature, logic, time_feature, time_logic, time_density = self.entity_token(answer_ids)
+            feature = feature.unsqueeze(dim=1)  # (B, 1, N, d)
+            logic = logic.unsqueeze(dim=1)  # (B, 1, N, d)
+            time_feature = time_feature.unsqueeze(dim=1)  # (B, 1, N, d)
+            time_logic = time_logic.unsqueeze(dim=1)  # (B, 1, N, d)
+            time_density = time_density.unsqueeze(dim=1)  # (B, 1, N, d)
+            a = feature, logic, time_feature, time_logic, time_density
+            scores = self.scoring_entity(a, q)  # (B, 1, N) or (B, 2, N)
         else:
-            feature = self.timestamp_feature(answer_ids).unsqueeze(dim=1)  # (B, 1, N, d)
-            scores = self.scoring_timestamp(feature, q)  # (B, 1, N) or (B, 2, N)
+            feature, logic, time_feature, time_logic, time_density = self.timestamp_token(answer_ids)
+            feature = feature.unsqueeze(dim=1)  # (B, 1, N, d)
+            logic = logic.unsqueeze(dim=1)  # (B, 1, N, d)
+            time_feature = time_feature.unsqueeze(dim=1)  # (B, 1, N, d)
+            time_logic = time_logic.unsqueeze(dim=1)  # (B, 1, N, d)
+            time_density = time_density.unsqueeze(dim=1)  # (B, 1, N, d)
+            a = feature, logic, time_feature, time_logic, time_density
+            scores = self.scoring_timestamp(a, q)  # (B, 1, N) or (B, 2, N)
 
         if DNF_predict:
             scores = torch.max(scores, dim=1)[0]  # (B, N)
@@ -1054,15 +1066,27 @@ class FLEX(nn.Module):
         distance = torch.norm(outer_distance, p=1, dim=-1) + self.cen * torch.norm(inner_distance, p=1, dim=-1)
         return distance
 
-    def scoring_entity(self, entity_feature, q: TYPE_token):
+    def scoring_entity(self, entity_token: TYPE_token, q: TYPE_token):
+        e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = entity_token
         feature, logic, time_feature, time_logic, time_density = q
-        distance = self.distance_between_entity_and_query(entity_feature, feature, logic)
+        distance = (e_feature * feature).sum() + \
+                   (e_logic * logic).sum()+ \
+                   (e_time_feature * time_feature).sum()+\
+                   (e_time_logic * time_logic).sum()+ \
+                   (e_time_density * time_density).sum()
+        # distance = self.distance_between_entity_and_query(entity_feature, feature, logic)
         score = self.gamma - distance * self.modulus
         return score
 
     def scoring_timestamp(self, timestamp_feature, q: TYPE_token):
+        e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = timestamp_feature
         feature, logic, time_feature, time_logic, time_density = q
-        distance = self.distance_between_timestamp_and_query(timestamp_feature, time_feature, time_logic, time_density)
+        distance = (e_feature * feature).sum() + \
+                   (e_logic * logic).sum() + \
+                   (e_time_feature * time_feature).sum() + \
+                   (e_time_logic * time_logic).sum() + \
+                   (e_time_density * time_density).sum()
+        # distance = self.distance_between_timestamp_and_query(timestamp_feature, time_feature, time_logic, time_density)
         score = self.gamma - distance * self.modulus
         return score
 
