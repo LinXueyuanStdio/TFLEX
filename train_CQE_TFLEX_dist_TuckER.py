@@ -614,11 +614,11 @@ class FLEX(nn.Module):
 
     def init(self):
         embedding_range = self.embedding_range.item()
-        nn.init.uniform_(tensor=self.entitty_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.entitty_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.entitty_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.entitty_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.entitty_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entity_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entity_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entity_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entity_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entity_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
         nn.init.uniform_(tensor=self.timestamp_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.timestamp_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
