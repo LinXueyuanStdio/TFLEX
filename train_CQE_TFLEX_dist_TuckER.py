@@ -453,7 +453,7 @@ class FLEX(nn.Module):
         self.entity_time_logic_embedding = nn.Embedding(nentity, self.entity_dim)
         self.entity_time_density_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
         self.timestamp_logic_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
         self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
         self.timestamp_time_logic_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
