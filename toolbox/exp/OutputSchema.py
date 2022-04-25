@@ -16,7 +16,7 @@ class OutputPathSchema:
     """
 
     def __init__(self, output_path: Union[Path, str]):
-        self.output_path = output_path if output_path is Path else Path(output_path)
+        self.output_path: Path = output_path if output_path is Path else Path(output_path)
 
         self.dir_path_log = self.output_path / 'logs'
         self.dir_path_visualize = self.output_path / 'visualize'
@@ -114,5 +114,21 @@ class OutputSchema:
         for key, value in self.__dict__.items():
             self.logger.info("%s %s" % (key, value))
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.home_path})"
+
+class Cleaner:
+    def __init__(self, pathSchema: OutputPathSchema):
+        self.pathSchema: OutputPathSchema = pathSchema
+
+    def remove_non_best_checkpoint_and_model(self):
+        def remove_non_best(dir_path: Path):
+            dir_name = str(dir_path)
+            import os
+            print("In", dir_name)
+            filenames = os.listdir(dir_name)
+            to_delete_files = set([f for f in filenames if "best" not in f])
+            for filename in to_delete_files:
+                print("  remove", filename)
+                os.remove(str(dir_path / filename))
+
+        remove_non_best(self.pathSchema.dir_path_checkpoint)
+        remove_non_best(self.pathSchema.dir_path_deploy)
