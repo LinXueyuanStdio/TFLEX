@@ -38,6 +38,33 @@ class LinkPredictDataset(Dataset):
         return h, r, mask_for_hr, t, reverse_r, mask_for_tReverser
 
 
+class TemporalLinkPredictDataset(Dataset):
+    def __init__(self, test_triples_ids: List[Tuple[int, int, int, int]], srt_o: Dict[Tuple[int, int, int], Set[int]], entity_count: int):
+        """
+        test_triples_ids: without reverse r
+        hr_t: all hr->t, MUST with reverse r
+        """
+        self.test_triples_ids = test_triples_ids
+        self.srt_o = srt_o
+        self.entity_count = entity_count
+
+    def __len__(self):
+        return len(self.test_triples_ids)
+
+    def __getitem__(self, idx):
+        s, r, o, t = self.test_triples_ids[idx]
+
+        mask_for_srt = torch.zeros(self.entity_count).long()
+        mask_for_srt[list(self.srt_o[(s, r, t)])] = 1
+        mask_for_srt[o] = 0
+
+        s = torch.LongTensor([s])
+        r = torch.LongTensor([r])
+        t = torch.LongTensor([t])
+        o = torch.LongTensor([o])
+        return s, r, t, o, mask_for_srt
+
+
 class LinkPredictTypeConstraintDataset(Dataset):
     def __init__(self,
                  test_triples_ids: List[Tuple[int, int, int]],

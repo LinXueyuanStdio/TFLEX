@@ -3,6 +3,7 @@ from typing import List, Tuple, Dict, Set
 import torch
 from torch.utils.data import Dataset
 
+from ComplexTemporalQueryData import build_map_sro2t_and_srt2o, build_map_sro_t, build_map_srt_o
 from toolbox.data.functional import build_map_hr_t
 
 
@@ -22,6 +23,25 @@ class ScoringAllDataset(Dataset):
         h = torch.LongTensor([h])
         r = torch.LongTensor([r])
         return h, r, data
+
+
+class TemporalScoringAllDataset(Dataset):
+    def __init__(self, train_triples_ids: List[Tuple[int, int,int, int]], entity_count: int):
+        self.srt_o = build_map_srt_o(train_triples_ids)
+        self.srt_pairs = list(self.srt_o.keys())
+        self.entity_count = entity_count
+
+    def __len__(self):
+        return len(self.srt_pairs)
+
+    def __getitem__(self, idx):
+        s, r, t = self.srt_pairs[idx]
+        data = torch.zeros(self.entity_count).float()
+        data[list(self.srt_o[(s, r, t)])] = 1.
+        s = torch.LongTensor([s])
+        r = torch.LongTensor([r])
+        t = torch.LongTensor([t])
+        return s, r, t, data
 
 
 class ComplementaryScoringAllDataset(Dataset):

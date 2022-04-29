@@ -19,8 +19,14 @@ def parse():
     parser.add_argument("--de", type=int, default=50, nargs="?", help="Entity embedding dimensionality.")
     parser.add_argument("--dr", type=int, default=50, nargs="?", help="Relation embedding dimensionality.")
     parser.add_argument("--dt", type=int, default=50, nargs="?", help="Temporal embedding dimensionality.")
+    parser.add_argument("--ranks", type=int, default=10, nargs="?", help="Ranks of tensor for TR/TT model.")
     parser.add_argument("--device", type=str, default="cuda", nargs="?", help="Device to run the code on. Either cuda or cpu")
     parser.add_argument("--early_stopping", type=int, default=False, nargs="?", help="Early stopping value")
+    parser.add_argument("--input_dropout", type=float, default=0., nargs="?", help="Input layer dropout.")
+    parser.add_argument("--hidden_dropout1", type=float, default=0., nargs="?", help="Dropout after the first hidden layer.")
+    parser.add_argument("--hidden_dropout2", type=float, default=0., nargs="?", help="Dropout after the second hidden layer.")
+    parser.add_argument("--hidden_dropout3", type=float, default=0., nargs="?", help="Dropout after the third hidden layer.")
+    parser.add_argument("--label_smoothing", type=float, default=0., nargs="?", help="Amount of label smoothing.")
 
     args = parser.parse_args()
 

@@ -105,6 +105,24 @@ def build_map_t2sro_and_o2srt(triples_ids: List[Tuple[int, int, int, int]]) -> T
     return t_sro, o_srt
 
 
+def build_map_sro_t(triplets: List[Tuple[int, int, int, int]]) -> Dict[Tuple[int, int, int], Set[int]]:
+    """ Function to read the list of tails for the given head and relation pair. """
+    sro_t: Dict[Tuple[int, int, int], Set[int]] = defaultdict(set)
+    for s, r, o, t in triplets:
+        sro_t[(s, r, o)].add(t)
+
+    return sro_t
+
+
+def build_map_srt_o(triplets: List[Tuple[int, int, int, int]]) -> Dict[Tuple[int, int, int], Set[int]]:
+    """ Function to read the list of tails for the given head and relation pair. """
+    srt_o: Dict[Tuple[int, int, int], Set[int]] = defaultdict(set)
+    for s, r, o, t in triplets:
+        srt_o[(s, r, t)].add(o)
+
+    return srt_o
+
+
 def build_map_sro2t_and_srt2o(triples_ids: List[Tuple[int, int, int, int]]) -> Tuple[TYPE_MAPPING_sro_t, TYPE_MAPPING_srt_o]:
     """ Function to read the list of tails for the given head and relation pair. """
     sro_t = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))

@@ -145,7 +145,7 @@ def read_seeds(file_path: Union[str, Path]) -> List[Tuple[str, str]]:
         return ret
 
 
-def edge_idx_and_rel_idx(triples):
+def edge_idx_and_rel_idx(triples: List[Tuple[int, int, int]]) -> Tuple[torch.Tensor, torch.Tensor]:
     t = torch.LongTensor(triples)
     edge_index = t[:, [0, 2]].T
     rel = t[:, 1]
@@ -158,7 +158,7 @@ def add_inverse_rels(edge_index, rel):
     return edge_index_all, rel_all
 
 
-def with_inverse_relations(triples_ids, max_relation_id):
+def with_inverse_relations(triples_ids: List[Tuple[int, int, int]], max_relation_id: int) -> Tuple[List[Tuple[int, int, int]], torch.Tensor, torch.Tensor]:
     """
     triples_ids:Tx3
     triples:2Tx3
