@@ -101,11 +101,6 @@ class EntityProjection(nn.Module):
         x = torch.sum(feature_attention * logits, dim=0)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
-        # feature = convert_to_feature(feature)
-        # logic = convert_to_logic(logic)
-        # time_feature = convert_to_time_feature(time_feature)
-        # time_logic = convert_to_time_logic(time_logic)
-        # time_density = convert_to_time_density(time_density)
         return feature, logic, time_feature, time_logic, time_density
 
 
