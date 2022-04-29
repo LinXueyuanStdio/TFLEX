@@ -152,7 +152,6 @@ class MyExperiment(Experiment):
         test_type_constraint_dataloader = DataLoader(test_type_constraint_data, batch_size=test_batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
         # 3. build model
-        print('rel_num_out: ', data.relation_count)
         # model = QubitE(data.entity_count, 2 * data.relation_count, edim, input_dropout=input_dropout, hidden_dropout=hidden_dropout).to(train_device)
         model = TuckER(data.entity_count, data.relation_count * 2, edim, rdim, input_dropout).to(train_device)
         opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay, amsgrad=amsgrad)
@@ -341,6 +340,7 @@ class MyExperiment(Experiment):
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
 @click.option("--dataset", type=str, default="FB15k-237", help="Which dataset to use: FB15k, FB15k-237, WN18 or WN18RR.")
 @click.option("--name", type=str, default="TuckER", help="Name of the experiment.")
+@click.option("--times", type=int, default=1, help="Run multi times to get error bars.")
 @click.option("--start_step", type=int, default=0, help="start step.")
 @click.option("--max_steps", type=int, default=200, help="Number of steps.")
 @click.option("--every_test_step", type=int, default=10, help="Number of steps.")
@@ -361,14 +361,13 @@ class MyExperiment(Experiment):
 @click.option("--rdim", type=int, default=200, help="Relation embedding dimensionality.")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option("--hidden_dropout", type=float, default=0.1, help="Dropout after the first hidden layer.")
-@click.option("--times", type=int, default=1, help="Run multi times to get error bars.")
-def main(data_home, dataset, name,
+def main(data_home, dataset, name, times,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, sampling_window_size, label_smoothing,
          train_device, test_device,
          resume, resume_by_score,
          lr, amsgrad, lr_decay, weight_decay,
-         edim, rdim, input_dropout, hidden_dropout, times
+         edim, rdim, input_dropout, hidden_dropout,
          ):
     output = OutputSchema(dataset + "-" + name)
     if dataset == "all":
