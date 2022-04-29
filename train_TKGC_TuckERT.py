@@ -3,8 +3,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from toolbox.data.DataSchema import RelationalTripletData, RelationalTripletDatasetCachePath
-from toolbox.data.DatasetSchema import FreebaseFB15k_237
+from ComplexTemporalQueryData import TemporalKnowledgeDatasetCachePath, ICEWS05_15, ICEWS14, TemporalKnowledgeData
 from toolbox.data.LinkPredictDataset import LinkPredictDataset
 from toolbox.data.ScoringAllDataset import ScoringAllDataset
 from toolbox.data.functional import with_inverse_relations, build_map_hr_t
@@ -20,7 +19,7 @@ set_seeds()
 
 class MyExperiment(Experiment):
 
-    def __init__(self, output: OutputSchema, data: RelationalTripletData,
+    def __init__(self, output: OutputSchema, data: TemporalKnowledgeData,
                  max_steps, every_test_step, every_valid_step, batch_size, test_batch_size,
                  lr, amsgrad, lr_decay, weight_decay, edim, rdim, train_device, test_device, sampling_window_size,
                  input_dropout, hidden_dropout1, hidden_dropout2, label_smoothing,
@@ -109,6 +108,7 @@ class MyExperiment(Experiment):
 
 
 @click.command()
+@click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
 @click.option("--dataset", type=str, default="FB15k-237", help="Which dataset to use: FB15k, FB15k-237, WN18 or WN18RR.")
 @click.option("--name", type=str, default="Echo", help="Name of the experiment.")
 @click.option("--max_steps", type=int, default=1000, help="Number of steps.")
@@ -129,18 +129,21 @@ class MyExperiment(Experiment):
 @click.option("--hidden_dropout1", type=float, default=0.3, help="Dropout after the first hidden layer.")
 @click.option("--hidden_dropout2", type=float, default=0.2, help="Dropout after the second hidden layer.")
 @click.option("--label_smoothing", type=float, default=0.1, help="Amount of label smoothing.")
-def main(dataset, name,
+def main(data_home, dataset, name,
          max_steps, every_test_step, every_valid_step, batch_size, test_batch_size,
          lr, amsgrad, lr_decay, weight_decay, edim, rdim, train_device, test_device, sampling_window_size,
          input_dropout, hidden_dropout1, hidden_dropout2, label_smoothing,
          ):
     output = OutputSchema(dataset + "-" + name)
 
-    dataset = FreebaseFB15k_237()
-    cache = RelationalTripletDatasetCachePath(dataset.cache_path)
-    data = RelationalTripletData(dataset=dataset, cache_path=cache)
+    if dataset == "ICEWS14":
+        dataset = ICEWS14(data_home)
+    elif dataset == "ICEWS05_15":
+        dataset = ICEWS05_15(data_home)
+    cache = TemporalKnowledgeDatasetCachePath(dataset.cache_path)
+    data = TemporalKnowledgeData(dataset=dataset, cache_path=cache)
     data.preprocess_data_if_needed()
-    data.load_cache(["meta"])
+    data.load_cache(["meta", "all_triples_ids", "train_triples_ids", "test_triples_ids", "valid_triples_ids"])
 
     MyExperiment(
         output, data,
