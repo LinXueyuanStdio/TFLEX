@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from ComplexTemporalQueryData import TemporalKnowledgeDatasetCachePath, ICEWS05_15, ICEWS14, TemporalKnowledgeData, build_map_srt_o
 from toolbox.data.LinkPredictDataset import TemporalLinkPredictDataset
 from toolbox.data.ScoringAllDataset import TemporalScoringAllDataset
-from toolbox.evaluate.LinkPredict import batch_link_predict2, batch_link_predict
+from toolbox.evaluate.LinkPredict import batch_link_predict
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
@@ -84,7 +84,7 @@ class MyExperiment(Experiment):
 
     def __init__(self, output: OutputSchema, data: TemporalKnowledgeData,
                  max_steps, every_test_step, every_valid_step, batch_size, test_batch_size,
-                 lr, amsgrad, lr_decay, weight_decay, edim, rdim, train_device, test_device, sampling_window_size,
+                 lr, amsgrad, lr_decay, weight_decay, edim, rdim, tdim, train_device, test_device, sampling_window_size,
                  input_dropout, hidden_dropout1, hidden_dropout2, label_smoothing,
                  ):
         super(MyExperiment, self).__init__(output)
@@ -107,7 +107,7 @@ class MyExperiment(Experiment):
         valid_dataloader = DataLoader(valid_data, batch_size=test_batch_size, shuffle=False, num_workers=8, pin_memory=True)
         test_dataloader = DataLoader(test_data, batch_size=test_batch_size, shuffle=False, num_workers=8, pin_memory=True)
 
-        model = TuckERT(data.entity_count, data.relation_count, data.timestamp_count, edim, rdim, edim, input_dropout, hidden_dropout1, hidden_dropout2).to(train_device)
+        model = TuckERT(data.entity_count, data.relation_count, data.timestamp_count, edim, rdim, tdim, input_dropout, hidden_dropout1, hidden_dropout2).to(train_device)
         model.init()
         self.log(model)
 
@@ -187,16 +187,17 @@ class MyExperiment(Experiment):
 @click.option('--weight_decay', type=float, default=0.0, help='Weight decay value to use in the optimizer. Default: 0.0')
 @click.option("--edim", type=int, default=200, help="Entity embedding dimensionality.")
 @click.option("--rdim", type=int, default=200, help="Relation embedding dimensionality.")
+@click.option("--tdim", type=int, default=200, help="Timestamp embedding dimensionality.")
 @click.option("--train_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--test_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--sampling_window_size", type=int, default=1000, help="Sampling window size.")
-@click.option("--input_dropout", type=float, default=0.2, help="Input layer dropout.")
-@click.option("--hidden_dropout1", type=float, default=0.3, help="Dropout after the first hidden layer.")
-@click.option("--hidden_dropout2", type=float, default=0.2, help="Dropout after the second hidden layer.")
+@click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
+@click.option("--hidden_dropout1", type=float, default=0.1, help="Dropout after the first hidden layer.")
+@click.option("--hidden_dropout2", type=float, default=0.1, help="Dropout after the second hidden layer.")
 @click.option("--label_smoothing", type=float, default=0.1, help="Amount of label smoothing.")
 def main(data_home, dataset, name,
          max_steps, every_test_step, every_valid_step, batch_size, test_batch_size,
-         lr, amsgrad, lr_decay, weight_decay, edim, rdim, train_device, test_device, sampling_window_size,
+         lr, amsgrad, lr_decay, weight_decay, edim, rdim, tdim, train_device, test_device, sampling_window_size,
          input_dropout, hidden_dropout1, hidden_dropout2, label_smoothing,
          ):
     output = OutputSchema(dataset + "-" + name)
@@ -213,7 +214,7 @@ def main(data_home, dataset, name,
     MyExperiment(
         output, data,
         max_steps, every_test_step, every_valid_step, batch_size, test_batch_size,
-        lr, amsgrad, lr_decay, weight_decay, edim, rdim, train_device, test_device, sampling_window_size,
+        lr, amsgrad, lr_decay, weight_decay, edim, rdim, tdim, train_device, test_device, sampling_window_size,
         input_dropout, hidden_dropout1, hidden_dropout2, label_smoothing,
     )
 
