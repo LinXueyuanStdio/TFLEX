@@ -2,7 +2,7 @@
 @author: lxy
 @email: linxy59@mail2.sysu.edu.cn
 @date: 2021/10/26
-@description: null
+@description: 分布式训练，单机多卡
 """
 from collections import defaultdict
 from typing import List, Dict, Tuple, Optional, Union, Set
@@ -29,6 +29,9 @@ from toolbox.utils.RandomSeeds import set_seeds
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+TYPE_query_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+TYPE_relation_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+TYPE_timestamp_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 # 下面 3 行代码解决 tensor 在不同进程中共享问题。
 # 共享是通过读写文件的，如果同时打开文件的进程数太多，会崩。
@@ -480,7 +483,7 @@ class FLEX(nn.Module):
             s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = e1
             r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
             o_feature, o_logic, o_time_feature, o_time_logic, o_time_density = e2
-            return self.entity_projection(
+            return self.time_projection(
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 o_feature, o_logic, o_time_feature, o_time_logic, o_time_density
@@ -1012,7 +1015,7 @@ class MyExperiment(Experiment):
                  lr, cpu_num,
                  hidden_dim, input_dropout, gamma, center_reg, local_rank
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank)
         if local_rank == 0:
             self.log(f"{locals()}")
 
@@ -1286,63 +1289,76 @@ class MyExperiment(Experiment):
                 for i in range(num_queries):
                     for answer_id in hard_answer[i]:
                         rank = torch.where(ranking[i] == answer_id)[0][0]
-                        ranks.append(rank + 1)
+                        ranks.append(1 / (rank + 1))
                         for hits_level in range(10):
                             hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
-                mrr = 1 / torch.mean(torch.FloatTensor(ranks)).item()
+                mrr = torch.mean(torch.FloatTensor(ranks)).item()
                 h1 = torch.mean(torch.FloatTensor(hits[0])).item()
                 h3 = torch.mean(torch.FloatTensor(hits[2])).item()
                 h10 = torch.mean(torch.FloatTensor(hits[9])).item()
                 logs[query_name].append({
-                    'MRR': mrr,
-                    'hits@1': h1,
-                    'hits@3': h3,
-                    'hits@10': h10,
+                    'MRR': ranks,
+                    'hits@1': hits[0],
+                    'hits@2': hits[1],
+                    'hits@3': hits[2],
+                    'hits@5': hits[4],
+                    'hits@10': hits[9],
                     'num_queries': num_queries,
                 })
 
             if device == 0:
                 step += 1
-                progbar.update(step, [("Hits @10", h10)])
+                progbar.update(step, [("MRR", mrr), ("Hits @10", h10)])
 
         # sync and reduce
         # 分布式评估 很麻烦，多任务学习的分布式评估更麻烦，因为每个进程采样到的任务数不一样
         # 下面这坨就是在绝对视野里强行对齐所有进程的任务结果，进行 reduce，最后汇总给 rank=0 的 master node 展示到命令行
-        torch.distributed.barrier() # 所有进程运行到这里时，都等待一下，直到所有进程都在这行，然后一起同时往后分别运行
+        torch.distributed.barrier()  # 所有进程运行到这里时，都等待一下，直到所有进程都在这行，然后一起同时往后分别运行
         query_name_keys = []
         metric_name_keys = []
         all_tensors = []
         metric_names = list(logs[list(logs.keys())[0]][0].keys())
-        for query_name in test_query_structures: # test_query_structures 内是所有任务
+        for query_name in test_query_structures:  # test_query_structures 内是所有任务
             for metric_name in metric_names:
                 query_name_keys.append(query_name)
                 metric_name_keys.append(metric_name)
                 if query_name in logs:
-                    sum_of_metric_values = sum([log[metric_name] for log in logs[query_name]])
-                    all_tensors.append(sum_of_metric_values)
+                    if metric_name == "num_queries":
+                        value = sum([log[metric_name] for log in logs[query_name]])
+                        all_tensors.append([value, 1])
+                    else:
+                        values = []
+                        for log in logs[query_name]:
+                            values.extend(log[metric_name])
+                        all_tensors.append([sum(values), len(values)])
                 else:
-                    all_tensors.append(0)
+                    all_tensors.append([0, 1])
         all_tensors = torch.FloatTensor(all_tensors).to(device)
         metrics = defaultdict(lambda: defaultdict(float))
-        dist.reduce(all_tensors, dst=0) # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
-        if dist.get_rank() == 0: # 我们只在 master 节点上处理，其他进程的结果丢弃了
+        dist.reduce(all_tensors, dst=0)  # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
+        # 每个进程看到的数据都是所有数据的和，如果有 n 个进程，则有 all_tensors = 0.all_tensors + 1.all_tensors + ... + n.all_tensors
+        if dist.get_rank() == 0:  # 我们只在 master 节点上处理，其他进程的结果丢弃了
             # 1. store to dict
+            m = defaultdict(lambda: defaultdict(lambda x:[0, 1]))
             for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
-                metrics[query_name][metric] = value
+                m[query_name][metric] = value
             # 2. delete empty query
             del_query = []
-            for query_name in metrics:
-                if "num_queries" in metrics[query_name] and metrics[query_name]["num_queries"] == 0:
+            for query_name in m:
+                if m[query_name]["num_queries"][0] == 0:
                     del_query.append(query_name)
             for query_name in del_query:
-                del metrics[query_name]
+                del m[query_name]
+                query_name_keys.remove(query_name)
             # 3. correct values
             for query_name, metric in zip(query_name_keys, metric_name_keys):
-                value = metrics[query_name][metric]
+                if query_name not in m:
+                    continue
+                value = m[query_name][metric]
                 if metric == "num_queries":
-                    metrics[query_name][metric] = int(value)
+                    metrics[query_name][metric] = int(value[0])
                 else:
-                    metrics[query_name][metric] = value / metrics[query_name]["num_queries"]
+                    metrics[query_name][metric] = value[0] / value[1]
 
         return metrics
 
@@ -1416,13 +1432,14 @@ class MyExperiment(Experiment):
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--local_rank', type=int, default=-1, help='node rank for distributed training')
+@click.option('--tasks', type=str, default="Pe,Pt", help='tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg, local_rank
+         hidden_dim, input_dropout, gamma, center_reg, local_rank, tasks
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
@@ -1438,6 +1455,13 @@ def main(data_home, dataset, name,
         "meta",
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
+    tasks = tasks.split(",")
+    for query_name in set(data.train_queries_answers.keys()) - set(tasks):
+        data.train_queries_answers.pop(query_name)
+    for query_name in set(data.valid_queries_answers.keys()) - set(tasks):
+        data.valid_queries_answers.pop(query_name)
+    for query_name in set(data.test_queries_answers.keys()) - set(tasks):
+        data.test_queries_answers.pop(query_name)
 
     MyExperiment(
         output, data,
