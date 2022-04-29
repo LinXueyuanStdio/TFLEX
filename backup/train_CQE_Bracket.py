@@ -42,7 +42,7 @@ class MyExperiment(Experiment):
                  tasks, beta_mode, evaluate_union, center_reg,
                  nhead, num_layers, feedforward_dim, use_position_embedding,
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
 
         self.model_param_store.save_scripts(["train_CQE_Bracket.py", "BracketCQE.py"])
