@@ -1336,6 +1336,7 @@ class MyExperiment(Experiment):
         #     print()
 
         positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
+        print(positive_logit.shape, negative_logit.shape)
         pred = torch.cat([positive_logit, negative_logit], dim=-1)
 
         target = torch.zeros_like(pred)
