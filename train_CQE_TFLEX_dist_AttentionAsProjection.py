@@ -29,50 +29,9 @@ from toolbox.utils.RandomSeeds import set_seeds
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
-TYPE_query_token = TYPE_token
-TYPE_relation_token = TYPE_token
-TYPE_timestamp_token = TYPE_token
-
-
-def cat_token(token_list: List[TYPE_token]) -> TYPE_token:
-    feature = []
-    logic = []
-    time_feature = []
-    time_logic = []
-    time_density = []
-    for x in token_list:
-        feature.append(x[0])
-        logic.append(x[1])
-        time_feature.append(x[2])
-        time_logic.append(x[3])
-        time_density.append(x[4])
-    feature = torch.cat(feature, dim=0).unsqueeze(1)
-    logic = torch.cat(logic, dim=0).unsqueeze(1)
-    time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
-    time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
-    time_density = torch.cat(time_density, dim=0).unsqueeze(1)
-    return feature, logic, time_feature, time_logic, time_density
-
-
-def stack_token(token_list: List[TYPE_token]) -> TYPE_token:
-    feature = []
-    logic = []
-    time_feature = []
-    time_logic = []
-    time_density = []
-    for x in token_list:
-        feature.append(x[0])
-        logic.append(x[1])
-        time_feature.append(x[2])
-        time_logic.append(x[3])
-        time_density.append(x[4])
-    feature = torch.stack(feature)
-    logic = torch.stack(logic)
-    time_feature = torch.stack(time_feature)
-    time_logic = torch.stack(time_logic)
-    time_density = torch.stack(time_density)
-    return feature, logic, time_feature, time_logic, time_density
-
+TYPE_query_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+TYPE_relation_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+TYPE_timestamp_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 # 下面 3 行代码解决 tensor 在不同进程中共享问题。
 # 共享是通过读写文件的，如果同时打开文件的进程数太多，会崩。
@@ -118,41 +77,28 @@ def convert_to_time_density(x):
 class EntityProjection(nn.Module):
     def __init__(self, dim, hidden_dim=800, num_layers=2, drop=0.1):
         super(EntityProjection, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
-        self.dropout = nn.Dropout(drop)
-        token_dim = dim * 5
-        # self.core = CoreConvE(token_dim, input_dropout=0.1, hidden_dropout1=0.1, hidden_dropout2=0.1)
-        self.de = token_dim
-        self.dr = token_dim
-        self.dt = token_dim
-        self.input_dropout = nn.Dropout(0.1)
-        self.bne = nn.BatchNorm1d(token_dim)
+        self.dim = dim
+        self.feature_layer_1 = nn.Linear(self.dim * 5, self.dim)
+        self.feature_layer_2 = nn.Linear(self.dim, self.dim * 5)
+
+        nn.init.xavier_uniform_(self.feature_layer_1.weight)
+        nn.init.xavier_uniform_(self.feature_layer_2.weight)
+        self.input_dropout = nn.Dropout(drop)
 
     def forward(self,
-                shared_tensor,
                 q_feature, q_logic, q_time_feature, q_time_logic, q_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density):
-        q = torch.cat([q_feature, q_logic, q_time_feature, q_time_logic, q_time_density], dim=-1)
-        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
-        t = torch.cat([t_feature, t_logic, t_time_feature, t_time_logic, t_time_density], dim=-1)
+        feature = torch.stack([q_feature, r_feature, t_feature])
+        logic = torch.stack([q_logic, r_logic, t_logic])
+        time_feature = torch.stack([q_time_feature, r_time_feature, t_time_feature])
+        time_logic = torch.stack([q_time_logic, r_time_logic, t_time_logic])
+        time_density = torch.stack([q_time_density, r_time_density, t_time_density])
 
-        W = shared_tensor
-        x = self.bne(q)
-        x = self.input_dropout(x)
-        x = x.view(-1, 1, self.de)  # (B, 1, de)
-
-        r = r.view(-1, self.dr)  # (B, dr)
-        W = W.view(self.dr, -1)  # (dr, de*de*dt)
-        W_mat = torch.mm(r, W)  # (B, dr) * (dr, de*de*dt) = (B, de*de*dt)
-        W_mat = W_mat.view(-1, self.de, self.de * self.dt)  # (B, de, de*dt)
-        x = torch.bmm(x, W_mat)  # (B, 1, de) * (B, de, de*dt) = (B, 1, de*dt)
-
-        x = x.view(-1, self.de, self.dt)  # (B, de*dt) -> (B, de, dt)
-        t = t.view(-1, self.dt, 1)  # (B, dt, 1)
-        x = torch.bmm(x, t)  # (B, de, dt) * (B, dt, 1) = (B, de, 1)
-        x = x.view(-1, self.de)
+        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=-1)  # N x B x nd
+        logits = self.input_dropout(logits)
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
+        x = torch.sum(feature_attention * logits, dim=0)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
         return feature, logic, time_feature, time_logic, time_density
@@ -161,42 +107,35 @@ class EntityProjection(nn.Module):
 class TimeProjection(nn.Module):
     def __init__(self, dim, hidden_dim=800, num_layers=2, drop=0.1):
         super(TimeProjection, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.num_layers = num_layers
-        self.dropout = nn.Dropout(drop)
-        token_dim = dim * 5
-        self.de = token_dim
-        self.dr = token_dim
-        self.dt = token_dim
-        self.input_dropout = nn.Dropout(0.1)
-        self.bne = nn.BatchNorm1d(token_dim)
+        self.dim = dim
+        self.feature_layer_1 = nn.Linear(self.dim * 5, self.dim)
+        self.feature_layer_2 = nn.Linear(self.dim, self.dim * 5)
+
+        nn.init.xavier_uniform_(self.feature_layer_1.weight)
+        nn.init.xavier_uniform_(self.feature_layer_2.weight)
+        self.input_dropout = nn.Dropout(drop)
 
     def forward(self,
-                shared_tensor,
                 q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density):
-        q1 = torch.cat([q1_feature, q1_logic, q1_time_feature, q1_time_logic, q1_time_density], dim=-1)
-        r = torch.cat([r_feature, r_logic, r_time_feature, r_time_logic, r_time_density], dim=-1)
-        q2 = torch.cat([q2_feature, q2_logic, q2_time_feature, q2_time_logic, q2_time_density], dim=-1)
+        feature = torch.stack([q1_feature, r_feature, q2_feature])
+        logic = torch.stack([q1_logic, r_logic, q2_logic])
+        time_feature = torch.stack([q1_time_feature, r_time_feature, q2_time_feature])
+        time_logic = torch.stack([q1_time_logic, r_time_logic, q2_time_logic])
+        time_density = torch.stack([q1_time_density, r_time_density, q2_time_density])
 
-        W = shared_tensor
-        x = self.bne(q1)
-        x = self.input_dropout(x)
-        x = x.view(-1, 1, self.de)  # (B, 1, de)
-
-        r = r.view(-1, self.dr)  # (B, dr)
-        W = W.view(self.dr, -1)  # (dr, de*de*dt)
-        W_mat = torch.mm(r, W)  # (B, dr) * (dr, de*de*dt) = (B, de*de*dt)
-        W_mat = W_mat.view(-1, self.de, self.de * self.dt)  # (B, de, de*dt)
-        x = torch.bmm(x, W_mat)  # (B, 1, de) * (B, de, de*dt) = (B, 1, de*dt)
-
-        x = x.view(-1, self.de, self.dt).transpose(1, 2)  # (B, de*dt) -> (B, de, dt) -> (B, dt, de)
-        q2 = q2.view(-1, self.de, 1)  # (B, de, 1)
-        x = torch.bmm(x, q2)  # (B, dt, de) * (B, de, 1) = (B, dt, 1)
-        x = x.view(-1, self.dt)
+        logits = torch.cat([feature, logic, time_feature, time_logic, time_density], dim=-1)  # N x B x nd
+        logits = self.input_dropout(logits)
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
+        x = torch.sum(feature_attention * logits, dim=0)
 
         feature, logic, time_feature, time_logic, time_density = torch.chunk(x, 5, dim=-1)
+        # feature = convert_to_feature(feature)
+        # logic = convert_to_logic(logic)
+        # time_feature = convert_to_time_feature(time_feature)
+        # time_logic = convert_to_time_logic(time_logic)
+        # time_density = convert_to_time_density(time_density)
         return feature, logic, time_feature, time_logic, time_density
 
 
@@ -465,9 +404,6 @@ class FLEX(nn.Module):
         self.relation_time_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_time_density_embedding = nn.Embedding(nrelation, self.relation_dim)
 
-        token_dim = 5 * hidden_dim
-        self.W = nn.Parameter(torch.rand(token_dim, token_dim, token_dim, token_dim), requires_grad=True)
-
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
         self.entity_intersection = EntityIntersection(hidden_dim)
         self.entity_union = EntityUnion(hidden_dim)
@@ -535,7 +471,6 @@ class FLEX(nn.Module):
             r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
             t_feature, t_logic, t_time_feature, t_time_logic, t_time_density = t1
             return self.entity_projection(
-                self.W,
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 t_feature, t_logic, t_time_feature, t_time_logic, t_time_density
@@ -546,7 +481,6 @@ class FLEX(nn.Module):
             r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
             o_feature, o_logic, o_time_feature, o_time_logic, o_time_density = e2
             return self.time_projection(
-                self.W,
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 o_feature, o_logic, o_time_feature, o_time_logic, o_time_density
@@ -631,7 +565,6 @@ class FLEX(nn.Module):
         nn.init.uniform_(tensor=self.relation_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_time_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_time_density_embedding.weight.data, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.W, a=-0.1, b=0.1)
 
     def scale(self, embedding):
         return embedding / self.embedding_range
@@ -1071,24 +1004,13 @@ class FLEX(nn.Module):
     def scoring_entity(self, entity_token: TYPE_token, q: TYPE_token):
         e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = entity_token
         feature, logic, time_feature, time_logic, time_density = q
-        distance = torch.sum(e_feature * feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_logic * logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_feature * time_feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_logic * time_logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_density * time_density, dim=-1, keepdim=True)
-        # distance = self.distance_between_entity_and_query(entity_feature, feature, logic)
+        distance = self.distance_between_entity_and_query(e_feature, feature, logic)
         score = self.gamma - distance * self.modulus
         return score
 
     def scoring_timestamp(self, timestamp_token, q: TYPE_token):
-        e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = timestamp_token
         feature, logic, time_feature, time_logic, time_density = q
-        distance = torch.sum(e_feature * feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_logic * logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_feature * time_feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_logic * time_logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_density * time_density, dim=-1, keepdim=True)
-        # distance = self.distance_between_timestamp_and_query(timestamp_feature, time_feature, time_logic, time_density)
+        distance = self.distance_between_timestamp_and_query(timestamp_token, time_feature, time_logic, time_density)
         score = self.gamma - distance * self.modulus
         return score
 
