@@ -728,10 +728,16 @@ class FLEX(nn.Module):
             positive_scores.append(positive_score)
             negative_scores.append(negative_score)
             subsampling_weights.append(subsampling_weight)
-        positive_scores = torch.cat(positive_scores, dim=0)
-        negative_scores = torch.cat(negative_scores, dim=0)
+        positive_scores = torch.cat(positive_scores, dim=0).squeeze(dim=2)
+        negative_scores = torch.cat(negative_scores, dim=0).squeeze(dim=2)
         subsampling_weights = torch.cat(subsampling_weights, dim=0)
-        return positive_scores, negative_scores, subsampling_weights
+        pred = torch.cat([positive_scores, negative_scores], dim=-1)
+
+        target = torch.zeros_like(pred)
+        target[:, 0] = 1.  # B x [1, 0, 0, ...]
+
+        loss = self.loss(pred, target)
+        return loss
 
     def forward_test(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor]]) -> Dict[QueryStructure, torch.Tensor]:
         """
@@ -1335,13 +1341,7 @@ class MyExperiment(Experiment):
         #     print("cuda_data_list", len(cuda_data_list), sum([i.shape[0] for _, i, _, _, _ in cuda_data_list]))
         #     print()
 
-        positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
-        pred = torch.cat([positive_logit.squeeze(dim=2), negative_logit.squeeze(dim=2)], dim=-1)
-
-        target = torch.zeros_like(pred)
-        target[:, 0] = 1.  # B x [1, 0, 0, ...]
-
-        loss = model.loss(pred, target)
+        loss = model(cuda_data_list, None)
         positive_sample_loss = loss
         negative_sample_loss = loss
 
