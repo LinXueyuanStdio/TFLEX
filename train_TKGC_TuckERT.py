@@ -174,7 +174,7 @@ class MyExperiment(Experiment):
 
 @click.command()
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
-@click.option("--dataset", type=str, default="FB15k-237", help="Which dataset to use: FB15k, FB15k-237, WN18 or WN18RR.")
+@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15.")
 @click.option("--name", type=str, default="Echo", help="Name of the experiment.")
 @click.option("--max_steps", type=int, default=1000, help="Number of steps.")
 @click.option("--every_test_step", type=int, default=10, help="Number of steps.")
