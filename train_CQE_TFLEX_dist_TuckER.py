@@ -728,8 +728,8 @@ class FLEX(nn.Module):
             positive_scores.append(positive_score)
             negative_scores.append(negative_score)
             subsampling_weights.append(subsampling_weight)
-        positive_scores = torch.cat(positive_scores, dim=0).squeeze(dim=2)
-        negative_scores = torch.cat(negative_scores, dim=0).squeeze(dim=2)
+        positive_scores = torch.cat(positive_scores, dim=0)
+        negative_scores = torch.cat(negative_scores, dim=0)
         subsampling_weights = torch.cat(subsampling_weights, dim=0)
         pred = torch.cat([positive_scores, negative_scores], dim=-1)
 
@@ -1079,11 +1079,11 @@ class FLEX(nn.Module):
     def scoring_entity(self, entity_token: TYPE_token, q: TYPE_token):
         e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = entity_token
         feature, logic, time_feature, time_logic, time_density = q
-        distance = torch.sum(e_feature * feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_logic * logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_feature * time_feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_logic * time_logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_density * time_density, dim=-1, keepdim=True)
+        distance = torch.sum(e_feature * feature, dim=-1) + \
+                   torch.sum(e_logic * logic, dim=-1) + \
+                   torch.sum(e_time_feature * time_feature, dim=-1) + \
+                   torch.sum(e_time_logic * time_logic, dim=-1) + \
+                   torch.sum(e_time_density * time_density, dim=-1)
         # distance = self.distance_between_entity_and_query(entity_feature, feature, logic)
         # score = self.gamma - distance * self.modulus
         score = torch.sigmoid(distance)
@@ -1092,11 +1092,11 @@ class FLEX(nn.Module):
     def scoring_timestamp(self, timestamp_token, q: TYPE_token):
         e_feature, e_logic, e_time_feature, e_time_logic, e_time_density = timestamp_token
         feature, logic, time_feature, time_logic, time_density = q
-        distance = torch.sum(e_feature * feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_logic * logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_feature * time_feature, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_logic * time_logic, dim=-1, keepdim=True) + \
-                   torch.sum(e_time_density * time_density, dim=-1, keepdim=True)
+        distance = torch.sum(e_feature * feature, dim=-1) + \
+                   torch.sum(e_logic * logic, dim=-1) + \
+                   torch.sum(e_time_feature * time_feature, dim=-1) + \
+                   torch.sum(e_time_logic * time_logic, dim=-1) + \
+                   torch.sum(e_time_density * time_density, dim=-1)
         # distance = self.distance_between_timestamp_and_query(timestamp_feature, time_feature, time_logic, time_density)
         # score = self.gamma - distance * self.modulus
         score = torch.sigmoid(distance)
