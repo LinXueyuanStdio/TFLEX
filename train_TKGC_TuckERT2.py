@@ -12,7 +12,7 @@ from toolbox.nn.TuckERTTT import TuckERTTT
 def parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="TuckERT", nargs="?", help="Which model to use: TuckERT,TucERTNT, TuckERTTR,TuckERCPD.")
-    parser.add_argument("--dataset", type=str, default="icews14", nargs="?", help="Which dataset to use: icews14, icews05-15.")
+    parser.add_argument("--dataset", type=str, default="ICEWS14", nargs="?", help="Which dataset to use: ICEWS14, ICEWS05-15.")
     parser.add_argument("--n_iter", type=int, default=200, nargs="?", help="Number of iterations.")
     parser.add_argument("--batch_size", type=int, default=128, nargs="?", help="Batch size.")
     parser.add_argument("--learning_rate", type=float, default=0.001, nargs="?", help="Learning rate.")
