@@ -1085,7 +1085,8 @@ class FLEX(nn.Module):
                    torch.sum(e_time_logic * time_logic, dim=-1, keepdim=True) + \
                    torch.sum(e_time_density * time_density, dim=-1, keepdim=True)
         # distance = self.distance_between_entity_and_query(entity_feature, feature, logic)
-        score = self.gamma - distance * self.modulus
+        # score = self.gamma - distance * self.modulus
+        score = torch.sigmoid(distance)
         return score
 
     def scoring_timestamp(self, timestamp_token, q: TYPE_token):
@@ -1097,7 +1098,8 @@ class FLEX(nn.Module):
                    torch.sum(e_time_logic * time_logic, dim=-1, keepdim=True) + \
                    torch.sum(e_time_density * time_density, dim=-1, keepdim=True)
         # distance = self.distance_between_timestamp_and_query(timestamp_feature, time_feature, time_logic, time_density)
-        score = self.gamma - distance * self.modulus
+        # score = self.gamma - distance * self.modulus
+        score = torch.sigmoid(distance)
         return score
 
 
