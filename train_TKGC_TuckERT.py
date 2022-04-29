@@ -56,7 +56,7 @@ class TuckERT(nn.Module):
 
     def forward(self, e1_idx, r_idx, t_idx):
         # Mode 1 product with entity vector
-        e1 = self.E(e1_idx)
+        e1 = self.E(e1_idx).view(-1, self.de)
         x = self.bne(e1)
         x = self.input_dropout(x)
         x = x.view(-1, 1, self.de)
