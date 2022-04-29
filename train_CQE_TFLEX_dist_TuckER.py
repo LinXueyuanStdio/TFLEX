@@ -481,6 +481,8 @@ class FLEX(nn.Module):
         self.time_after = TemporalAfter(hidden_dim)
         self.time_next = TemporalNext(hidden_dim, get_timestamps_delta=lambda: self.timestamp_delta.detach(), get_timestamps_origin=lambda: self.timestamp_origin.detach())
 
+        self.loss = nn.BCELoss()
+
         self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
         self.epsilon = 2.0
         self.gamma = nn.Parameter(torch.Tensor([gamma]), requires_grad=False)
@@ -1334,13 +1336,17 @@ class MyExperiment(Experiment):
         #     print()
 
         positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
+        pred = torch.cat([positive_logit, negative_logit], dim=-1)
+        target = torch.zeros_like(pred)
+        loss = model.loss(pred, target)
+        positive_sample_loss = loss
+        negative_sample_loss = loss
 
-        negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_sample_loss).sum() / subsampling_weight.sum()
-        negative_sample_loss = - (subsampling_weight * negative_sample_loss).sum() / subsampling_weight.sum()
-
-        loss = (positive_sample_loss + negative_sample_loss) / 2
+        # negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
+        # positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
+        # positive_sample_loss = - (subsampling_weight * positive_sample_loss).sum() / subsampling_weight.sum()
+        # negative_sample_loss = - (subsampling_weight * negative_sample_loss).sum() / subsampling_weight.sum()
+        # loss = (positive_sample_loss + negative_sample_loss) / 2
 
         torch.distributed.barrier()
         log = {
