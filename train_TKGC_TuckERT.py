@@ -89,6 +89,24 @@ class MyExperiment(Experiment):
                  ):
         super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
+
+        self.model_param_store.save_scripts([__file__])
+        hyper = {
+            'learning_rate': lr,
+            'batch_size': batch_size,
+            "edim": edim,
+            "rdim": rdim,
+            "tdim": tdim,
+            "input_dropout": input_dropout,
+            "hidden_dropout1": hidden_dropout1,
+            "hidden_dropout2": hidden_dropout2,
+            "label_smoothing": label_smoothing,
+        }
+        self.metric_log_store.add_hyper(hyper)
+        for k, v in hyper.items():
+            self.log(f'{k} = {v}')
+        self.metric_log_store.add_progress(max_steps)
+
         data.load_cache(["train_triples_ids", "test_triples_ids", "valid_triples_ids", "all_triples_ids"])
         data.print(self.log)
 
