@@ -87,7 +87,7 @@ class MyExperiment(Experiment):
                  lr, amsgrad, lr_decay, weight_decay, edim, rdim, tdim, train_device, test_device, sampling_window_size,
                  input_dropout, hidden_dropout1, hidden_dropout2, label_smoothing,
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
         data.load_cache(["train_triples_ids", "test_triples_ids", "valid_triples_ids", "all_triples_ids"])
         data.print(self.log)
