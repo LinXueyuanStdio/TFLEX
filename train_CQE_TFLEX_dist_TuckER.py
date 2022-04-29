@@ -1337,7 +1337,10 @@ class MyExperiment(Experiment):
 
         positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
         pred = torch.cat([positive_logit, negative_logit], dim=-1)
+
         target = torch.zeros_like(pred)
+        target[:, 0] = 1.  # B x [1, 0, 0, ...]
+
         loss = model.loss(pred, target)
         positive_sample_loss = loss
         negative_sample_loss = loss
