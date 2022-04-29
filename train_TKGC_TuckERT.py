@@ -62,13 +62,13 @@ class TuckERT(nn.Module):
         x = x.view(-1, 1, self.de)
 
         # Mode 2 product with relation vector
-        r = self.R(r_idx)
+        r = self.R(r_idx).view(-1, self.dr)
         W_mat = torch.mm(r, self.W.view(r.size(1), -1))
         W_mat = W_mat.view(-1, self.de, self.de * self.dt)
         x = torch.bmm(x, W_mat)
 
         # Mode 3 product with time vector
-        t = self.T(t_idx)
+        t = self.T(t_idx).view(-1, self.dt)
         x = x.view(-1, self.de, self.dt)
         x = torch.bmm(x, t.view(*t.shape, -1))
 
