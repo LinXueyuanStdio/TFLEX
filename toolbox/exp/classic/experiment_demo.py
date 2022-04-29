@@ -13,7 +13,7 @@ from toolbox.exp.OutputSchema import OutputSchema
 class MyExperiment(Experiment):
 
     def __init__(self, output: OutputSchema):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
 
         self.model_param_store.save_scripts([__file__])

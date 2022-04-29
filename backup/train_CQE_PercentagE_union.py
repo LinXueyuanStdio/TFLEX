@@ -41,7 +41,7 @@ class MyExperiment(Experiment):
                  negative_sample_size, hidden_dim, gamma, learning_rate, cpu_num,
                  tasks, evaluate_union, center_reg,
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
 
         self.model_param_store.save_scripts(["train_CQE_PercentagE.py", "PercentagE.py"])

@@ -79,7 +79,7 @@ class MyExperiment(Experiment):
                  lr, amsgrad, lr_decay, weight_decay,
                  edim, rdim, input_dropout, hidden_dropout1, hidden_dropout2,
                  ):
-        super(MyExperiment, self).__init__(output)
+        super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
 
         # 1. build train dataset
