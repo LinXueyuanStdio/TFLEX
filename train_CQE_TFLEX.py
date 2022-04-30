@@ -27,6 +27,8 @@ from toolbox.utils.RandomSeeds import set_seeds
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
+L = 1
+
 
 def convert_to_logic(x):
     # [0, 1]
@@ -36,13 +38,13 @@ def convert_to_logic(x):
 
 def convert_to_feature(x):
     # [-1, 1]
-    y = torch.tanh(x) * -1
+    y = torch.tanh(x) * L
     return y
 
 
 def convert_to_time_feature(x):
     # [-1, 1]
-    y = torch.tanh(x) * -1
+    y = torch.tanh(x) * L
     return y
 
 
@@ -452,7 +454,7 @@ class FLEX(nn.Module):
             s_feature, s_logic, s_time_feature, s_time_logic, s_time_density = e1
             r_feature, r_logic, r_time_feature, r_time_logic, r_time_density = r1
             o_feature, o_logic, o_time_feature, o_time_logic, o_time_density = e2
-            return self.entity_projection(
+            return self.time_projection(
                 s_feature, s_logic, s_time_feature, s_time_logic, s_time_density,
                 r_feature, r_logic, r_time_feature, r_time_logic, r_time_density,
                 o_feature, o_logic, o_time_feature, o_time_logic, o_time_density
@@ -921,9 +923,6 @@ class MyExperiment(Experiment):
         valid_queries_answers = data.valid_queries_answers
         test_queries_answers = data.test_queries_answers
 
-        self.log("Training info:")
-        for query_structure_name in train_queries_answers:
-            self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         train_path_queries: TYPE_train_queries_answers = {}
         train_other_queries: TYPE_train_queries_answers = {}
         path_list = ["Pe", "Pt", "Pe2", 'Pe3']
@@ -950,9 +949,6 @@ class MyExperiment(Experiment):
         else:
             train_other_iterator = None
 
-        self.log("Validation info:")
-        for query_structure_name in valid_queries_answers:
-            self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
@@ -960,15 +956,21 @@ class MyExperiment(Experiment):
             collate_fn=TestDataset.collate_fn
         )
 
-        self.log("Test info:")
-        for query_structure_name in test_queries_answers:
-            self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
         test_dataloader = DataLoader(
             TestDataset(test_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
         )
+        self.log("Training info:")
+        for query_structure_name in train_queries_answers:
+            self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
+        self.log("Validation info:")
+        for query_structure_name in valid_queries_answers:
+            self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
+        self.log("Test info:")
+        for query_structure_name in test_queries_answers:
+            self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
 
         # 2. build model
         model = FLEX(
@@ -1051,15 +1053,17 @@ class MyExperiment(Experiment):
                     print("")
                     self.debug("Validation (step: %d):" % (step + 1))
                     result = self.evaluate(model, valid_dataloader, test_device)
-                    score = self.visual_result(step + 1, result, "Valid")
+                    score, row_results = self.visual_result(step + 1, result, "Valid")
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
                         best_score = score
-                        self.debug("saving best score %.4f" % score)
                         self.metric_log_store.add_best_metric({"result": result}, "Valid")
+                        self.debug("saving best score %.4f" % score)
                         self.model_param_store.save_best(model, opt, step, 0, score)
+                        self.latex_store.save_best_valid_result(row_results)
                     else:
                         self.model_param_store.save_by_score(model, opt, step, 0, score)
+                        self.latex_store.save_valid_result_by_score(row_results, score)
                         self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
@@ -1067,9 +1071,11 @@ class MyExperiment(Experiment):
                     print("")
                     self.debug("Test (step: %d):" % (step + 1))
                     result = self.evaluate(model, test_dataloader, test_device)
-                    score = self.visual_result(step + 1, result, "Test")
+                    score, row_results = self.visual_result(step + 1, result, "Test")
+                    self.latex_store.save_test_result_by_score(row_results, score)
                     if score >= best_test_score:
                         best_test_score = score
+                        self.latex_store.save_best_test_result(row_results)
                         self.metric_log_store.add_best_metric({"result": result}, "Test")
                     print("")
         self.metric_log_store.finish()
@@ -1088,12 +1094,10 @@ class MyExperiment(Experiment):
 
         positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, grouped_query, grouped_idxs)
 
-        negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_score).sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum()
-        positive_sample_loss /= subsampling_weight.sum()
-        negative_sample_loss /= subsampling_weight.sum()
+        negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
+        positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
+        positive_sample_loss = - (subsampling_weight * positive_sample_loss).sum() / subsampling_weight.sum()
+        negative_sample_loss = - (subsampling_weight * negative_sample_loss).sum() / subsampling_weight.sum()
 
         loss = (positive_sample_loss + negative_sample_loss) / 2
         loss.backward()
@@ -1204,8 +1208,9 @@ class MyExperiment(Experiment):
         for i in row_results:
             row = row_results[i]
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
+
         score = average_metrics["MRR"]
-        return score
+        return score, row_results
 
 
 @click.command()
