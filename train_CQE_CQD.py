@@ -329,15 +329,13 @@ class CQD(nn.Module):
         rhs = rhs_emb[..., :self.rank], rhs_emb[..., self.rank:]
         return lhs, rel, rhs
 
-    def loss(self,
-             triples: Tensor) -> Tensor:
+    def loss(self, triples: Tensor) -> Tensor:
         (scores_o, scores_s), factors = self.score_candidates(triples)
         l_fit = self.loss_fn(scores_o, triples[:, 2]) + self.loss_fn(scores_s, triples[:, 0])
         l_reg = self.regularizer.forward(factors)
         return l_fit + l_reg
 
-    def score_candidates(self,
-                         triples: Tensor) -> Tuple[Tuple[Tensor, Tensor], Optional[List[Tensor]]]:
+    def score_candidates(self, triples: Tensor) -> Tuple[Tuple[Tensor, Tensor], Optional[List[Tensor]]]:
         lhs_emb = self.embeddings[0](triples[:, 0])
         rel_emb = self.embeddings[1](triples[:, 1])
         rhs_emb = self.embeddings[0](triples[:, 2])
@@ -957,7 +955,7 @@ class MyExperiment(Experiment):
 
     def __init__(self, output: OutputSchema, data: ComplexQueryData,
                  start_step, max_steps, every_test_step, every_valid_step,
-                 batch_size, test_batch_size, negative_sample_size,
+                 batch_size, valid_batch_size, test_batch_size, negative_sample_size,
                  train_device, test_device,
                  resume, resume_by_score,
                  lr, tasks, evaluate_union, cpu_num,
@@ -992,13 +990,10 @@ class MyExperiment(Experiment):
         for query_structure in train_queries:
             self.log(query_name_dict[query_structure] + ": " + str(len(train_queries[query_structure])))
         train_path_queries = defaultdict(set)
-        train_other_queries = defaultdict(set)
-        path_list = ['1p', '2p', '3p']
+        path_list = ['1p']
         for query_structure in train_queries:
             if query_name_dict[query_structure] in path_list:
                 train_path_queries[query_structure] = train_queries[query_structure]
-            else:
-                train_other_queries[query_structure] = train_queries[query_structure]
         train_path_queries = flatten_query(train_path_queries)
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
             CQDTrainDataset(train_path_queries, nentity, nrelation, negative_sample_size, train_answers),
@@ -1007,17 +1002,6 @@ class MyExperiment(Experiment):
             num_workers=cpu_num,
             collate_fn=CQDTrainDataset.collate_fn
         ))
-        if len(train_other_queries) > 0:
-            train_other_queries = flatten_query(train_other_queries)
-            train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                CQDTrainDataset(train_other_queries, nentity, nrelation, negative_sample_size, train_answers),
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=cpu_num,
-                collate_fn=CQDTrainDataset.collate_fn
-            ))
-        else:
-            train_other_iterator = None
 
         self.log("Validation info:")
         for query_structure in valid_queries:
@@ -1025,7 +1009,7 @@ class MyExperiment(Experiment):
         valid_queries = flatten_query(valid_queries)
         valid_dataloader = DataLoader(
             TestDataset(valid_queries, nentity, nrelation),
-            batch_size=test_batch_size,
+            batch_size=valid_batch_size,
             num_workers=cpu_num // 2,
             collate_fn=TestDataset.collate_fn
         )
@@ -1080,7 +1064,7 @@ class MyExperiment(Experiment):
                 self.debug("Resumed from score %.4f." % best_score)
                 self.debug("Take a look at the performance after resumed.")
                 self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, test_device)
+                result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, valid_batch_size, test_device)
                 best_score = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, test_device)
@@ -1111,11 +1095,6 @@ class MyExperiment(Experiment):
             log = self.train(model, opt, train_path_iterator, step, train_device)
             for metric in log:
                 self.vis.add_scalar('path_' + metric, log[metric], step)
-            if train_other_iterator is not None:
-                log = self.train(model, opt, train_other_iterator, step, train_device)
-                for metric in log:
-                    self.vis.add_scalar('other_' + metric, log[metric], step)
-                log = self.train(model, opt, train_path_iterator, step, train_device)
 
             progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
             if (step + 1) % 10 == 0:
@@ -1136,7 +1115,7 @@ class MyExperiment(Experiment):
                 with torch.no_grad():
                     print("")
                     self.debug("Validation (step: %d):" % (step + 1))
-                    result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, test_device)
+                    result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, valid_batch_size, test_device)
                     score = self.visual_result(step + 1, result, "Valid")
                     if score >= best_score:
                         self.success("current score=%.4f > best score=%.4f" % (score, best_score))
@@ -1177,16 +1156,11 @@ class MyExperiment(Experiment):
         negative_sample = negative_sample.to(device)
         subsampling_weight = subsampling_weight.to(device)
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+        input_batch = batch_queries_dict[('e', ('r',))]
+        input_batch = torch.cat((input_batch, positive_sample.unsqueeze(1)), dim=1)
+        loss = model.loss(input_batch)
+        positive_sample_loss = negative_sample_loss = loss
 
-        negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_score).sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum()
-        positive_sample_loss /= subsampling_weight.sum()
-        negative_sample_loss /= subsampling_weight.sum()
-
-        loss = (positive_sample_loss + negative_sample_loss) / 2
         loss.backward()
         optimizer.step()
         log = {
@@ -1323,9 +1297,10 @@ class MyExperiment(Experiment):
 @click.option("--max_steps", type=int, default=100000, help="Number of steps.")
 # @click.option("--warm_up_steps", type=int, default=100000000, help="Number of steps.")
 @click.option("--every_test_step", type=int, default=500, help="Number of steps.")
-@click.option("--every_valid_step", type=int, default=500, help="Number of steps.")
+@click.option("--every_valid_step", type=int, default=1000, help="Number of steps.")
 @click.option("--batch_size", type=int, default=2000, help="Batch size.")
-@click.option("--test_batch_size", type=int, default=1000, help="Test batch size.")
+@click.option("--valid_batch_size", type=int, default=1000, help="Test batch size.")
+@click.option("--test_batch_size", type=int, default=1, help="Test batch size.")
 @click.option('--negative_sample_size', default=128, type=int, help="negative entities sampled per query")
 @click.option("--train_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--test_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
@@ -1335,7 +1310,7 @@ class MyExperiment(Experiment):
 @click.option('--tasks', type=str, default='1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up', help="tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task")
 @click.option('--evaluate_union', type=str, default="DNF", help='choices=[DNF, DM] the way to evaluate union queries, transform it to disjunctive normal form (DNF) or use the De Morgan\'s laws (DM)')
 @click.option('--cpu_num', type=int, default=4, help="used to speed up torch.dataloader")
-@click.option('--hidden_dim', type=int, default=800, help="embedding dimension")
+@click.option('--hidden_dim', type=int, default=1000, help="embedding dimension")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
@@ -1347,7 +1322,7 @@ class MyExperiment(Experiment):
 @click.option('--cqd_normalize', is_flag=True)
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
-         batch_size, test_batch_size, negative_sample_size,
+         batch_size, valid_batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, tasks, evaluate_union, cpu_num,
@@ -1370,7 +1345,7 @@ def main(data_home, dataset, name,
     MyExperiment(
         output, data,
         start_step, max_steps, every_test_step, every_valid_step,
-        batch_size, test_batch_size, negative_sample_size,
+        batch_size, valid_batch_size, test_batch_size, negative_sample_size,
         train_device, test_device,
         resume, resume_by_score,
         lr, tasks, evaluate_union, cpu_num,
