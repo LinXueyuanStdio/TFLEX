@@ -317,6 +317,9 @@ class CQD(nn.Module):
         if self.use_cuda is True:
             self.batch_entity_range = self.batch_entity_range.cuda()
 
+    def init(self):
+        pass
+
     def split(self,
               lhs_emb: Tensor,
               rel_emb: Tensor,
