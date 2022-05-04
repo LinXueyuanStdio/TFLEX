@@ -4,11 +4,8 @@
 @date: 2021/10/26
 @description: 分布式训练，单机多卡
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import collections
+from collections import defaultdict
+from typing import List, Dict, Tuple, Optional, Union, Set
 
 import click
 import torch
@@ -19,14 +16,24 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from ComplexQueryData import *
-from dataloader import TestDataset, TrainDataset
+from ComplexQueryData import query_name_dict, QueryStructure, flatten_query, ComplexQueryDatasetCachePath, ComplexQueryData, FB15k_237_BetaE, FB15k_BetaE, NELL_BetaE, all_tasks, name_query_dict
+from dataloader import DistributedTestDataset, DistributedTrainDataset
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
-from util import flatten_query
+
+
+# 下面 3 行代码解决 tensor 在不同进程中共享问题。
+# 共享是通过读写文件的，如果同时打开文件的进程数太多，会崩。
+# 这里是把允许的最大进程数设为 4096，比较大了。
+import resource
+
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
+
+L = 1
 
 
 def convert_to_logic(x):
@@ -109,8 +116,6 @@ class Negation(nn.Module):
 
 class FLEX(nn.Module):
     def __init__(self, nentity, nrelation, hidden_dim, gamma,
-                 test_batch_size=1,
-                 query_name_dict=None,
                  center_reg=None, drop: float = 0.):
         super(FLEX, self).__init__()
         self.nentity = nentity
@@ -120,15 +125,13 @@ class FLEX(nn.Module):
         self.relation_dim = hidden_dim
 
         # entity only have feature part but no logic part
-        self.entity_feature_embedding = nn.Parameter(torch.zeros(nentity, self.entity_dim), requires_grad=True)
-        self.relation_feature_embedding = nn.Parameter(torch.zeros(nrelation, self.relation_dim), requires_grad=True)
-        self.relation_logic_embedding = nn.Parameter(torch.zeros(nrelation, self.relation_dim), requires_grad=True)
+        self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
+        self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
+        self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.projection = Projection(self.entity_dim)
         self.intersection = Intersection(self.entity_dim)
         self.negation = Negation()
 
-        self.query_name_dict = query_name_dict
-        self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
         self.epsilon = 2.0
         self.gamma = nn.Parameter(torch.Tensor([gamma]), requires_grad=False)
         self.embedding_range = nn.Parameter(torch.Tensor([(self.gamma.item() + self.epsilon) / hidden_dim]), requires_grad=False)
@@ -138,37 +141,79 @@ class FLEX(nn.Module):
 
     def init(self):
         embedding_range = self.embedding_range.item()
-        nn.init.uniform_(tensor=self.entity_feature_embedding, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.relation_feature_embedding, a=-embedding_range, b=embedding_range)
-        nn.init.uniform_(tensor=self.relation_logic_embedding, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.entity_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.relation_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.relation_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
     def scale(self, embedding):
         return embedding / self.embedding_range
 
-    # implement formatting forward method
-    def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
-        return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+    def forward(self,
+                train_data_list: Optional[List[Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]],
+                test_data_list: Optional[List[Tuple[str, torch.Tensor, torch.Tensor]]]):
+        if train_data_list is not None:
+            return self.forward_train(train_data_list)
+        elif test_data_list is not None:
+            return self.forward_test(test_data_list)
+        else:
+            raise Exception("Train or Test, please choose one!")
 
-    def forward_FLEX(self, positive_sample, negative_sample, subsampling_weight,
-                     batch_queries_dict: Dict[QueryStructure, torch.Tensor],
-                     batch_idxs_dict: Dict[QueryStructure, List[List[int]]]):
-        # 1. 用 batch_queries_dict 将 查询 嵌入
+    def forward_train(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]):
+        positive_scores, negative_scores, subsampling_weights = [], [], []
+        for query_name, query, positive_answer, negative_answer, subsampling_weight in data_list:
+            positive_score, negative_score = self.forward_predict_2(query_name, query, positive_answer, negative_answer)
+            positive_scores.append(positive_score)
+            negative_scores.append(negative_score)
+            subsampling_weights.append(subsampling_weight)
+        positive_scores = torch.cat(positive_scores, dim=0)
+        negative_scores = torch.cat(negative_scores, dim=0)
+        subsampling_weights = torch.cat(subsampling_weights, dim=0)
+        return positive_scores, negative_scores, subsampling_weights
+
+    def forward_test(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+        """
+        return {"Pe": (B, L) }
+        L 是答案个数，[预测实体]和[预测时间戳]的答案个数不一样，所以不能对齐合并
+        不同结构的 L 不同
+        一般用于valid/test，不用于train
+        """
+        grouped_score = {}
+
+        for query_name, query, answer in data_list:
+            # query (B, L), B for batch size, L for query args length
+            # answer (B, N)
+            grouped_score[query_name] = self.forward_predict(query_name, query, answer)
+
+        return grouped_score
+
+    def forward_FLEX(self,
+                     positive_answer: Optional[torch.Tensor],
+                     negative_answer: Optional[torch.Tensor],
+                     subsampling_weight: Optional[torch.Tensor],
+                     grouped_query: Dict[QueryStructure, torch.Tensor],
+                     grouped_idxs: Dict[QueryStructure, List[List[int]]]):
+        """
+        positive_answer: None or (B, )
+        negative_answer: None or (B, N)
+        subsampling_weight: None or (B, )
+        """
+        # 1. 将 查询 嵌入
         all_idxs, all_feature, all_logic = [], [], []
         all_union_idxs, all_union_feature, all_union_logic = [], [], []
-        for query_structure in batch_queries_dict:
+        for query_structure in grouped_query:
             # 用字典重新组织了嵌入，一个批次(BxL)只对应一种结构
-            if 'u' in self.query_name_dict[query_structure] and 'DNF' in self.query_name_dict[query_structure]:
-                feature, logic, _ = self.embed_query(self.transform_union_query(batch_queries_dict[query_structure], query_structure),
+            if 'u' in query_name_dict[query_structure] and 'DNF' in query_name_dict[query_structure]:
+                feature, logic, _ = self.embed_query(self.transform_union_query(grouped_query[query_structure], query_structure),
                                                      self.transform_union_structure(query_structure),
                                                      0)
-                all_union_idxs.extend(batch_idxs_dict[query_structure])
+                all_union_idxs.extend(grouped_idxs[query_structure])
                 all_union_feature.append(feature)
                 all_union_logic.append(logic)
             else:
-                feature, logic, _ = self.embed_query(batch_queries_dict[query_structure],
+                feature, logic, _ = self.embed_query(grouped_query[query_structure],
                                                      query_structure,
                                                      0)
-                all_idxs.extend(batch_idxs_dict[query_structure])
+                all_idxs.extend(grouped_idxs[query_structure])
                 all_feature.append(feature)
                 all_logic.append(logic)
 
@@ -184,30 +229,30 @@ class FLEX(nn.Module):
             subsampling_weight = subsampling_weight[all_idxs + all_union_idxs]
 
         # 2. 计算正例损失
-        if type(positive_sample) != type(None):
+        if type(positive_answer) != type(None):
             # 2.1 计算 一般的查询
             if len(all_feature) > 0:
                 # positive samples for non-union queries in this batch
-                positive_sample_regular = positive_sample[all_idxs]
+                positive_sample_regular = positive_answer[all_idxs]
 
-                positive_feature = torch.index_select(self.entity_feature_embedding, dim=0, index=positive_sample_regular).unsqueeze(1)
+                positive_feature = self.entity_feature_embedding(positive_sample_regular).unsqueeze(1)
                 positive_feature = self.scale(positive_feature)
                 positive_feature = convert_to_feature(positive_feature)
 
-                positive_logit = self.cal_logit(positive_feature, all_feature, all_logic)
+                positive_logit = self.scoring_entity(positive_feature, all_feature, all_logic)
             else:
                 positive_logit = torch.Tensor([]).to(self.entity_feature_embedding.device)
 
             # 2.1 计算 并查询
             if len(all_union_feature) > 0:
                 # positive samples for union queries in this batch
-                positive_sample_union = positive_sample[all_union_idxs]
+                positive_sample_union = positive_answer[all_union_idxs]
 
-                positive_feature = torch.index_select(self.entity_feature_embedding, dim=0, index=positive_sample_union).unsqueeze(1).unsqueeze(1)
+                positive_feature = self.entity_feature_embedding(positive_sample_union).unsqueeze(1).unsqueeze(1)
                 positive_feature = self.scale(positive_feature)
                 positive_feature = convert_to_feature(positive_feature)
 
-                positive_union_logit = self.cal_logit(positive_feature, all_union_feature, all_union_logic)
+                positive_union_logit = self.scoring_entity(positive_feature, all_union_feature, all_union_logic)
                 positive_union_logit = torch.max(positive_union_logit, dim=1)[0]
             else:
                 positive_union_logit = torch.Tensor([]).to(self.entity_feature_embedding.device)
@@ -216,30 +261,30 @@ class FLEX(nn.Module):
             positive_logit = None
 
         # 3. 计算负例损失
-        if type(negative_sample) != type(None):
+        if type(negative_answer) != type(None):
             # 3.1 计算 一般的查询
             if len(all_feature) > 0:
-                negative_sample_regular = negative_sample[all_idxs]
+                negative_sample_regular = negative_answer[all_idxs]
                 batch_size, negative_size = negative_sample_regular.shape
 
-                negative_feature = torch.index_select(self.entity_feature_embedding, dim=0, index=negative_sample_regular.view(-1)).view(batch_size, negative_size, -1)
+                negative_feature = self.entity_feature_embedding(negative_sample_regular.view(-1)).view(batch_size, negative_size, -1)
                 negative_feature = self.scale(negative_feature)
                 negative_feature = convert_to_feature(negative_feature)
 
-                negative_logit = self.cal_logit(negative_feature, all_feature, all_logic)
+                negative_logit = self.scoring_entity(negative_feature, all_feature, all_logic)
             else:
                 negative_logit = torch.Tensor([]).to(self.entity_feature_embedding.device)
 
             # 3.1 计算 并查询
             if len(all_union_feature) > 0:
-                negative_sample_union = negative_sample[all_union_idxs]
+                negative_sample_union = negative_answer[all_union_idxs]
                 batch_size, negative_size = negative_sample_union.shape
 
-                negative_feature = torch.index_select(self.entity_feature_embedding, dim=0, index=negative_sample_union.view(-1)).view(batch_size, 1, negative_size, -1)
+                negative_feature = self.entity_feature_embedding(negative_sample_union.view(-1)).view(batch_size, 1, negative_size, -1)
                 negative_feature = self.scale(negative_feature)
                 negative_feature = convert_to_feature(negative_feature)
 
-                negative_union_logit = self.cal_logit(negative_feature, all_union_feature, all_union_logic)
+                negative_union_logit = self.scoring_entity(negative_feature, all_union_feature, all_union_logic)
                 negative_union_logit = torch.max(negative_union_logit, dim=1)[0]
             else:
                 negative_union_logit = torch.Tensor([]).to(self.entity_feature_embedding.device)
@@ -248,6 +293,62 @@ class FLEX(nn.Module):
             negative_logit = None
 
         return positive_logit, negative_logit, subsampling_weight, all_idxs + all_union_idxs
+
+    def forward_predict(self, query_name: str, query_tensor: torch.Tensor, answer: torch.Tensor) -> torch.Tensor:
+        # query_tensor  # (B, L), B for batch size, L for query args length
+        # answer  # (B, N)
+        query_structure = name_query_dict[query_name]
+        if 'u' in query_name and 'DNF' in query_name:
+            feature, logic, _ = self.embed_query(self.transform_union_query(query_tensor, query_structure),
+                                                 self.transform_union_structure(query_structure),
+                                                 0)
+            feature = feature.view(-1, 2, 1, self.entity_dim)
+            logic = logic.view(-1, 2, 1, self.entity_dim)
+            return self.scoring_to_answers(answer, feature, logic, DNF_predict=True)
+        else:
+            feature, logic, _ = self.embed_query(query_tensor, query_structure, 0)
+            feature = feature.view(-1, 1, 1, self.entity_dim)
+            logic = logic.view(-1, 1, 1, self.entity_dim)
+            return self.scoring_to_answers(answer, feature, logic, DNF_predict=False)
+
+    def forward_predict_2(self, query_name: str, query_tensor: torch.Tensor,
+                          positive_answer: torch.Tensor, negative_answer: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # query_tensor  # (B, L), B for batch size, L for query args length
+        # answer  # (B, N)
+        query_structure = name_query_dict[query_name]
+        if 'u' in query_name and 'DNF' in query_name:
+            feature, logic, _ = self.embed_query(self.transform_union_query(query_tensor, query_structure),
+                                                 self.transform_union_structure(query_structure),
+                                                 0)
+            feature = feature.view(-1, 2, 1, self.entity_dim)
+            logic = logic.view(-1, 2, 1, self.entity_dim)
+            return self.scoring_to_answers(positive_answer, feature, logic, DNF_predict=True),\
+                   self.scoring_to_answers(negative_answer, feature, logic, DNF_predict=True)
+        else:
+            feature, logic, _ = self.embed_query(query_tensor, query_structure, 0)
+            feature = feature.view(-1, 1, 1, self.entity_dim)
+            logic = logic.view(-1, 1, 1, self.entity_dim)
+            return self.scoring_to_answers(positive_answer, feature, logic, DNF_predict=False),\
+                   self.scoring_to_answers(negative_answer, feature, logic, DNF_predict=False)
+
+    def entity_feature(self, idx):
+        return convert_to_feature(self.scale(self.entity_feature_embedding(idx)))
+
+    def scoring_to_answers(self, answer_ids: torch.Tensor, feature: torch.Tensor, logic: torch.Tensor, DNF_predict=False):
+        """
+        B for batch size
+        N for negative sampling size (maybe N=1 when positive samples only)
+        answer_ids:   (B, N) int
+        all_predict:  (B, 1, 1, dt) or (B, 2, 1, dt) float
+        return score: (B, N) float
+        """
+        answer_feature = self.entity_feature(answer_ids).unsqueeze(dim=1)  # (B, 1, N, d)
+        scores = self.scoring_entity(answer_feature, feature, logic)  # (B, 1, N) or (B, 2, N)
+        if DNF_predict:
+            scores = torch.max(scores, dim=1)[0]  # (B, N)
+        else:
+            scores = scores.squeeze(dim=1)  # (B, N)
+        return scores  # (B, N)
 
     def embed_query(self, queries: torch.Tensor, query_structure, idx: int):
         """
@@ -275,7 +376,7 @@ class FLEX(nn.Module):
             # 所以对 query_structure 的索引只有 0 (左) 和 -1 (右)
             if query_structure[0] == 'e':
                 # 嵌入实体
-                feature_entity_embedding = torch.index_select(self.entity_feature_embedding, dim=0, index=queries[:, idx])
+                feature_entity_embedding = self.entity_feature_embedding(queries[:, idx])
                 feature_entity_embedding = self.scale(feature_entity_embedding)
                 feature_entity_embedding = convert_to_feature(feature_entity_embedding)
 
@@ -297,11 +398,11 @@ class FLEX(nn.Module):
 
                 # projection
                 else:
-                    r_feature = torch.index_select(self.relation_feature_embedding, dim=0, index=queries[:, idx])
+                    r_feature = self.relation_feature_embedding(queries[:, idx])
                     r_feature = self.scale(r_feature)
                     r_feature = convert_to_feature(r_feature)
 
-                    r_logic = torch.index_select(self.relation_logic_embedding, dim=0, index=queries[:, idx])
+                    r_logic = self.relation_logic_embedding(queries[:, idx])
                     r_logic = self.scale(r_logic)
                     r_logic = convert_to_feature(r_logic)
 
@@ -333,43 +434,45 @@ class FLEX(nn.Module):
 
     # implement distance function
     def distance(self, entity_feature, query_feature, query_logic):
-        # inner distance 这里 sin(x) 近似为 L1 范数
-        distance2feature = torch.abs(entity_feature - query_feature)
+        d_center = entity_feature - query_feature
+        d_left = entity_feature - (query_feature - query_logic)
+        d_right = entity_feature - (query_feature + query_logic)
+
+        # inner distance
+        feature_distance = torch.abs(d_center)
         distance_base = torch.abs(query_logic)
-        distance_in = torch.min(distance2feature, distance_base)
+        inner_distance = torch.min(feature_distance, distance_base)
 
         # outer distance
-        delta1 = entity_feature - (query_feature - query_logic)
-        delta2 = entity_feature - (query_feature + query_logic)
-        indicator_in = distance2feature < distance_base
-        distance_out = torch.min(torch.abs(delta1), torch.abs(delta2))
-        distance_out[indicator_in] = 0.
+        indicator_in = feature_distance < distance_base
+        outer_distance = torch.min(torch.abs(d_left), torch.abs(d_right))
+        outer_distance[indicator_in] = 0.
 
-        distance = torch.norm(distance_out, p=1, dim=-1) + self.cen * torch.norm(distance_in, p=1, dim=-1)
+        distance = torch.norm(outer_distance, p=1, dim=-1) + self.cen * torch.norm(inner_distance, p=1, dim=-1)
         return distance
 
-    def cal_logit(self, entity_feature, query_feature, query_logic):
-        distance_1 = self.distance(entity_feature, query_feature, query_logic)
-        logit = self.gamma - distance_1 * self.modulus
-        return logit
+    def scoring_entity(self, entity_feature, query_feature, query_logic):
+        distance = self.distance(entity_feature, query_feature, query_logic)
+        score = self.gamma - distance * self.modulus
+        return score
 
     def transform_union_query(self, queries, query_structure: QueryStructure):
         """
         transform 2u queries to two 1p queries
         transform up queries to two 2p queries
         """
-        if self.query_name_dict[query_structure] == '2u-DNF':
+        if query_name_dict[query_structure] == '2u-DNF':
             queries = queries[:, :-1]  # remove union -1
-        elif self.query_name_dict[query_structure] == 'up-DNF':
+        elif query_name_dict[query_structure] == 'up-DNF':
             queries = torch.cat([torch.cat([queries[:, :2], queries[:, 5:6]], dim=1),
                                  torch.cat([queries[:, 2:4], queries[:, 5:6]], dim=1)], dim=1)
         queries = torch.reshape(queries, [queries.shape[0] * 2, -1])
         return queries
 
     def transform_union_structure(self, query_structure: QueryStructure) -> QueryStructure:
-        if self.query_name_dict[query_structure] == '2u-DNF':
+        if query_name_dict[query_structure] == '2u-DNF':
             return 'e', ('r',)
-        elif self.query_name_dict[query_structure] == 'up-DNF':
+        elif query_name_dict[query_structure] == 'up-DNF':
             return 'e', ('r', 'r')
 
 
@@ -390,25 +493,29 @@ class MyExperiment(Experiment):
                  lr, tasks, evaluate_union, cpu_num,
                  hidden_dim, input_dropout, gamma, center_reg, local_rank
                  ):
-        super(MyExperiment, self).__init__(output, local_rank=0)
-        self.log(f"{locals()}")
+        super(MyExperiment, self).__init__(output, local_rank)
+        if local_rank == 0:
+            self.log(f"{locals()}")
 
         self.model_param_store.save_scripts([__file__])
         nentity = data.nentity
         nrelation = data.nrelation
-        self.log('-------------------------------' * 3)
-        self.log('# entity: %d' % nentity)
-        self.log('# relation: %d' % nrelation)
-        self.log('# max steps: %d' % max_steps)
-        self.log('Evaluate unoins using: %s' % evaluate_union)
-
-        self.log("loading data")
         nprocs = torch.cuda.device_count()
         self.nprocs = nprocs
+        world_size = nprocs  # TODO 暂时用单机多卡。多机多卡需要重新设置
+        self.world_size = world_size
         dist.init_process_group(backend='nccl')
         torch.cuda.set_device(local_rank)
-        batch_size = batch_size // nprocs
-        test_batch_size = test_batch_size // nprocs
+        # batch_size = batch_size // nprocs
+        # test_batch_size = test_batch_size // nprocs
+        if local_rank == 0:
+            self.log('-------------------------------' * 3)
+            self.log('# entity: %d' % nentity)
+            self.log('# relation: %d' % nrelation)
+            self.log('# max steps: %d' % max_steps)
+            self.log('Evaluate unoins using: %s' % evaluate_union)
+            self.log("loading data")
+
         # 1. build train dataset
         train_queries = data.train_queries
         train_answers = data.train_answers
@@ -419,9 +526,16 @@ class MyExperiment(Experiment):
         test_hard_answers = data.test_hard_answers
         test_easy_answers = data.test_easy_answers
 
-        self.log("Training info:")
-        for query_structure in train_queries:
-            self.log(query_name_dict[query_structure] + ": " + str(len(train_queries[query_structure])))
+        if local_rank == 0:
+            self.log("Training info:")
+            for query_structure in train_queries:
+                self.log(query_name_dict[query_structure] + ": " + str(len(train_queries[query_structure])))
+            self.log("Validation info:")
+            for query_structure in valid_queries:
+                self.log(query_name_dict[query_structure] + ": " + str(len(valid_queries[query_structure])))
+            self.log("Test info:")
+            for query_structure in test_queries:
+                self.log(query_name_dict[query_structure] + ": " + str(len(test_queries[query_structure])))
 
         train_path_queries = defaultdict(set)
         train_other_queries = defaultdict(set)
@@ -432,49 +546,47 @@ class MyExperiment(Experiment):
             else:
                 train_other_queries[query_structure] = train_queries[query_structure]
         train_path_queries = flatten_query(train_path_queries)
+        train_path_dataset = DistributedTrainDataset(train_path_queries, nentity, nrelation, negative_sample_size, train_answers)
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-            TrainDataset(train_path_queries, nentity, nrelation, negative_sample_size, train_answers),
-            sampler=DistributedSampler(TrainDataset(train_path_queries, nentity, nrelation, negative_sample_size, train_answers)),
+            train_path_dataset,
+            sampler=DistributedSampler(train_path_dataset),
             batch_size=batch_size,
             # shuffle=True,
             num_workers=cpu_num,
-            collate_fn=TrainDataset.collate_fn
+            collate_fn=DistributedTrainDataset.collate_fn
         ))
         if len(train_other_queries) > 0:
             train_other_queries = flatten_query(train_other_queries)
+            train_other_dataset = DistributedTrainDataset(train_other_queries, nentity, nrelation, negative_sample_size, train_answers)
             train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                TrainDataset(train_other_queries, nentity, nrelation, negative_sample_size, train_answers),
-                sampler=DistributedSampler(TrainDataset(train_other_queries, nentity, nrelation, negative_sample_size, train_answers)),
+                train_other_dataset,
+                sampler=DistributedSampler(train_other_dataset),
                 batch_size=batch_size,
                 # shuffle=True,
                 num_workers=cpu_num,
-                collate_fn=TrainDataset.collate_fn
+                collate_fn=DistributedTrainDataset.collate_fn
             ))
         else:
             train_other_iterator = None
 
-        self.log("Validation info:")
-        for query_structure in valid_queries:
-            self.log(query_name_dict[query_structure] + ": " + str(len(valid_queries[query_structure])))
         valid_queries = flatten_query(valid_queries)
+        valid_dataset = DistributedTestDataset(valid_queries, nentity, nrelation, valid_easy_answers, valid_hard_answers)
         valid_dataloader = DataLoader(
-            TestDataset(valid_queries, nentity, nrelation),
-            sampler=DistributedSampler(TestDataset(valid_queries, nentity, nrelation)),
+            valid_dataset,
+            sampler=DistributedSampler(valid_dataset),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
-            collate_fn=TestDataset.collate_fn
+            collate_fn=DistributedTestDataset.collate_fn
         )
 
-        self.log("Test info:")
-        for query_structure in test_queries:
-            self.log(query_name_dict[query_structure] + ": " + str(len(test_queries[query_structure])))
         test_queries = flatten_query(test_queries)
+        test_dataset = DistributedTestDataset(test_queries, nentity, nrelation, test_easy_answers, test_hard_answers)
         test_dataloader = DataLoader(
-            TestDataset(test_queries, nentity, nrelation),
-            sampler=DistributedSampler(TestDataset(test_queries, nentity, nrelation)),
+            test_dataset,
+            sampler=DistributedSampler(test_dataset),
             batch_size=test_batch_size,
             num_workers=cpu_num // 2,
-            collate_fn=TestDataset.collate_fn
+            collate_fn=DistributedTestDataset.collate_fn
         )
 
         # 2. build model
@@ -484,8 +596,6 @@ class MyExperiment(Experiment):
             hidden_dim=hidden_dim,
             gamma=gamma,
             center_reg=center_reg,
-            test_batch_size=test_batch_size,
-            query_name_dict=query_name_dict,
             drop=input_dropout,
         ).cuda(local_rank)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
@@ -496,35 +606,38 @@ class MyExperiment(Experiment):
                 start_step, _, best_score = self.model_param_store.load_by_score(model, opt, resume_by_score)
             else:
                 start_step, _, best_score = self.model_param_store.load_best(model, opt)
-            self.dump_model(model)
-            model.eval()
-            with torch.no_grad():
-                self.debug("Resumed from score %.4f." % best_score)
-                self.debug("Take a look at the performance after resumed.")
-                self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, local_rank)
-                best_score = self.visual_result(start_step + 1, result, "Valid")
-                self.debug("Test (step: %d):" % start_step)
-                result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, local_rank)
-                best_test_score = self.visual_result(start_step + 1, result, "Test")
+            if local_rank == 0:
+                self.dump_model(model)
+                model.eval()
+                with torch.no_grad():
+                    self.debug("Resumed from score %.4f." % best_score)
+                    self.debug("Take a look at the performance after resumed.")
+                    self.debug("Validation (step: %d):" % start_step)
+                    result = self.evaluate(model, valid_dataloader, local_rank)
+                    best_score, _ = self.visual_result(start_step + 1, result, "Valid")
+                    self.debug("Test (step: %d):" % start_step)
+                    result = self.evaluate(model, test_dataloader, local_rank)
+                    best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
-            self.dump_model(model)
-        model = DistributedDataParallel(model, device_ids=[local_rank])
+            if local_rank == 0:
+                self.dump_model(model)
+        model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
 
         current_learning_rate = lr
-        hyper = {
-            'center_reg': center_reg,
-            'tasks': tasks,
-            'learning_rate': lr,
-            'batch_size': batch_size,
-            "hidden_dim": hidden_dim,
-            "gamma": gamma,
-        }
-        self.metric_log_store.add_hyper(hyper)
-        for k, v in hyper.items():
-            self.log(f'{k} = {v}')
-        self.metric_log_store.add_progress(max_steps)
+        if local_rank == 0:
+            hyper = {
+                'center_reg': center_reg,
+                'tasks': tasks,
+                'learning_rate': lr,
+                'batch_size': batch_size,
+                "hidden_dim": hidden_dim,
+                "gamma": gamma,
+            }
+            self.metric_log_store.add_hyper(hyper)
+            for k, v in hyper.items():
+                self.log(f'{k} = {v}')
+            self.metric_log_store.add_progress(max_steps)
         warm_up_steps = max_steps // 2
 
         # 3. training
@@ -540,14 +653,16 @@ class MyExperiment(Experiment):
                     self.vis.add_scalar('other_' + metric, log[metric], step)
                 log = self.train(model, opt, train_path_iterator, step, local_rank)
 
-            progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
+            if local_rank == 0:
+                progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
             if (step + 1) % 10 == 0:
                 self.metric_log_store.add_loss(log, step + 1)
 
             if (step + 1) >= warm_up_steps:
                 current_learning_rate = current_learning_rate / 5
-                print("")
-                self.log('Change learning_rate to %f at step %d' % (current_learning_rate, step))
+                if local_rank == 0:
+                    print("")
+                    self.log('Change learning_rate to %f at step %d' % (current_learning_rate, step))
                 opt = torch.optim.Adam(
                     filter(lambda p: p.requires_grad, model.parameters()),
                     lr=current_learning_rate
@@ -557,146 +672,175 @@ class MyExperiment(Experiment):
             if (step + 1) % every_valid_step == 0:
                 model.eval()
                 with torch.no_grad():
-                    print("")
-                    self.debug("Validation (step: %d):" % (step + 1))
-                    result = self.evaluate(model, valid_easy_answers, valid_hard_answers, valid_dataloader, test_batch_size, local_rank)
-                    score = self.visual_result(step + 1, result, "Valid")
-                    if score >= best_score:
-                        self.success("current score=%.4f > best score=%.4f" % (score, best_score))
-                        best_score = score
-                        self.debug("saving best score %.4f" % score)
-                        self.metric_log_store.add_best_metric({"result": result}, "Valid")
-                        self.model_param_store.save_best(model, opt, step, 0, score)
-                    else:
-                        self.model_param_store.save_by_score(model, opt, step, 0, score)
-                        self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
+                    if local_rank == 0:
+                        print("")
+                        self.debug("Validation (step: %d):" % (step + 1))
+                    result = self.evaluate(model, valid_dataloader, local_rank)
+                    if local_rank == 0:
+                        score, row_results = self.visual_result(step + 1, result, "Valid")
+                        if score >= best_score:
+                            self.success("current score=%.4f > best score=%.4f" % (score, best_score))
+                            best_score = score
+                            self.metric_log_store.add_best_metric({"result": result}, "Valid")
+                            self.debug("saving best score %.4f" % score)
+                            self.model_param_store.save_best(model, opt, step, 0, score)
+                            self.latex_store.save_best_valid_result(row_results)
+                        else:
+                            self.model_param_store.save_by_score(model, opt, step, 0, score)
+                            self.latex_store.save_valid_result_by_score(row_results, score)
+                            self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
             if (step + 1) % every_test_step == 0:
                 model.eval()
                 with torch.no_grad():
-                    print("")
-                    self.debug("Test (step: %d):" % (step + 1))
-                    result = self.evaluate(model, test_easy_answers, test_hard_answers, test_dataloader, test_batch_size, local_rank)
-                    score = self.visual_result(step + 1, result, "Test")
-                    if score >= best_test_score:
-                        best_test_score = score
-                        self.metric_log_store.add_best_metric({"result": result}, "Test")
-                    print("")
-        self.metric_log_store.finish()
+                    if local_rank == 0:
+                        print("")
+                        self.debug("Test (step: %d):" % (step + 1))
+                    result = self.evaluate(model, test_dataloader, local_rank)
+                    if local_rank == 0:
+                        score, row_results = self.visual_result(step + 1, result, "Test")
+                        self.latex_store.save_test_result_by_score(row_results, score)
+                        if score >= best_test_score:
+                            best_test_score = score
+                            self.latex_store.save_best_test_result(row_results)
+                            self.metric_log_store.add_best_metric({"result": result}, "Test")
+                        print("")
+        if local_rank == 0:
+            self.metric_log_store.finish()
 
-    def train(self, model, optimizer, train_iterator, step, device):
+    def train(self, model, optimizer, train_iterator, step, device: Union[str, int] = "cuda:0"):
         model.train()
         model.cuda(device)
 
-        positive_sample, negative_sample, subsampling_weight, batch_queries, query_structures = next(train_iterator)
-        batch_queries_dict: Dict[List[str], list] = collections.defaultdict(list)
-        batch_idxs_dict: Dict[List[str], List[int]] = collections.defaultdict(list)
-        batch_queries_tensor_dict = {}
-        for i, query in enumerate(batch_queries):  # group queries with same structure
-            batch_queries_dict[query_structures[i]].append(query)
-            batch_idxs_dict[query_structures[i]].append(i)
-        for query_structure in batch_queries_dict:
-            batch_queries_tensor_dict[query_structure] = torch.LongTensor(batch_queries_dict[query_structure]).cuda(device, non_blocking=True)
-        positive_sample = positive_sample.cuda(device, non_blocking=True)
-        negative_sample = negative_sample.cuda(device, non_blocking=True)
-        subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
+        data_list = next(train_iterator)
+        cuda_data_list = []
+        for query_name, query_tensor, positive_answer, negative_answer, subsampling_weight in data_list:
+            query_tensor = query_tensor.cuda(device, non_blocking=True)
+            positive_answer = positive_answer.cuda(device, non_blocking=True)
+            negative_answer = negative_answer.cuda(device, non_blocking=True)
+            subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
+            cuda_data_list.append((query_name, query_tensor, positive_answer, negative_answer, subsampling_weight))
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_sample, negative_sample, subsampling_weight, batch_queries_tensor_dict, batch_idxs_dict)
+        positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
 
-        negative_score = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_score = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_score).sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum()
-        positive_sample_loss /= subsampling_weight.sum()
-        negative_sample_loss /= subsampling_weight.sum()
+        negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
+        positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
+        positive_sample_loss = - (subsampling_weight * positive_sample_loss).sum() / subsampling_weight.sum()
+        negative_sample_loss = - (subsampling_weight * negative_sample_loss).sum() / subsampling_weight.sum()
 
         loss = (positive_sample_loss + negative_sample_loss) / 2
+
+        torch.distributed.barrier()
+        log = {
+            'positive_sample_loss': reduce_mean(positive_sample_loss, self.nprocs).item(),
+            'negative_sample_loss': reduce_mean(negative_sample_loss, self.nprocs).item(),
+            'loss': reduce_mean(loss, self.nprocs).item(),
+        }
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        torch.distributed.barrier()
-        loss = reduce_mean(loss, self.nprocs)
-        positive_sample_loss = reduce_mean(positive_sample_loss, self.nprocs)
-        negative_sample_loss = reduce_mean(negative_sample_loss, self.nprocs)
-
-        log = {
-            'positive_sample_loss': positive_sample_loss.item(),
-            'negative_sample_loss': negative_sample_loss.item(),
-            'loss': loss.item(),
-        }
         return log
 
-    def evaluate(self, model, easy_answers, hard_answers, test_dataloader, test_batch_size, device):
+    def evaluate(self, model, test_dataloader, device: Union[str, int] = "cuda:0"):
         model.cuda(device)
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
-        logs = collections.defaultdict(list)
+        logs = defaultdict(list)
         step = 0
         h10 = None
-        batch_queries_dict = collections.defaultdict(list)
-        batch_queries_tensor_dict = {}
-        batch_idxs_dict = collections.defaultdict(list)
-        for negative_sample, queries, queries_unflatten, query_structures in test_dataloader:
-            batch_queries_dict.clear()
-            batch_idxs_dict.clear()
-            for i, query in enumerate(queries):
-                batch_queries_dict[query_structures[i]].append(query)
-                batch_idxs_dict[query_structures[i]].append(i)
-            for query_structure in batch_queries_dict:
-                batch_queries_tensor_dict[query_structure] = torch.LongTensor(batch_queries_dict[query_structure]).cuda(device, non_blocking=True)
-            negative_sample = negative_sample.cuda(device, non_blocking=True)
+        for data_list, grouped_easy_answer, grouped_hard_answer in test_dataloader:
+            cuda_data_list = []
+            for query_name, query_tensor, candidate_answer in data_list:
+                query_tensor = query_tensor.cuda(device, non_blocking=True)
+                candidate_answer = candidate_answer.cuda(device, non_blocking=True)
+                cuda_data_list.append((query_name, query_tensor, candidate_answer))
 
-            _, negative_logit, _, idxs = model(None, negative_sample, None, batch_queries_tensor_dict, batch_idxs_dict)
-            queries_unflatten = [queries_unflatten[i] for i in idxs]
-            query_structures = [query_structures[i] for i in idxs]
-            argsort = torch.argsort(negative_logit, dim=1, descending=True)
-            ranking = argsort.float()
-            if len(argsort) == test_batch_size:
-                # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
-                ranking = ranking.scatter_(1, argsort, model.batch_entity_range.cuda(device))  # achieve the ranking of all entities
-            else:
-                # otherwise, create a new torch Tensor for batch_entity_range
-                ranking = ranking.scatter_(1,
-                                           argsort,
-                                           torch.arange(model.nentity).float().repeat(argsort.shape[0], 1).cuda(device)
-                                           )  # achieve the ranking of all entities
-            for idx, (i, query, query_structure) in enumerate(zip(argsort[:, 0], queries_unflatten, query_structures)):
-                hard_answer = hard_answers[query]
-                easy_answer = easy_answers[query]
-                num_hard = len(hard_answer)
-                num_easy = len(easy_answer)
-                assert len(hard_answer.intersection(easy_answer)) == 0
-                cur_ranking = ranking[idx, list(easy_answer) + list(hard_answer)]
-                cur_ranking, indices = torch.sort(cur_ranking)
-                masks = indices >= num_easy
-                answer_list = torch.arange(num_hard + num_easy).float().cuda(device)
-                cur_ranking = cur_ranking - answer_list + 1  # filtered setting
-                cur_ranking = cur_ranking[masks]  # only take indices that belong to the hard answers
+            grouped_score = model(None, cuda_data_list)
+            for query_name in grouped_score:
+                score = grouped_score[query_name]
+                easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
+                hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
+                score[easy_answer_mask] = -float('inf')  # we remove easy answer, because easy answer may exist in training set
+                ranking = score.argsort(dim=1, descending=True).cpu()  # sorted idx (B, N)
 
-                mrr = torch.mean(1. / cur_ranking).item()
-                h1 = torch.mean((cur_ranking <= 1).float()).item()
-                h3 = torch.mean((cur_ranking <= 3).float()).item()
-                h10 = torch.mean((cur_ranking <= 10).float()).item()
-                query_structure_name = query_name_dict[query_structure]
-                logs[query_structure_name].append({
-                    'MRR': mrr,
-                    'hits@1': h1,
-                    'hits@3': h3,
-                    'hits@10': h10,
-                    'hard': num_hard,
+                ranks = []
+                hits = []
+                for i in range(10):
+                    hits.append([])
+                num_queries = ranking.shape[0]
+                for i in range(num_queries):
+                    for answer_id in hard_answer[i]:
+                        rank = torch.where(ranking[i] == answer_id)[0][0]
+                        ranks.append(1 / (rank + 1))
+                        for hits_level in range(10):
+                            hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
+                mrr = torch.mean(torch.FloatTensor(ranks)).item()
+                h1 = torch.mean(torch.FloatTensor(hits[0])).item()
+                h3 = torch.mean(torch.FloatTensor(hits[2])).item()
+                h10 = torch.mean(torch.FloatTensor(hits[9])).item()
+                logs[query_name].append({
+                    'MRR': ranks,
+                    'hits@1': hits[0],
+                    'hits@2': hits[1],
+                    'hits@3': hits[2],
+                    'hits@5': hits[4],
+                    'hits@10': hits[9],
+                    'num_queries': num_queries,
                 })
 
-            step += 1
-            progbar.update(step, [("Hits @10", h10)])
+            if device == 0:
+                step += 1
+                progbar.update(step, [("MRR", mrr), ("Hits @10", h10)])
 
-        metrics = collections.defaultdict(lambda: collections.defaultdict(int))
-        for query_structure_name in logs:
-            for metric in logs[query_structure_name][0].keys():
-                if metric in ['hard']:
+        # sync and reduce
+        # 分布式评估 很麻烦，多任务学习的分布式评估更麻烦，因为每个进程采样到的任务数不一样
+        # 下面这坨就是在绝对视野里强行对齐所有进程的任务结果，进行 reduce，最后汇总给 rank=0 的 master node 展示到命令行
+        torch.distributed.barrier()  # 所有进程运行到这里时，都等待一下，直到所有进程都在这行，然后一起同时往后分别运行
+        query_name_keys = []
+        metric_name_keys = []
+        all_tensors = []
+        metric_names = list(logs[list(logs.keys())[0]][0].keys())
+        for query_name in all_tasks:  # test_query_structures 内是所有任务
+            for metric_name in metric_names:
+                query_name_keys.append(query_name)
+                metric_name_keys.append(metric_name)
+                if query_name in logs:
+                    if metric_name == "num_queries":
+                        value = sum([log[metric_name] for log in logs[query_name]])
+                        all_tensors.append([value, 1])
+                    else:
+                        values = []
+                        for log in logs[query_name]:
+                            values.extend(log[metric_name])
+                        all_tensors.append([sum(values), len(values)])
+                else:
+                    all_tensors.append([0, 1])
+        all_tensors = torch.FloatTensor(all_tensors).to(device)
+        metrics = defaultdict(lambda: defaultdict(float))
+        dist.reduce(all_tensors, dst=0)  # 再次同步，每个进程都分享自己的 all_tensors 给其他进程，每个进程都看到所有数据了
+        # 每个进程看到的数据都是所有数据的和，如果有 n 个进程，则有 all_tensors = 0.all_tensors + 1.all_tensors + ... + n.all_tensors
+        if dist.get_rank() == 0:  # 我们只在 master 节点上处理，其他进程的结果丢弃了
+            # 1. store to dict
+            m = defaultdict(lambda: defaultdict(lambda x:[0, 1]))
+            for query_name, metric, value in zip(query_name_keys, metric_name_keys, all_tensors):
+                m[query_name][metric] = value
+            # 2. delete empty query
+            del_query = []
+            for query_name in m:
+                if m[query_name]["num_queries"][0] == 0:
+                    del_query.append(query_name)
+            for query_name in del_query:
+                del m[query_name]
+                query_name_keys.remove(query_name)
+            # 3. correct values
+            for query_name, metric in zip(query_name_keys, metric_name_keys):
+                if query_name not in m:
                     continue
-                metrics[query_structure_name][metric] = sum([log[metric] for log in logs[query_structure_name]]) / len(logs[query_structure_name])
-            metrics[query_structure_name]['num_queries'] = len(logs[query_structure_name])
+                value = m[query_name][metric]
+                if metric == "num_queries":
+                    metrics[query_name][metric] = int(value[0])
+                else:
+                    metrics[query_name][metric] = value[0] / value[1]
 
         return metrics
 
@@ -725,7 +869,7 @@ class MyExperiment(Experiment):
         for row in average_metrics:
             cell = average_metrics[row]
             row_results[row].append(cell)
-        for col in result:
+        for col in sorted(result):
             row_results[header].append(col)
             col_data = result[col]
             for row in col_data:
@@ -743,8 +887,9 @@ class MyExperiment(Experiment):
         for i in row_results:
             row = row_results[i]
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
+
         score = average_metrics["MRR"]
-        return score
+        return score, row_results
 
 
 @click.command()

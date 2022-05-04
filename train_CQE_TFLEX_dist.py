@@ -384,7 +384,6 @@ class TemporalUnion(nn.Module):
 
 class FLEX(nn.Module):
     def __init__(self, nentity, nrelation, ntimestamp, hidden_dim, gamma,
-                 test_batch_size=1,
                  center_reg=None, drop: float = 0.):
         super(FLEX, self).__init__()
         self.nentity = nentity
@@ -420,7 +419,6 @@ class FLEX(nn.Module):
         self.time_after = TemporalAfter(hidden_dim)
         self.time_next = TemporalNext(hidden_dim, get_timestamps_delta=lambda: self.timestamp_delta.detach(), get_timestamps_origin=lambda: self.timestamp_origin.detach())
 
-        self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
         self.epsilon = 2.0
         self.gamma = nn.Parameter(torch.Tensor([gamma]), requires_grad=False)
         self.embedding_range = nn.Parameter(torch.Tensor([(self.gamma.item() + self.epsilon) / hidden_dim]), requires_grad=False)
@@ -650,8 +648,8 @@ class FLEX(nn.Module):
 
     def forward_train(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]):
         positive_scores, negative_scores, subsampling_weights = [], [], []
-        for query_structure, query, positive_answer, negative_answer, subsampling_weight in data_list:
-            positive_score, negative_score = self.forward_predict_2(query_structure, query, positive_answer, negative_answer)
+        for query_name, query, positive_answer, negative_answer, subsampling_weight in data_list:
+            positive_score, negative_score = self.forward_predict_2(query_name, query, positive_answer, negative_answer)
             positive_scores.append(positive_score)
             negative_scores.append(negative_score)
             subsampling_weights.append(subsampling_weight)
@@ -660,7 +658,7 @@ class FLEX(nn.Module):
         subsampling_weights = torch.cat(subsampling_weights, dim=0)
         return positive_scores, negative_scores, subsampling_weights
 
-    def forward_test(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor]]) -> Dict[QueryStructure, torch.Tensor]:
+    def forward_test(self, data_list: List[Tuple[str, torch.Tensor, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """
         return {"Pe": (B, L) }
         L 是答案个数，[预测实体]和[预测时间戳]的答案个数不一样，所以不能对齐合并
@@ -669,10 +667,10 @@ class FLEX(nn.Module):
         """
         grouped_score = {}
 
-        for query_structure, query, answer in data_list:
+        for query_name, query, answer in data_list:
             # query (B, L), B for batch size, L for query args length
             # answer (B, N)
-            grouped_score[query_structure] = self.forward_predict(query_structure, query, answer)
+            grouped_score[query_name] = self.forward_predict(query_name, query, answer)
 
         return grouped_score
 
@@ -838,7 +836,7 @@ class FLEX(nn.Module):
             func = self.parser.fast_function(query_name + "_DNF")
             embedding_of_args = self.embed_args(query_args, query_tensor)
             predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
-            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1).unsqueeze(dim=2) for x, y in zip(predict_1, predict_2)])  # (B, 1, 1, dt) or (B, 2, 1, dt)
+            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1).unsqueeze(dim=2) for x, y in zip(predict_1, predict_2)])  # (B, 2, 1, dt)
             if is_to_predict_entity_set(query_name):
                 return self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
             else:
@@ -848,7 +846,7 @@ class FLEX(nn.Module):
             func = self.parser.fast_function(query_name)
             embedding_of_args = self.embed_args(query_args, query_tensor)  # (B, d)*L
             predict = func(*embedding_of_args)  # (B, d)
-            all_predict: TYPE_token = tuple([i.unsqueeze(dim=1).unsqueeze(dim=1) for i in predict])  # (B, 1, 1, dt) or (B, 2, 1, dt)
+            all_predict: TYPE_token = tuple([i.unsqueeze(dim=1).unsqueeze(dim=1) for i in predict])  # (B, 1, 1, dt)
             if is_to_predict_entity_set(query_name):
                 return self.scoring_to_answers(answer, all_predict, predict_entity=True, DNF_predict=False)
             else:
@@ -1110,7 +1108,6 @@ class MyExperiment(Experiment):
             hidden_dim=hidden_dim,
             gamma=gamma,
             center_reg=center_reg,
-            test_batch_size=test_batch_size,
             drop=input_dropout,
         ).cuda(local_rank)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
@@ -1233,10 +1230,6 @@ class MyExperiment(Experiment):
             negative_answer = negative_answer.cuda(device, non_blocking=True)
             subsampling_weight = subsampling_weight.cuda(device, non_blocking=True)
             cuda_data_list.append((query_name, query_tensor, positive_answer, negative_answer, subsampling_weight))
-        # if device == 0:
-        #     print()
-        #     print("cuda_data_list", len(cuda_data_list), sum([i.shape[0] for _, i, _, _, _ in cuda_data_list]))
-        #     print()
 
         positive_logit, negative_logit, subsampling_weight = model(cuda_data_list, None)
 
