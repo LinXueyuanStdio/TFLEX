@@ -315,11 +315,6 @@ class CQD(nn.Module):
         self.do_sigmoid = do_sigmoid
         self.do_normalize = do_normalize
 
-        self.use_cuda = use_cuda
-        self.batch_entity_range = torch.arange(nentity).to(torch.float).repeat(test_batch_size, 1)
-        if use_cuda:
-            self.batch_entity_range = self.batch_entity_range.cuda()
-
     def init(self):
         # self.entity_embedding_a.weight.data *= self.init_size
         # self.entity_embedding_b.weight.data *= self.init_size
@@ -1074,6 +1069,8 @@ class MyExperiment(Experiment):
             do_normalize=cqd_sigmoid,
             use_cuda=True,
         ).to(train_device)
+        self.valid_batch_entity_range = torch.arange(nentity).float().repeat(valid_batch_size, 1).cuda()
+        self.test_batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1).cuda()
         opt = torch.optim.Adagrad(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         best_score = 0
         best_test_score = 0
@@ -1216,15 +1213,13 @@ class MyExperiment(Experiment):
             query_structures = [query_structures[i] for i in idxs]
             argsort = torch.argsort(negative_logit, dim=1, descending=True)
             ranking = argsort.float()
-            if len(argsort) == test_batch_size:
-                # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
-                ranking = ranking.scatter_(1, argsort, model.batch_entity_range.to(device))  # achieve the ranking of all entities
-            else:
-                # otherwise, create a new torch Tensor for batch_entity_range
-                ranking = ranking.scatter_(1,
-                                           argsort,
-                                           torch.arange(model.nentity).float().repeat(argsort.shape[0], 1).to(device)
-                                           )  # achieve the ranking of all entities
+            if len(argsort) == test_batch_size:  # if it is the same shape with test_batch_size, we can reuse batch_entity_range without creating a new one
+                batch_entity_range = self.valid_batch_entity_range if test_batch_size == len(self.valid_batch_entity_range) else self.test_batch_entity_range
+                ranking = ranking.scatter_(1, argsort, batch_entity_range)  # achieve the ranking of all entities
+            else:  # otherwise, create a new torch Tensor for batch_entity_range
+                scatter_src = torch.arange(model.nentity).float().repeat(argsort.shape[0], 1).cuda()
+                # achieve the ranking of all entities
+                ranking = ranking.scatter_(1, argsort, scatter_src)
             for idx, (i, query, query_structure) in enumerate(zip(argsort[:, 0], queries_unflatten, query_structures)):
                 hard_answer = hard_answers[query]
                 easy_answer = easy_answers[query]
