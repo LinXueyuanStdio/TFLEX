@@ -1153,8 +1153,6 @@ class MyExperiment(Experiment):
         for query_structure in batch_queries_dict:
             batch_queries_dict[query_structure] = torch.LongTensor(batch_queries_dict[query_structure]).to(device)
         positive_sample = positive_sample.to(device)
-        negative_sample = negative_sample.to(device)
-        subsampling_weight = subsampling_weight.to(device)
 
         input_batch = batch_queries_dict[('e', ('r',))]
         input_batch = torch.cat((input_batch, positive_sample.unsqueeze(1)), dim=1)
