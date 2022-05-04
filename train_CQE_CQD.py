@@ -8,7 +8,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import math
 from typing import Callable, Optional
 
@@ -282,14 +281,13 @@ class CQD(nn.Module):
                  rank: int,
                  init_size: float = 1e-3,
                  reg_weight: float = 1e-2,
-                 test_batch_size: int = 1,
                  method: str = 'discrete',
                  t_norm_name: str = 'prod',
                  k: int = 5,
                  query_name_dict: Optional[Dict] = None,
                  do_sigmoid: bool = False,
                  do_normalize: bool = False,
-                 use_cuda: bool = False):
+                 ):
         super(CQD, self).__init__()
 
         self.rank = rank
@@ -386,8 +384,7 @@ class CQD(nn.Module):
             factors.append(torch.sqrt(term[0] ** 2 + term[1] ** 2))
         return factors
 
-    def get_full_embeddings(self, queries: Tensor) \
-            -> Tuple[Optional[Tensor], Optional[Tensor], Optional[Tensor]]:
+    def get_full_embeddings(self, queries: Tensor) -> Tuple[Optional[Tensor], Optional[Tensor], Optional[Tensor]]:
         lhs = rel = rhs = None
         if torch.sum(queries[:, 0]).item() > 0:
             lhs = self.embeddings[0](queries[:, 0])
@@ -1059,7 +1056,6 @@ class MyExperiment(Experiment):
             nentity=nentity,
             nrelation=nrelation,
             rank=hidden_dim,
-            test_batch_size=test_batch_size,
             query_name_dict=query_name_dict,
             reg_weight=reg_weight,
             method=cqd_type,
@@ -1067,7 +1063,6 @@ class MyExperiment(Experiment):
             k=cqd_k,
             do_sigmoid=cqd_sigmoid,
             do_normalize=cqd_sigmoid,
-            use_cuda=True,
         ).to(train_device)
         self.valid_batch_entity_range = torch.arange(nentity).float().repeat(valid_batch_size, 1).cuda()
         self.test_batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1).cuda()
@@ -1125,7 +1120,7 @@ class MyExperiment(Experiment):
                 current_learning_rate = current_learning_rate / 5
                 print("")
                 self.log('Change learning_rate to %f at step %d' % (current_learning_rate, step))
-                opt = torch.optim.Adam(
+                opt = torch.optim.Adagrad(
                     filter(lambda p: p.requires_grad, model.parameters()),
                     lr=current_learning_rate
                 )
@@ -1166,8 +1161,8 @@ class MyExperiment(Experiment):
         optimizer.zero_grad()
 
         positive_sample, negative_sample, subsampling_weight, batch_queries, query_structures = next(train_iterator)
-        batch_queries_dict: Dict[List[str], list] = collections.defaultdict(list)
-        batch_idxs_dict: Dict[List[str], List[int]] = collections.defaultdict(list)
+        batch_queries_dict: Dict[List[str], list] = defaultdict(list)
+        batch_idxs_dict: Dict[List[str], List[int]] = defaultdict(list)
         for i, query in enumerate(batch_queries):  # group queries with same structure
             batch_queries_dict[query_structures[i]].append(query)
             batch_idxs_dict[query_structures[i]].append(i)
@@ -1193,11 +1188,11 @@ class MyExperiment(Experiment):
         model.to(device)
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
-        logs = collections.defaultdict(list)
+        logs = defaultdict(list)
         step = 0
         h10 = None
-        batch_queries_dict = collections.defaultdict(list)
-        batch_idxs_dict = collections.defaultdict(list)
+        batch_queries_dict = defaultdict(list)
+        batch_idxs_dict = defaultdict(list)
         for negative_sample, queries, queries_unflatten, query_structures in test_dataloader:
             batch_queries_dict.clear()
             batch_idxs_dict.clear()
@@ -1249,7 +1244,7 @@ class MyExperiment(Experiment):
             step += 1
             progbar.update(step, [("Hits @10", h10)])
 
-        metrics = collections.defaultdict(lambda: collections.defaultdict(int))
+        metrics = defaultdict(lambda: defaultdict(int))
         for query_structure_name in logs:
             for metric in logs[query_structure_name][0].keys():
                 if metric in ['hard']:
