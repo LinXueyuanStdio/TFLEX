@@ -301,9 +301,12 @@ class CQD(nn.Module):
         self.query_name_dict = query_name_dict
 
         sizes = (nentity, nrelation)
+        self.init_size = init_size
+        # self.entity_embedding_a = nn.Embedding(nentity, self.rank)
+        # self.entity_embedding_b = nn.Embedding(nentity, self.rank)
+        # self.relation_embedding_a = nn.Embedding(nrelation, self.rank)
+        # self.relation_embedding_b = nn.Embedding(nrelation, self.rank)
         self.embeddings = nn.ModuleList([nn.Embedding(s, 2 * rank, sparse=False) for s in sizes[:2]])
-        self.embeddings[0].weight.data *= init_size
-        self.embeddings[1].weight.data *= init_size
 
         self.init_size = init_size
         self.loss_fn = nn.CrossEntropyLoss(reduction='mean')
@@ -314,11 +317,16 @@ class CQD(nn.Module):
 
         self.use_cuda = use_cuda
         self.batch_entity_range = torch.arange(nentity).to(torch.float).repeat(test_batch_size, 1)
-        if self.use_cuda is True:
+        if use_cuda:
             self.batch_entity_range = self.batch_entity_range.cuda()
 
     def init(self):
-        pass
+        # self.entity_embedding_a.weight.data *= self.init_size
+        # self.entity_embedding_b.weight.data *= self.init_size
+        # self.relation_embedding_a.weight.data *= self.init_size
+        # self.relation_embedding_b.weight.data *= self.init_size
+        self.embeddings[0].weight.data *= self.init_size
+        self.embeddings[1].weight.data *= self.init_size
 
     def split(self,
               lhs_emb: Tensor,
@@ -334,6 +342,12 @@ class CQD(nn.Module):
         l_fit = self.loss_fn(scores_o, triples[:, 2]) + self.loss_fn(scores_s, triples[:, 0])
         l_reg = self.regularizer.forward(factors)
         return l_fit + l_reg
+
+    def embed_entity(self, idx: Tensor):
+        return self.entity_embedding_a(idx), self.entity_embedding_b(idx)
+
+    def embed_relation(self, idx: Tensor):
+        return self.relation_embedding_a(idx), self.relation_embedding_b(idx)
 
     def score_candidates(self, triples: Tensor) -> Tuple[Tuple[Tensor, Tensor], Optional[List[Tensor]]]:
         lhs_emb = self.embeddings[0](triples[:, 0])
@@ -985,6 +999,16 @@ class MyExperiment(Experiment):
         test_queries = data.test_queries
         test_hard_answers = data.test_hard_answers
         test_easy_answers = data.test_easy_answers
+
+        remove_query_names = ["2u-DM", "up-DM"]
+        for query_name in remove_query_names:
+            query_structure = name_query_dict[query_name]
+            if query_structure in train_queries:
+                del train_queries[query_structure]
+            if query_structure in valid_queries:
+                del valid_queries[query_structure]
+            if query_structure in test_queries:
+                del test_queries[query_structure]
 
         self.log("Training info:")
         for query_structure in train_queries:
