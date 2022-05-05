@@ -64,7 +64,7 @@ class ComplEx(nn.Module):
         factors = self.get_factors(ha, hb, ra, rb, ta, tb)
 
         loss = self.loss_fn(score_tail, t_idx) + self.loss_fn(score_head, h_idx) + self.regularizer(factors)
-        return -loss
+        return loss
 
     def score_head(self, ha, hb, ra, rb, ta, tb):
         score_1 = (ta * ra + tb * rb) @ ha.transpose(-1, -2)
