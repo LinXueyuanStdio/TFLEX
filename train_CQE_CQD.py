@@ -1156,9 +1156,6 @@ class MyExperiment(Experiment):
         self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
-        model.train()
-        model.to(device)
-        optimizer.zero_grad()
 
         positive_sample, negative_sample, subsampling_weight, batch_queries, query_structures = next(train_iterator)
         batch_queries_dict: Dict[List[str], list] = defaultdict(list)
@@ -1175,6 +1172,7 @@ class MyExperiment(Experiment):
         loss = model.loss(input_batch)
         positive_sample_loss = negative_sample_loss = loss
 
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         log = {
@@ -1185,7 +1183,6 @@ class MyExperiment(Experiment):
         return log
 
     def evaluate(self, model, easy_answers, hard_answers, test_dataloader, test_batch_size, device="cuda:0"):
-        model.to(device)
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
         logs = defaultdict(list)
