@@ -167,20 +167,20 @@ class MyExperiment(Experiment):
         for step in range(start_step, max_steps):
             model.train()
             losses = []
-            for h, r, t in train_dataloader:
-                opt.zero_grad()
-
+            progbar_step = Progbar(max_step=len(train_dataloader))
+            for idx, (h, r, t) in enumerate(train_dataloader):
                 h = h.to(train_device)
                 r = r.to(train_device)
                 t = t.to(train_device)
 
                 loss = model(h, r, t)
-                # print(loss)
-                # loss = loss + model.regular_loss(h, r)
-                losses.append(loss.item())
+
+                opt.zero_grad()
                 loss.backward()
                 opt.step()
-            # scheduler.step(step + 1)
+
+                losses.append(loss.item())
+                progbar.update(idx + 1, [("idx", idx + 1), ("loss", loss.item())])
             scheduler.step()
 
             log = {
