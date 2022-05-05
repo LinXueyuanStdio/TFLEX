@@ -58,13 +58,8 @@ class ComplEx(nn.Module):
         ra, rb = self.Ra(r_idx), self.Rb(r_idx)
         ta, tb = self.Ea(t_idx), self.Eb(t_idx)
         Ea, Eb = self.Ea.weight, self.Eb.weight
-        print(ha.shape, hb.shape)
-        print(ra.shape, rb.shape)
-        print(ta.shape, tb.shape)
-        print(Ea.shape, Eb.shape)
-        print()
 
-        score_tail = self.score_head(ha, hb, ra, rb, Ea, Eb)
+        score_tail = self.score_tail(ha, hb, ra, rb, Ea, Eb)
         score_head = self.score_head(Ea, Eb, ra, rb, ta, tb)
         factors = self.get_factors(ha, hb, ra, rb, ta, tb)
 
