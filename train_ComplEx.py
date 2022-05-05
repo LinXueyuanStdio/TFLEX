@@ -58,6 +58,11 @@ class ComplEx(nn.Module):
         ra, rb = self.Ra(r_idx), self.Rb(r_idx)
         ta, tb = self.Ea(t_idx), self.Eb(t_idx)
         Ea, Eb = self.Ea.weight, self.Eb.weight
+        print(ha.shape, hb.shape)
+        print(ra.shape, rb.shape)
+        print(ta.shape, tb.shape)
+        print(Ea.shape, Eb.shape)
+        print()
 
         score_tail = self.score_head(ha, hb, ra, rb, Ea, Eb)
         score_head = self.score_head(Ea, Eb, ra, rb, ta, tb)
@@ -73,7 +78,7 @@ class ComplEx(nn.Module):
 
     def score_tail(self, ha, hb, ra, rb, ta, tb):
         score_1 = (ha * ra - hb * rb) @ ta.transpose(-1, -2)
-        score_2 = (hb * ra + ha * rb) @ tb.transpose(-1, -2)
+        score_2 = (ha * rb + hb * ra) @ tb.transpose(-1, -2)
         return score_1 + score_2
 
     def get_factors(self, ha, hb, ra, rb, ta, tb) -> List[torch.Tensor]:
