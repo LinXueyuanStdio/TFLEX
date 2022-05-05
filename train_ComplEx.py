@@ -180,7 +180,7 @@ class MyExperiment(Experiment):
                 opt.step()
 
                 losses.append(loss.item())
-                progbar.update(idx + 1, [("idx", idx + 1), ("loss", loss.item())])
+                progbar_step.update(idx + 1, [("idx", idx + 1), ("loss", loss.item())])
             scheduler.step()
 
             log = {
