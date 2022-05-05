@@ -34,6 +34,7 @@ if __name__ == "__main__":
     result = {
         "1p_complex": average_metrics,
         "2p_complex": average_metrics,
+        "long_complex": average_metrics,
     }
     query_name_dict = {
         "1p_complex": "1p",
@@ -55,7 +56,7 @@ if __name__ == "__main__":
         elif isinstance(data, int):
             return "{0:^6d}  ".format(data)
         else:
-            return "{0:^6s}  ".format(data)
+            return "{0:^6s}  ".format(data[:6])
 
 
     for i in row_results:
