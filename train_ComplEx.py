@@ -172,7 +172,7 @@ class MyExperiment(Experiment):
 
                 h = h.to(train_device)
                 r = r.to(train_device)
-                t = t.to(train_device).float()
+                t = t.to(train_device)
 
                 loss = model(h, r, t)
                 # print(loss)
