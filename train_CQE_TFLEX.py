@@ -1140,7 +1140,7 @@ class MyExperiment(Experiment):
                         ranks.append(rank + 1)
                         for hits_level in range(10):
                             hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
-                mrr = 1 / torch.mean(torch.FloatTensor(ranks)).item()
+                mrr = torch.mean(1 / torch.FloatTensor(ranks)).item()
                 h1 = torch.mean(torch.FloatTensor(hits[0])).item()
                 h3 = torch.mean(torch.FloatTensor(hits[2])).item()
                 h10 = torch.mean(torch.FloatTensor(hits[9])).item()
