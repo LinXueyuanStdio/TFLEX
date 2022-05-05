@@ -205,8 +205,8 @@ class MyExperiment(Experiment):
                 "lr": torch.mean(torch.Tensor(scheduler.get_last_lr())).item(),
             }
 
-            print("")
             progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("lr", log["lr"])])
+            print("")
             for metric in log:
                 self.vis.add_scalar(metric, log[metric], step)
             self.metric_log_store.add_loss(log, step + 1)
