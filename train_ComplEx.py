@@ -66,6 +66,24 @@ class ComplEx(nn.Module):
         loss = self.loss_fn(score_tail, t_idx) + self.loss_fn(score_head, h_idx) + self.regularizer(factors)
         return loss
 
+    def scoring_head(self, r_idx, t_idx):
+        r_idx = r_idx.view(-1)
+        t_idx = t_idx.view(-1)
+        ra, rb = self.Ra(r_idx), self.Rb(r_idx)
+        ta, tb = self.Ea(t_idx), self.Eb(t_idx)
+        Ea, Eb = self.Ea.weight, self.Eb.weight
+        score = self.score_head(Ea, Eb, ra, rb, ta, tb)
+        return score
+
+    def scoring_tail(self, h_idx, r_idx):
+        h_idx = h_idx.view(-1)
+        r_idx = r_idx.view(-1)
+        ha, hb = self.Ea(h_idx), self.Eb(h_idx)
+        ra, rb = self.Ra(r_idx), self.Rb(r_idx)
+        Ea, Eb = self.Ea.weight, self.Eb.weight
+        score = self.score_tail(ha, hb, ra, rb, Ea, Eb)
+        return score
+
     def score_head(self, ha, hb, ra, rb, ta, tb):
         score_1 = (ta * ra + tb * rb) @ ha.transpose(-1, -2)
         score_2 = (tb * ra - ta * rb) @ hb.transpose(-1, -2)
@@ -134,7 +152,6 @@ class MyExperiment(Experiment):
         test_type_constraint_dataloader = DataLoader(test_type_constraint_data, batch_size=test_batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
         # 3. build model
-        # model = QubitE(data.entity_count, 2 * data.relation_count, edim, input_dropout=input_dropout, hidden_dropout=hidden_dropout).to(train_device)
         model = ComplEx(data.entity_count, data.relation_count * 2, edim, rdim).to(train_device)
         opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay, amsgrad=amsgrad)
         scheduler = get_scheduler(opt, lr_policy="step")
@@ -278,8 +295,8 @@ class MyExperiment(Experiment):
             t = t.to(device)
             reverse_r = reverse_r.to(device)
             mask_for_tReverser = mask_for_tReverser.to(device)
-            pred_tail = model(h, r)
-            pred_head = model(t, reverse_r)
+            pred_tail = model.scoring_tail(h, r)
+            pred_head = model.scoring_head(reverse_r, t)
             # pred_tail = (pred_tail[0] + pred_tail[1] + pred_tail[2] + pred_tail[3]) / 2
             # pred_head = (pred_head[0] + pred_head[1] + pred_head[2] + pred_head[3]) / 2
             return t, h, pred_tail, pred_head, mask_for_hr, mask_for_tReverser
