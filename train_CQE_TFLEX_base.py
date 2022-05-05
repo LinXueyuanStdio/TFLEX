@@ -398,8 +398,8 @@ class FLEX(nn.Module):
         self.time_intersection = TemporalIntersection(hidden_dim)
         self.time_union = TemporalUnion(hidden_dim)
         self.time_negation = TemporalNegation()
-        self.time_before = TemporalBefore()
-        self.time_after = TemporalAfter()
+        self.time_before = TemporalBefore(hidden_dim)
+        self.time_after = TemporalAfter(hidden_dim)
         self.time_next = TemporalNext()
 
         self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
