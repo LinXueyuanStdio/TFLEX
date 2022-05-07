@@ -1009,10 +1009,10 @@ class MyExperiment(Experiment):
                 self.debug("Take a look at the performance after resumed.")
                 self.debug("Validation (step: %d):" % start_step)
                 result = self.evaluate(model, valid_dataloader, test_device)
-                best_score = self.visual_result(start_step + 1, result, "Valid")
+                best_score, _ = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_dataloader, test_device)
-                best_test_score = self.visual_result(start_step + 1, result, "Test")
+                best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
         else:
             model.init()
             self.dump_model(model)
