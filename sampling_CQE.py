@@ -6,7 +6,7 @@
 """
 from ComplexTemporalQueryData import *
 
-dataset = ICEWS14()
+dataset = ICEWS05_15()
 cache_path = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
 data = ComplexQueryData(dataset, cache_path)
 data.preprocess_data_if_needed()
