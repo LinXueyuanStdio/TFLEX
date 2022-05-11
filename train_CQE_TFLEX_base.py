@@ -1089,6 +1089,20 @@ class MyExperiment(Experiment):
                         self.latex_store.save_best_test_result(row_results)
                         self.metric_log_store.add_best_metric({"result": result}, "Test")
                     print("")
+
+        # 5. report the best
+        start_step, _, best_score = self.model_param_store.load_best(model, opt)
+        model.eval()
+        with torch.no_grad():
+            self.debug("Reporting the best performance...")
+            self.debug("Resumed from score %.4f." % best_score)
+            self.debug("Take a look at the performance after resumed.")
+            self.debug("Validation (step: %d):" % start_step)
+            result = self.evaluate(model, valid_dataloader, test_device)
+            best_score, _ = self.visual_result(start_step + 1, result, "Valid")
+            self.debug("Test (step: %d):" % start_step)
+            result = self.evaluate(model, test_dataloader, test_device)
+            best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
         self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
