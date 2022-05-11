@@ -816,7 +816,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 sample_count = train_sample_counts[query_structure_name]
                 sampling_loader = DataLoader(
                     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count),
-                    batch_size=512,
+                    batch_size=4096,
                     num_workers=num_workers,
                     collate_fn=collate_fn
                 )
