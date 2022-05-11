@@ -809,27 +809,51 @@ class ComplexQueryData(TemporalKnowledgeData):
             # 1. sampling train dataset
             if query_structure_name in train_sample_counts and query_structure_name not in self.train_queries_answers:
                 sample_count = train_sample_counts[query_structure_name]
-                sampling_loader = DataLoader(
-                    SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count),
-                    batch_size=512,
-                    num_workers=num_workers,
-                    collate_fn=collate_fn
-                )
+                # sampling_loader = DataLoader(
+                #     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count),
+                #     batch_size=512,
+                #     num_workers=num_workers,
+                #     collate_fn=collate_fn
+                # )
+                fast_query_structure_name = f"fast_{query_structure_name}"
+                if fast_query_structure_name in train_parser.fast_ops.keys():
+                    # fast sampling
+                    # the fast function is the proxy of the original function.
+                    # the fast function makes sure that len(answers)>0 with least steps (in one step if possible).
+                    sample_train_query_structure_func = train_parser.eval(fast_query_structure_name)
+                else:
+                    sample_train_query_structure_func = train_parser.eval(query_structure_name)
+                sample_valid_query_structure_func = valid_parser.eval(query_structure_name)
+                sample_test_query_structure_func = test_parser.eval(query_structure_name)
                 bar = Progbar(sample_count)
                 i = 0
-                for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
-                    # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
-                    gc.collect()
-                    for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
-                        if None in queries:
-                            raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
-                        train_queries_answers.append((queries, answers))
-                        if len(valid_answers) > len(answers):
-                            valid_queries_answers.append((queries, answers, valid_answers))
-                        if len(test_answers) > len(answers):
-                            test_queries_answers.append((queries, answers, test_answers))
-                        i += 1
-                        bar.update(i, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                for i in range(sample_count):
+                    queries, answers, valid_answers, test_answers = achieve_answers(
+                        sample_train_query_structure_func,
+                        sample_valid_query_structure_func,
+                        sample_test_query_structure_func,
+                        False)
+                    if None in queries:
+                        raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
+                    train_queries_answers.append((queries, answers))
+                    if len(valid_answers) > len(answers):
+                        valid_queries_answers.append((queries, answers, valid_answers))
+                    if len(test_answers) > len(answers):
+                        test_queries_answers.append((queries, answers, test_answers))
+                    bar.update(i+1, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                # for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
+                #     # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
+                #     gc.collect()
+                #     for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
+                #         if None in queries:
+                #             raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
+                #         train_queries_answers.append((queries, answers))
+                #         if len(valid_answers) > len(answers):
+                #             valid_queries_answers.append((queries, answers, valid_answers))
+                #         if len(test_answers) > len(answers):
+                #             test_queries_answers.append((queries, answers, test_answers))
+                #         i += 1
+                #         bar.update(i, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
                 self.train_queries_answers[query_structure_name] = {
                     "args": param_name_list,
                     "queries_answers": train_queries_answers
