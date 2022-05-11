@@ -4,13 +4,10 @@
 @date: 2022/3/2
 @description: null
 """
-import gc
 from collections import defaultdict
 from pathlib import Path
 from pprint import pformat
 from typing import List, Tuple, Dict, Set, Union, Any
-
-from torch.utils.data import Dataset, DataLoader
 
 import expression
 from expression.ParamSchema import placeholder2sample, get_param_name_list, get_placeholder_list, placeholder2fixed, FixedQuery, clear_placeholder_list
@@ -728,39 +725,6 @@ class ComplexQueryData(TemporalKnowledgeData):
             "Pe_t2u": test_sample_count,  # t-2u, t-up
         }
 
-        def collate_fn(data):
-            queries = [_[0] for _ in data]
-            answers = [_[1] for _ in data]
-            valid_answers = [_[2] for _ in data]
-            test_answers = [_[3] for _ in data]
-            return queries, answers, valid_answers, test_answers
-
-        class SamplingDataset(Dataset):
-            """
-            we use dataloader of PyTorch for sampling.
-            """
-
-            def __init__(self, train_parser, valid_parser, test_parser, query_structure_name, sample_count, for_test=False):
-                fast_query_structure_name = f"fast_{query_structure_name}"
-                if fast_query_structure_name in train_parser.fast_ops.keys():
-                    # fast sampling
-                    # the fast function is the proxy of the original function.
-                    # the fast function makes sure that len(answers)>0 with least steps (in one step if possible).
-                    self.train_query_structure_func = train_parser.eval(fast_query_structure_name)
-                else:
-                    self.train_query_structure_func = train_parser.eval(query_structure_name)
-                self.valid_query_structure_func = valid_parser.eval(query_structure_name)
-                self.test_query_structure_func = test_parser.eval(query_structure_name)
-                self.query_structure_name = query_structure_name
-                self.sample_count = sample_count
-                self.for_test = for_test
-
-            def __len__(self):
-                return self.sample_count
-
-            def __getitem__(self, idx):
-                return achieve_answers(self.train_query_structure_func, self.valid_query_structure_func, self.test_query_structure_func, self.for_test)
-
         def achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func, for_test=False):
             answers = set()
             valid_answers = set()
@@ -801,38 +765,31 @@ class ComplexQueryData(TemporalKnowledgeData):
             print(query_structure_name)
             train_query_structure_func = train_parser.eval(query_structure_name)
             param_name_list = get_param_name_list(train_query_structure_func)
-            num_workers = 4
             train_queries_answers = []
             valid_queries_answers = []
             test_queries_answers = []
 
+            fast_query_structure_name = f"fast_{query_structure_name}"
+            if fast_query_structure_name in train_parser.fast_ops.keys():
+                # fast sampling
+                # the fast function is the proxy of the original function.
+                # the fast function makes sure that len(answers)>0 with least steps (in one step if possible).
+                sample_train_func = train_parser.eval(fast_query_structure_name)
+            else:
+                sample_train_func = train_parser.eval(query_structure_name)
+            sample_valid_func = valid_parser.eval(query_structure_name)
+            sample_test_func = test_parser.eval(query_structure_name)
+
             # 1. sampling train dataset
             if query_structure_name in train_sample_counts and query_structure_name not in self.train_queries_answers:
                 sample_count = train_sample_counts[query_structure_name]
-                # sampling_loader = DataLoader(
-                #     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count),
-                #     batch_size=512,
-                #     num_workers=num_workers,
-                #     collate_fn=collate_fn
-                # )
-                fast_query_structure_name = f"fast_{query_structure_name}"
-                if fast_query_structure_name in train_parser.fast_ops.keys():
-                    # fast sampling
-                    # the fast function is the proxy of the original function.
-                    # the fast function makes sure that len(answers)>0 with least steps (in one step if possible).
-                    sample_train_query_structure_func = train_parser.eval(fast_query_structure_name)
-                else:
-                    sample_train_query_structure_func = train_parser.eval(query_structure_name)
-                sample_valid_query_structure_func = valid_parser.eval(query_structure_name)
-                sample_test_query_structure_func = test_parser.eval(query_structure_name)
                 bar = Progbar(sample_count)
-                i = 0
                 for i in range(sample_count):
                     queries, answers, valid_answers, test_answers = achieve_answers(
-                        sample_train_query_structure_func,
-                        sample_valid_query_structure_func,
-                        sample_test_query_structure_func,
-                        False)
+                        sample_train_func,
+                        sample_valid_func,
+                        sample_test_func,
+                        for_test=False)
                     if None in queries:
                         raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
                     train_queries_answers.append((queries, answers))
@@ -840,20 +797,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                         valid_queries_answers.append((queries, answers, valid_answers))
                     if len(test_answers) > len(answers):
                         test_queries_answers.append((queries, answers, test_answers))
-                    bar.update(i+1, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
-                # for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
-                #     # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
-                #     gc.collect()
-                #     for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
-                #         if None in queries:
-                #             raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
-                #         train_queries_answers.append((queries, answers))
-                #         if len(valid_answers) > len(answers):
-                #             valid_queries_answers.append((queries, answers, valid_answers))
-                #         if len(test_answers) > len(answers):
-                #             test_queries_answers.append((queries, answers, test_answers))
-                #         i += 1
-                #         bar.update(i, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                    bar.update(i + 1, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
                 self.train_queries_answers[query_structure_name] = {
                     "args": param_name_list,
                     "queries_answers": train_queries_answers
@@ -863,22 +807,16 @@ class ComplexQueryData(TemporalKnowledgeData):
             # 2. sampling valid/test dataset
             if query_structure_name in test_sample_counts and query_structure_name not in self.valid_queries_answers:
                 sample_count = test_sample_counts[query_structure_name]
-                sampling_loader = DataLoader(
-                    SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count, for_test=True),
-                    batch_size=128,
-                    num_workers=num_workers // 2,
-                    collate_fn=collate_fn
-                )
                 bar = Progbar(sample_count)
-                i = 0
-                for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
-                    # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
-                    gc.collect()
-                    for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
-                        valid_queries_answers.append((queries, answers, valid_answers))
-                        test_queries_answers.append((queries, answers, test_answers))
-                        i += 1
-                        bar.update(i, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                for i in range(sample_count):
+                    queries, answers, valid_answers, test_answers = achieve_answers(
+                        sample_train_func,
+                        sample_valid_func,
+                        sample_test_func,
+                        for_test=True)
+                    valid_queries_answers.append((queries, answers, valid_answers))
+                    test_queries_answers.append((queries, answers, test_answers))
+                    bar.update(i, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
                 self.valid_queries_answers[query_structure_name] = {
                     "args": param_name_list,
                     "queries_answers": valid_queries_answers
