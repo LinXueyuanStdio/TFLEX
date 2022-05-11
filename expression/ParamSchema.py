@@ -93,6 +93,12 @@ class Placeholder:
         else:
             return FixedQuery(answers={self.idx}, is_anchor=True)
 
+    def fill_to(self, fixed_query: FixedQuery):
+        if is_timestamp(self.name):
+            fixed_query.timestamps = {self.idx}
+        else:
+            fixed_query.answers = {self.idx}
+
 
 def get_param_name_list(func) -> List[str]:
     """
@@ -112,9 +118,14 @@ def get_placeholder_list(func) -> List[Placeholder]:
     return [Placeholder(name) for name in params]
 
 
-def clear_placeholder_list(placeholder_list):
+def clear_placeholder_list(placeholder_list: List[Placeholder]):
     for placeholder in placeholder_list:
         placeholder.clear()
+
+
+def placeholder_to_fixed_query(placeholder_list: List[Placeholder], fixed_query_list: List[FixedQuery]):
+    for placeholder, fixed_query in zip(placeholder_list, fixed_query_list):
+        placeholder.fill_to(fixed_query)
 
 
 def placeholder2sample(placeholder_list: List[Placeholder]) -> List[int]:

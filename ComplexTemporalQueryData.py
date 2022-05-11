@@ -572,10 +572,12 @@ class ComplexQueryData(TemporalKnowledgeData):
             self.train_queries_answers = read_cache(self.cache_path.cache_train_queries_answers_path)
             self.valid_queries_answers = read_cache(self.cache_path.cache_valid_queries_answers_path)
             self.test_queries_answers = read_cache(self.cache_path.cache_test_queries_answers_path)
+
         def cache_step():
             cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
             cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
             cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
+
         if "Pe" not in self.train_queries_answers:
             self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o, for_test=False)
             self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o, for_test=True)
@@ -804,7 +806,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             print(query_structure_name)
             train_query_structure_func = train_parser.eval(query_structure_name)
             param_name_list = get_param_name_list(train_query_structure_func)
-            num_workers = 16
+            num_workers = 4
             train_queries_answers = []
             valid_queries_answers = []
             test_queries_answers = []
