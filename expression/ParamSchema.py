@@ -69,6 +69,9 @@ class Placeholder:
     def __repr__(self):
         return f"Placeholder({self.name}, idx={self.idx})"
 
+    def clear(self):
+        self.idx = None
+
     def fill(self, idx: int):
         self.idx = idx
 
@@ -107,6 +110,11 @@ def get_placeholder_list(func) -> List[Placeholder]:
     """
     params = get_param_name_list(func)
     return [Placeholder(name) for name in params]
+
+
+def clear_placeholder_list(placeholder_list):
+    for placeholder in placeholder_list:
+        placeholder.clear()
 
 
 def placeholder2sample(placeholder_list: List[Placeholder]) -> List[int]:

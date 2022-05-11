@@ -12,7 +12,7 @@ from typing import List, Tuple, Dict, Set, Union, Any
 from torch.utils.data import Dataset, DataLoader
 
 import expression
-from expression.ParamSchema import placeholder2sample, get_param_name_list, get_placeholder_list, placeholder2fixed, FixedQuery
+from expression.ParamSchema import placeholder2sample, get_param_name_list, get_placeholder_list, placeholder2fixed, FixedQuery, clear_placeholder_list
 from toolbox.data.DataSchema import DatasetCachePath, BaseData
 from toolbox.data.DatasetSchema import RelationalTripletDatasetSchema
 from toolbox.data.functional import read_cache, cache_data
@@ -768,13 +768,13 @@ class ComplexQueryData(TemporalKnowledgeData):
             answers = set()
             valid_answers = set()
             test_answers = set()
-            placeholders = None
             conflict_count = -1
+            placeholders = get_placeholder_list(train_query_structure_func)
             while len(answers) <= 0 or (len(answers) > 0 and (len(valid_answers) <= 0 or len(test_answers) <= 0)):
                 # len(answers) > 0 and (len(valid_answers) <= 0 or len(test_answers) <= 0)
                 # for queries containing negation, test may has no answers while train has lots of answers.
                 # if test has no answers, we are not able to calculate metrics.
-                placeholders = get_placeholder_list(train_query_structure_func)
+                clear_placeholder_list(placeholders)
                 sampling_query_answers: FixedQuery = train_query_structure_func(*placeholders)
                 if sampling_query_answers.answers is not None and len(sampling_query_answers.answers) > 0:
                     answers = sampling_query_answers.answers
