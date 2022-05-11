@@ -816,7 +816,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                         for_test=True)
                     valid_queries_answers.append((queries, answers, valid_answers))
                     test_queries_answers.append((queries, answers, test_answers))
-                    bar.update(i, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                    bar.update(i + 1, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
                 self.valid_queries_answers[query_structure_name] = {
                     "args": param_name_list,
                     "queries_answers": valid_queries_answers
