@@ -365,35 +365,21 @@ class TemporalKnowledgeData(BaseData):
 
     def transform_entity_ids(self):
         entity2idx = self.entity2idx
-        print("entities_ids")
-        # bar = Progbar(len(self.all_entities))
-        # i = 0
         for e in self.all_entities:
             self.entities_ids.append(entity2idx[e])
-            # i += 1
-            # bar.update(i, [("entity", e.split("/")[-1])])
+        print("entities_ids", len(self.entities_ids))
 
     def transform_relation_ids(self):
-
         relation2idx = self.relation2idx
-
-        print("relations_ids")
-        # bar = Progbar(len(self.all_relations))
-        # i = 0
         for r in self.all_relations:
             self.relations_ids.append(relation2idx[r])
-            # i += 1
-            # bar.update(i, [("relation", r.split("/")[-1])])
+        print("relations_ids", len(self.relations_ids))
 
     def transform_timestamp_ids(self):
         timestamp2idx = self.timestamp2idx
-        print("timestamps_ids")
-        # bar = Progbar(len(self.all_relations))
-        # i = 0
         for t in self.all_timestamps:
             self.timestamps_ids.append(timestamp2idx[t])
-            # i += 1
-            # bar.update(i, [("relation", r.split("/")[-1])])
+        print("timestamps_ids", len(self.timestamps_ids))
 
     def cache_all_data(self):
         """Function to cache the prepared dataset in the memory"""
