@@ -582,18 +582,30 @@ class ComplexQueryData(TemporalKnowledgeData):
                 "queries_answers": queries_answers
             }
 
-        self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o, for_test=False)
-        self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o, for_test=True)
-        self.test_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], test_srt_o, for_test=True)
+        if self.cache_path.cache_train_queries_answers_path.exists():
+            self.train_queries_answers = read_cache(self.cache_path.cache_train_queries_answers_path)
+            self.valid_queries_answers = read_cache(self.cache_path.cache_valid_queries_answers_path)
+            self.test_queries_answers = read_cache(self.cache_path.cache_test_queries_answers_path)
+        def cache_step():
+            cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
+            cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
+            cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
+        if "Pe" not in self.train_queries_answers:
+            self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o, for_test=False)
+            self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o, for_test=True)
+            self.test_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], test_srt_o, for_test=True)
+            cache_step()
         print("Pe",
               "train", len(self.train_queries_answers["Pe"]["queries_answers"]),
               "valid", len(self.valid_queries_answers["Pe"]["queries_answers"]),
               "test", len(self.test_queries_answers["Pe"]["queries_answers"]),
               )
 
-        self.train_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], train_sro_t, for_test=False)
-        self.valid_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], valid_sro_t, for_test=True)
-        self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t, for_test=True)
+        if "Pt" not in self.train_queries_answers:
+            self.train_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], train_sro_t, for_test=False)
+            self.valid_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], valid_sro_t, for_test=True)
+            self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t, for_test=True)
+            cache_step()
         print("Pt",
               "train", len(self.train_queries_answers["Pt"]["queries_answers"]),
               "valid", len(self.valid_queries_answers["Pt"]["queries_answers"]),
@@ -812,7 +824,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             test_queries_answers = []
 
             # 1. sampling train dataset
-            if query_structure_name in train_sample_counts:
+            if query_structure_name in train_sample_counts and query_structure_name not in self.train_queries_answers:
                 sample_count = train_sample_counts[query_structure_name]
                 sampling_loader = DataLoader(
                     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count),
@@ -838,9 +850,10 @@ class ComplexQueryData(TemporalKnowledgeData):
                     "args": param_name_list,
                     "queries_answers": train_queries_answers
                 }
+                cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
 
             # 2. sampling valid/test dataset
-            if query_structure_name in test_sample_counts:
+            if query_structure_name in test_sample_counts and query_structure_name not in self.valid_queries_answers:
                 sample_count = test_sample_counts[query_structure_name]
                 sampling_loader = DataLoader(
                     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count, for_test=True),
@@ -865,12 +878,14 @@ class ComplexQueryData(TemporalKnowledgeData):
                     "args": param_name_list,
                     "queries_answers": test_queries_answers
                 }
+                cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
+                cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
 
         # 3. calculate meta
         def avg_answers_count(qa):
             return sum([len(row[-1]) for row in qa]) / len(qa) if len(qa) > 0 else 0
 
-        def calculate_meta(query_name: str):
+        for query_name in self.test_queries_answers.keys():
             train_qa = self.train_queries_answers[query_name]["queries_answers"] if query_name in self.train_queries_answers else []
             valid_qa = self.valid_queries_answers[query_name]["queries_answers"] if query_name in self.valid_queries_answers else []
             test_qa = self.test_queries_answers[query_name]["queries_answers"] if query_name in self.test_queries_answers else []
@@ -892,9 +907,6 @@ class ComplexQueryData(TemporalKnowledgeData):
                 },
             }
             print(query_name, self.query_meta[query_name])
-
-        for k in self.test_queries_answers.keys():
-            calculate_meta(k)
 
     def cache_all_data(self):
         TemporalKnowledgeData.cache_all_data(self)
