@@ -4,6 +4,7 @@
 @date: 2022/3/2
 @description: null
 """
+import gc
 from collections import defaultdict
 from pathlib import Path
 from pprint import pformat
@@ -764,7 +765,9 @@ class ComplexQueryData(TemporalKnowledgeData):
                 return self.sample_count
 
             def __getitem__(self, idx):
-                return achieve_answers(self.train_query_structure_func, self.valid_query_structure_func, self.test_query_structure_func, self.for_test)
+                queries, answers, valid_answers, test_answers = achieve_answers(self.train_query_structure_func, self.valid_query_structure_func, self.test_query_structure_func, self.for_test)
+                gc.collect()
+                return queries, answers, valid_answers, test_answers
 
         def achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func, for_test=False):
             answers = set()
@@ -816,7 +819,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 sample_count = train_sample_counts[query_structure_name]
                 sampling_loader = DataLoader(
                     SamplingDataset(train_parser, valid_parser, test_parser, query_structure_name, sample_count),
-                    batch_size=4096,
+                    batch_size=512,
                     num_workers=num_workers,
                     collate_fn=collate_fn
                 )
