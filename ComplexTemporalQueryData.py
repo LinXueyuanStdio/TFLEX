@@ -619,23 +619,17 @@ class ComplexQueryData(TemporalKnowledgeData):
         test_t_sro, test_o_srt, test_s_rot, test_r_sot = build_mapping(train_triples_ids + valid_triples_ids + test_triples_ids)
         # 2.1 parser
         train_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
-                                                 train_sro_t, train_sor_t, train_srt_o, train_str_o, train_sot_r, train_sto_r,
-                                                 train_ors_t, train_osr_t, train_ort_s, train_otr_s, train_ost_r, train_ots_r,
-                                                 train_trs_o, train_tsr_o, train_tro_s, train_tor_s, train_tso_r, train_tos_r,
-                                                 train_rts_o, train_rst_o, train_rto_s, train_rot_s, train_rso_t, train_ros_t,
-                                                 train_t_sro, train_o_srt, train_s_rot, train_r_sot)
+                                                 train_sro_t, train_sor_t, train_srt_o, train_str_o,
+                                                 train_ors_t, train_trs_o, train_tro_s, train_rst_o,
+                                                 train_rso_t, train_t_sro, train_o_srt)
         valid_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
-                                                 valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o, valid_sot_r, valid_sto_r,
-                                                 valid_ors_t, valid_osr_t, valid_ort_s, valid_otr_s, valid_ost_r, valid_ots_r,
-                                                 valid_trs_o, valid_tsr_o, valid_tro_s, valid_tor_s, valid_tso_r, valid_tos_r,
-                                                 valid_rts_o, valid_rst_o, valid_rto_s, valid_rot_s, valid_rso_t, valid_ros_t,
-                                                 valid_t_sro, valid_o_srt, valid_s_rot, valid_r_sot)
+                                                 valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o,
+                                                 valid_ors_t, valid_trs_o, valid_tro_s, valid_rst_o,
+                                                 valid_rso_t, valid_t_sro, valid_o_srt)
         test_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
-                                                test_sro_t, test_sor_t, test_srt_o, test_str_o, test_sot_r, test_sto_r,
-                                                test_ors_t, test_osr_t, test_ort_s, test_otr_s, test_ost_r, test_ots_r,
-                                                test_trs_o, test_tsr_o, test_tro_s, test_tor_s, test_tso_r, test_tos_r,
-                                                test_rts_o, test_rst_o, test_rto_s, test_rot_s, test_rso_t, test_ros_t,
-                                                test_t_sro, test_o_srt, test_s_rot, test_r_sot)
+                                                test_sro_t, test_sor_t, test_srt_o, test_str_o,
+                                                test_ors_t, test_trs_o, test_tro_s, test_rst_o,
+                                                test_rso_t, test_t_sro, test_o_srt)
 
         # 2.2. sampling
         # we generate 1p, t-1p according to original train/valid/test triples.
@@ -765,9 +759,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 return self.sample_count
 
             def __getitem__(self, idx):
-                queries, answers, valid_answers, test_answers = achieve_answers(self.train_query_structure_func, self.valid_query_structure_func, self.test_query_structure_func, self.for_test)
-                gc.collect()
-                return queries, answers, valid_answers, test_answers
+                return achieve_answers(self.train_query_structure_func, self.valid_query_structure_func, self.test_query_structure_func, self.for_test)
 
         def achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func, for_test=False):
             answers = set()
@@ -827,6 +819,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 i = 0
                 for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
                     # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
+                    gc.collect()
                     for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
                         if None in queries:
                             raise Exception("In " + query_structure_name + ", queries contains None: " + str(queries))
@@ -856,6 +849,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 i = 0
                 for batch_queries, batch_answers, batch_valid_answers, batch_test_answers in sampling_loader:
                     # queries, answers, valid_answers, test_answers = achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func)
+                    gc.collect()
                     for queries, answers, valid_answers, test_answers in zip(batch_queries, batch_answers, batch_valid_answers, batch_test_answers):
                         valid_queries_answers.append((queries, answers, valid_answers))
                         test_queries_answers.append((queries, answers, test_answers))

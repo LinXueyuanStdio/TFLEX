@@ -142,11 +142,7 @@ class BasicParser(Interpreter):
 
 class SamplingParser(BasicParser):
     def __init__(self, entity_ids: List[int], relation_ids: List[int], timestamp_ids: List[int],
-                 sro_t, sor_t, srt_o, str_o, sot_r, sto_r,
-                 ors_t, osr_t, ort_s, otr_s, ost_r, ots_r,
-                 trs_o, tsr_o, tro_s, tor_s, tso_r, tos_r,
-                 rts_o, rst_o, rto_s, rot_s, rso_t, ros_t,
-                 t_sro, o_srt, s_rot, r_sot  # not_t_sro, not_o_srt
+                 sro_t, sor_t, srt_o, str_o, ors_t, trs_o, tro_s, rst_o, rso_t, t_sro, o_srt
                  ):
         # example
         # qe = Pe(e,r,after(Pt(e,r,e)))
