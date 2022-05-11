@@ -763,8 +763,8 @@ class ComplexQueryData(TemporalKnowledgeData):
 
         for query_structure_name in query_structure_name_list:
             print(query_structure_name)
-            train_query_structure_func = train_parser.eval(query_structure_name)
-            param_name_list = get_param_name_list(train_query_structure_func)
+            train_func = train_parser.eval(query_structure_name)
+            param_name_list = get_param_name_list(train_func)
             train_queries_answers = []
             valid_queries_answers = []
             test_queries_answers = []
