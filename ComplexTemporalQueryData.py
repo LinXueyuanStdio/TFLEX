@@ -741,14 +741,14 @@ class ComplexQueryData(TemporalKnowledgeData):
                     answers = sampling_query_answers.answers
                     fixed = placeholder2fixed(placeholders)
                     valid_answers = valid_query_structure_func(*fixed).answers
-                    if for_test and len(valid_answers) <= len(answers) and conflict_count < 1000:
+                    if for_test and len(valid_answers) <= len(answers) and conflict_count < 100:
                         answers = set()
                     test_answers = test_query_structure_func(*fixed).answers
                 elif sampling_query_answers.timestamps is not None and len(sampling_query_answers.timestamps) > 0:
                     answers = sampling_query_answers.timestamps
                     fixed = placeholder2fixed(placeholders)
                     valid_answers = valid_query_structure_func(*fixed).timestamps
-                    if for_test and len(valid_answers) <= len(answers) and conflict_count < 1000:
+                    if for_test and len(valid_answers) <= len(answers) and conflict_count < 100:
                         answers = set()
                     test_answers = test_query_structure_func(*fixed).timestamps
                 else:
