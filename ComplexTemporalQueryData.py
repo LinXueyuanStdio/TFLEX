@@ -691,7 +691,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             "t2u", "Pe_t2u",  # t-2u, t-up
         ]
         # how many samples should we generate?
-        max_sample_count = self.train_triples_count
+        max_sample_count = len(train_srt_o)
         train_sample_counts = {
             # entity
             "Pe2": max_sample_count,
