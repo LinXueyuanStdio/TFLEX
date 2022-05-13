@@ -215,6 +215,40 @@ def build_mapping(triples_ids: List[Tuple[int, int, int, int]]):
            t_sro, o_srt, s_rot, r_sot
 
 
+def build_mapping_simple(triples_ids: List[Tuple[int, int, int, int]]):
+    sro_t = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    sor_t = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    srt_o = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    str_o = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    ors_t = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+
+    trs_o = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    tsr_o = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    tro_s = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+
+    rst_o = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+    rso_t = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
+
+    t_sro = defaultdict(set)
+    o_srt = defaultdict(set)
+    for s, r, o, t in triples_ids:
+        sro_t[s][r][o].add(t)
+        sor_t[s][o][r].add(t)
+        srt_o[s][r][t].add(o)
+        str_o[s][t][r].add(o)
+        ors_t[o][r][s].add(t)
+        trs_o[t][r][s].add(o)
+        tsr_o[t][s][r].add(o)
+        tro_s[t][r][o].add(s)
+        rst_o[r][s][t].add(o)
+        rso_t[r][s][o].add(t)
+        t_sro[t].add((s, r, o))
+        o_srt[o].add((s, r, t))
+    return sro_t, sor_t, srt_o, str_o, \
+           ors_t, trs_o, tro_s, rst_o, \
+           rso_t, t_sro, o_srt
+
+
 def build_not_t2sro_o2srt(entities_ids: List[int], timestamps_ids: List[int],
                           sro_t: TYPE_MAPPING_sro_t, srt_o: TYPE_MAPPING_srt_o) -> Tuple[TYPE_MAPPING_t_sro, TYPE_MAPPING_o_srt]:
     # DON'T USE THIS FUNCTION! THERE ARE DRAGONS!
@@ -614,21 +648,15 @@ class ComplexQueryData(TemporalKnowledgeData):
               )
 
         # 2. multi-hop: Pe_aPt, Pe_bPt, etc
-        train_sro_t, train_sor_t, train_srt_o, train_str_o, train_sot_r, train_sto_r, \
-        train_ors_t, train_osr_t, train_ort_s, train_otr_s, train_ost_r, train_ots_r, \
-        train_trs_o, train_tsr_o, train_tro_s, train_tor_s, train_tso_r, train_tos_r, \
-        train_rts_o, train_rst_o, train_rto_s, train_rot_s, train_rso_t, train_ros_t, \
-        train_t_sro, train_o_srt, train_s_rot, train_r_sot = build_mapping(train_triples_ids)
-        valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o, valid_sot_r, valid_sto_r, \
-        valid_ors_t, valid_osr_t, valid_ort_s, valid_otr_s, valid_ost_r, valid_ots_r, \
-        valid_trs_o, valid_tsr_o, valid_tro_s, valid_tor_s, valid_tso_r, valid_tos_r, \
-        valid_rts_o, valid_rst_o, valid_rto_s, valid_rot_s, valid_rso_t, valid_ros_t, \
-        valid_t_sro, valid_o_srt, valid_s_rot, valid_r_sot = build_mapping(train_triples_ids + valid_triples_ids)
-        test_sro_t, test_sor_t, test_srt_o, test_str_o, test_sot_r, test_sto_r, \
-        test_ors_t, test_osr_t, test_ort_s, test_otr_s, test_ost_r, test_ots_r, \
-        test_trs_o, test_tsr_o, test_tro_s, test_tor_s, test_tso_r, test_tos_r, \
-        test_rts_o, test_rst_o, test_rto_s, test_rot_s, test_rso_t, test_ros_t, \
-        test_t_sro, test_o_srt, test_s_rot, test_r_sot = build_mapping(train_triples_ids + valid_triples_ids + test_triples_ids)
+        train_sro_t, train_sor_t, train_srt_o, train_str_o, \
+        train_ors_t, train_trs_o, train_tro_s, train_rst_o, \
+        train_rso_t, train_t_sro, train_o_srt = build_mapping_simple(train_triples_ids)
+        valid_sro_t, valid_sor_t, valid_srt_o, valid_str_o, \
+        valid_ors_t, valid_trs_o, valid_tro_s, valid_rst_o, \
+        valid_rso_t, valid_t_sro, valid_o_srt = build_mapping_simple(train_triples_ids + valid_triples_ids)
+        test_sro_t, test_sor_t, test_srt_o, test_str_o, \
+        test_ors_t, test_trs_o, test_tro_s, test_rst_o, \
+        test_rso_t, test_t_sro, test_o_srt = build_mapping_simple(train_triples_ids + valid_triples_ids + test_triples_ids)
         # 2.1 parser
         train_parser = expression.SamplingParser(self.entities_ids, relations_ids_with_reverse, self.timestamps_ids,
                                                  train_sro_t, train_sor_t, train_srt_o, train_str_o,
