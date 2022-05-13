@@ -724,7 +724,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             "t2i_N": max_sample_count // 10,
             "t3i_N": max_sample_count // 10,  # t-npi, t-pni, t-inp, t-2in, t-3in
         }
-        test_sample_count = self.train_triples_count // 25
+        test_sample_count = max_sample_count // 30
         test_sample_counts = {
             # entity
             "Pe2": test_sample_count,
