@@ -47,6 +47,21 @@ class ICEWS05_15(RelationalTripletDatasetSchema):
         return self.root_path
 
 
+class GDELT(RelationalTripletDatasetSchema):
+    def __init__(self, home: Union[Path, str] = "data"):
+        super(GDELT, self).__init__("GDELT", home)
+
+    def get_data_paths(self) -> Dict[str, Path]:
+        return {
+            'train': self.get_dataset_path_child('train'),
+            'test': self.get_dataset_path_child('test'),
+            'valid': self.get_dataset_path_child('valid'),
+        }
+
+    def get_dataset_path(self):
+        return self.root_path
+
+
 class TemporalKnowledgeDatasetCachePath(DatasetCachePath):
     def __init__(self, cache_path: Path):
         DatasetCachePath.__init__(self, cache_path)
