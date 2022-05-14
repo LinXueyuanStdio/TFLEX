@@ -802,7 +802,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             # if conflict_count > 0:
             #     print("conflict_count=", conflict_count)
             queries = placeholder2sample(placeholders)
-            return queries, answers, valid_answers, test_answers
+            return queries, answers, valid_answers, test_answers, conflict_count
 
         for query_structure_name in query_structure_name_list:
             print(query_structure_name)
@@ -828,7 +828,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 sample_count = train_sample_counts[query_structure_name]
                 bar = Progbar(sample_count)
                 for i in range(sample_count):
-                    queries, answers, valid_answers, test_answers = achieve_answers(
+                    queries, answers, valid_answers, test_answers, conflict_count = achieve_answers(
                         sample_train_func,
                         sample_valid_func,
                         sample_test_func,
@@ -851,12 +851,15 @@ class ComplexQueryData(TemporalKnowledgeData):
             if query_structure_name in test_sample_counts and query_structure_name not in self.valid_queries_answers:
                 sample_count = test_sample_counts[query_structure_name]
                 bar = Progbar(sample_count)
+                conflict_patient = 0
                 for i in range(sample_count):
-                    queries, answers, valid_answers, test_answers = achieve_answers(
+                    queries, answers, valid_answers, test_answers, conflict_count = achieve_answers(
                         sample_train_func,
                         sample_valid_func,
                         sample_test_func,
-                        for_test=True)
+                        for_test=conflict_patient <= 100)
+                    if conflict_patient <= 100 and conflict_count >= 99 and i <= 1000:
+                        conflict_patient += 1
                     valid_queries_answers.append((queries, answers, valid_answers))
                     test_queries_answers.append((queries, answers, test_answers))
                     bar.update(i + 1, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
