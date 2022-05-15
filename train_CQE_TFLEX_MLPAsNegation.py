@@ -199,39 +199,33 @@ class TemporalIntersection(nn.Module):
 
 
 class EntityNegation(nn.Module):
-    def __init__(self):
+    def __init__(self, dim):
         super(EntityNegation, self).__init__()
-
-    def neg_feature(self, feature):
-        # f,f' in [-L, L]
-        # f' = (f + 2L) % (2L) - L, where L=1
-        indicator_positive = feature >= 0
-        indicator_negative = feature < 0
-        feature[indicator_positive] = feature[indicator_positive] - 1
-        feature[indicator_negative] = feature[indicator_negative] + 1
-        return feature
+        self.dim = dim
+        self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
+        self.feature_layer_2 = nn.Linear(self.dim, self.dim)
+        nn.init.xavier_uniform_(self.feature_layer_1.weight)
+        nn.init.xavier_uniform_(self.feature_layer_2.weight)
 
     def forward(self, feature, logic, time_feature, time_logic, time_density):
-        feature = self.neg_feature(feature)
+        logits = torch.cat([feature, logic], dim=-1)  # N x B x 2d
+        feature = self.feature_layer_2(F.relu(self.feature_layer_1(logits)))
         logic = 1 - logic
         return feature, logic, time_feature, time_logic, time_density
 
 
 class TemporalNegation(nn.Module):
-    def __init__(self):
+    def __init__(self, dim):
         super(TemporalNegation, self).__init__()
-
-    def neg_feature(self, feature):
-        # f,f' in [-L, L]
-        # f' = (f + 2L) % (2L) - L, where L=1
-        indicator_positive = feature >= 0
-        indicator_negative = feature < 0
-        feature[indicator_positive] = feature[indicator_positive] - 1
-        feature[indicator_negative] = feature[indicator_negative] + 1
-        return feature
+        self.dim = dim
+        self.feature_layer_1 = nn.Linear(self.dim * 3, self.dim)
+        self.feature_layer_2 = nn.Linear(self.dim, self.dim)
+        nn.init.xavier_uniform_(self.feature_layer_1.weight)
+        nn.init.xavier_uniform_(self.feature_layer_2.weight)
 
     def forward(self, feature, logic, time_feature, time_logic, time_density):
-        time_feature = self.neg_feature(time_feature)
+        logits = torch.cat([time_feature, time_logic, time_density], dim=-1)  # N x B x 2d
+        time_feature = self.feature_layer_2(F.relu(self.feature_layer_1(logits)))
         time_logic = 1 - time_logic
         return feature, logic, time_feature, time_logic, time_density
 
@@ -392,12 +386,12 @@ class FLEX(nn.Module):
         self.entity_projection = EntityProjection(hidden_dim, drop=drop)
         self.entity_intersection = EntityIntersection(hidden_dim)
         self.entity_union = EntityUnion(hidden_dim)
-        self.entity_negation = EntityNegation()
+        self.entity_negation = EntityNegation(hidden_dim)
 
         self.time_projection = TimeProjection(hidden_dim, drop=drop)
         self.time_intersection = TemporalIntersection(hidden_dim)
         self.time_union = TemporalUnion(hidden_dim)
-        self.time_negation = TemporalNegation()
+        self.time_negation = TemporalNegation(hidden_dim)
         self.time_before = TemporalBefore(hidden_dim)
         self.time_after = TemporalAfter(hidden_dim)
         self.time_next = TemporalNext()
