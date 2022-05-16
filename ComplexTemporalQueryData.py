@@ -546,32 +546,32 @@ class ComplexQueryData(TemporalKnowledgeData):
         # 2. `args name list` is the arg list of query function.
         # 3. valid_queries_answers and test_queries_answers are the same type as train_queries_answers
         self.train_queries_answers: TYPE_train_queries_answers = {
-            "Pe_aPt": {
-                "args": ["e1", "r1", "e2", "r2", "e3"],
-                "queries_answers": [
-                    ([1, 2, 3, 4, 5], {2, 3, 5}),
-                    ([1, 2, 3, 4, 5], {2, 3, 5}),
-                    ([1, 2, 3, 4, 5], {2, 3, 5}),
-                ]
-            }
+            # "Pe_aPt": {
+            #     "args": ["e1", "r1", "e2", "r2", "e3"],
+            #     "queries_answers": [
+            #         ([1, 2, 3, 4, 5], {2, 3, 5}),
+            #         ([1, 2, 3, 4, 5], {2, 3, 5}),
+            #         ([1, 2, 3, 4, 5], {2, 3, 5}),
+            #     ]
+            # }
         }
         self.valid_queries_answers: TYPE_test_queries_answers = {
-            "Pe_aPt": {
-                "args": ["e1", "r1", "e2", "r2", "e3"],
-                "queries_answers": [
-                    ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
-                    ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
-                    ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
-                ]
-            }
+            # "Pe_aPt": {
+            #     "args": ["e1", "r1", "e2", "r2", "e3"],
+            #     "queries_answers": [
+            #         ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
+            #         ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
+            #         ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
+            #     ]
+            # }
         }
         self.test_queries_answers: TYPE_test_queries_answers = {}
         # meta
         self.query_meta = {
-            "Pe_aPt": {
-                "queries_count": 1,
-                "avg_answers_count": 1
-            }
+            # "Pe_aPt": {
+            #     "queries_count": 1,
+            #     "avg_answers_count": 1
+            # }
         }
 
     def transform_all_data(self):
@@ -724,7 +724,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             "t2i_N": max_sample_count // 10,
             "t3i_N": max_sample_count // 10,  # t-npi, t-pni, t-inp, t-2in, t-3in
         }
-        test_sample_count = max_sample_count // 30
+        test_sample_count = min(max_sample_count // 30, 10000)
         test_sample_counts = {
             # entity
             "Pe2": test_sample_count,
@@ -863,6 +863,11 @@ class ComplexQueryData(TemporalKnowledgeData):
                     valid_queries_answers.append((queries, answers, valid_answers))
                     test_queries_answers.append((queries, answers, test_answers))
                     bar.update(i + 1, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                    if len(valid_queries_answers) >= 10000 and len(test_queries_answers) >= 10000:
+                        valid_queries_answers = valid_queries_answers[:10000]
+                        test_queries_answers = test_queries_answers[:10000]
+                        bar.update(sample_count, {"train": len(answers), "valid": len(valid_answers), "test": len(test_answers)})
+                        break
                 self.valid_queries_answers[query_structure_name] = {
                     "args": param_name_list,
                     "queries_answers": valid_queries_answers
@@ -877,6 +882,14 @@ class ComplexQueryData(TemporalKnowledgeData):
         # 3. calculate meta
         def avg_answers_count(qa):
             return sum([len(row[-1]) for row in qa]) / len(qa) if len(qa) > 0 else 0
+
+        for query_name in self.test_queries_answers.keys():
+            valid_qa = self.valid_queries_answers[query_name]["queries_answers"] if query_name in self.valid_queries_answers else []
+            test_qa = self.test_queries_answers[query_name]["queries_answers"] if query_name in self.test_queries_answers else []
+            self.valid_queries_answers[query_name]["queries_answers"] = valid_qa[:10000]
+            self.test_queries_answers[query_name]["queries_answers"] = test_qa[:10000]
+        cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
+        cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
 
         for query_name in self.test_queries_answers.keys():
             train_qa = self.train_queries_answers[query_name]["queries_answers"] if query_name in self.train_queries_answers else []
