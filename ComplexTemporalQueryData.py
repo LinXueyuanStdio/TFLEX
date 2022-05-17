@@ -627,9 +627,13 @@ class ComplexQueryData(TemporalKnowledgeData):
 
         if "Pe" not in self.train_queries_answers:
             self.train_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], train_srt_o, for_test=False)
+            cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
+        if "Pe" not in self.valid_queries_answers:
             self.valid_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], valid_srt_o, for_test=True)
+            cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
+        if "Pe" not in self.test_queries_answers:
             self.test_queries_answers["Pe"] = build_one_hop(["e1", "r1", "t1"], test_srt_o, for_test=True)
-            cache_step()
+            cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
         print("Pe",
               "train", len(self.train_queries_answers["Pe"]["queries_answers"]),
               "valid", len(self.valid_queries_answers["Pe"]["queries_answers"]),
@@ -638,9 +642,13 @@ class ComplexQueryData(TemporalKnowledgeData):
 
         if "Pt" not in self.train_queries_answers:
             self.train_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], train_sro_t, for_test=False)
+            cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
+        if "Pt" not in self.valid_queries_answers:
             self.valid_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], valid_sro_t, for_test=True)
+            cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
+        if "Pt" not in self.test_queries_answers:
             self.test_queries_answers["Pt"] = build_one_hop(["e1", "r1", "e2"], test_sro_t, for_test=True)
-            cache_step()
+            cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
         print("Pt",
               "train", len(self.train_queries_answers["Pt"]["queries_answers"]),
               "valid", len(self.valid_queries_answers["Pt"]["queries_answers"]),
