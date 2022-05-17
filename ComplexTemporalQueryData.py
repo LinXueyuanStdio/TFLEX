@@ -717,14 +717,14 @@ class ComplexQueryData(TemporalKnowledgeData):
             "Pe_Pt": max_sample_count // 10,
             "Pe_aPt": max_sample_count // 10,
             "Pe_bPt": max_sample_count // 10,
-            "Pe_nPt": max_sample_count // 10,  # t-1p, t-2p
+            # "Pe_nPt": max_sample_count // 10,  # t-1p, t-2p
             "t2i": max_sample_count,
             "t3i": max_sample_count,
             "Pt_le2i": max_sample_count // 10,
             "Pt_re2i": max_sample_count // 10,
             "Pe_at2i": max_sample_count // 10,
             "Pe_bt2i": max_sample_count // 10,
-            "Pe_nt2i": max_sample_count // 10,
+            # "Pe_nt2i": max_sample_count // 10,
             "between": max_sample_count // 10,  # t-2i, t-3i
             "t2i_NPt": max_sample_count // 10,
             "t2i_PtN": max_sample_count // 10,
@@ -750,14 +750,14 @@ class ComplexQueryData(TemporalKnowledgeData):
             "Pe_Pt": test_sample_count,
             "Pe_aPt": test_sample_count,
             "Pe_bPt": test_sample_count,
-            "Pe_nPt": test_sample_count,  # t-1p, t-2p
+            # "Pe_nPt": test_sample_count,  # t-1p, t-2p
             "t2i": test_sample_count,
             "t3i": test_sample_count,
             "Pt_le2i": test_sample_count,
             "Pt_re2i": test_sample_count,
             "Pe_at2i": test_sample_count,
             "Pe_bt2i": test_sample_count,
-            "Pe_nt2i": test_sample_count,
+            # "Pe_nt2i": test_sample_count,
             "between": test_sample_count,  # t-2i, t-3i
             "t2i_NPt": test_sample_count,
             "t2i_PtN": test_sample_count,
@@ -770,10 +770,10 @@ class ComplexQueryData(TemporalKnowledgeData):
             "e2u": test_sample_count,
             "Pe_e2u": test_sample_count,  # 2u, up
             # time
-            "t2i_Pe": test_sample_count,
-            "Pe_t2i": test_sample_count,  # t-pi, t-ip
-            "t2u": test_sample_count,
-            "Pe_t2u": test_sample_count,  # t-2u, t-up
+            # "t2i_Pe": test_sample_count,
+            # "Pe_t2i": test_sample_count,  # t-pi, t-ip
+            # "t2u": test_sample_count,
+            # "Pe_t2u": test_sample_count,  # t-2u, t-up
         }
 
         def achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func, for_test=False):
