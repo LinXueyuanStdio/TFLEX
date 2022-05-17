@@ -902,8 +902,9 @@ class MyExperiment(Experiment):
 
         if not eval_all:
             tasks = eval_tasks.split(",")
-            for task in tasks:
+            for task in set(valid_queries_answers.keys()) - set(tasks):
                 valid_queries_answers.pop(task)
+            for task in set(test_queries_answers.keys()) - set(tasks):
                 test_queries_answers.pop(task)
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
