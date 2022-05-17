@@ -853,7 +853,7 @@ class MyExperiment(Experiment):
                  train_device, test_device,
                  resume, resume_by_score,
                  lr, cpu_num,
-                 hidden_dim, input_dropout, gamma, center_reg, eval_tasks
+                 hidden_dim, input_dropout, gamma, center_reg, eval_tasks, eval_all
                  ):
         super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
@@ -900,13 +900,14 @@ class MyExperiment(Experiment):
         else:
             train_other_iterator = None
 
-        tasks = eval_tasks.split(",")
-        for task in valid_queries_answers.keys():
-            if task in tasks:
-                del valid_queries_answers[task]
-        for task in test_queries_answers.keys():
-            if task in tasks:
-                del test_queries_answers[task]
+        if not eval_all:
+            tasks = eval_tasks.split(",")
+            for task in valid_queries_answers.keys():
+                if task not in tasks:
+                    del valid_queries_answers[task]
+            for task in test_queries_answers.keys():
+                if task not in tasks:
+                    del test_queries_answers[task]
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
@@ -1207,13 +1208,14 @@ class MyExperiment(Experiment):
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--eval_all', type=bool, default=False, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg, eval_tasks
+         hidden_dim, input_dropout, gamma, center_reg, eval_tasks, eval_all
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
@@ -1239,7 +1241,7 @@ def main(data_home, dataset, name,
         train_device, test_device,
         resume, resume_by_score,
         lr, cpu_num,
-        hidden_dim, input_dropout, gamma, center_reg, eval_tasks
+        hidden_dim, input_dropout, gamma, center_reg, eval_tasks, eval_all
     )
 
 
