@@ -853,7 +853,7 @@ class MyExperiment(Experiment):
                  train_device, test_device,
                  resume, resume_by_score,
                  lr, cpu_num,
-                 hidden_dim, input_dropout, gamma, center_reg, eval_tasks, eval_all
+                 hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all
                  ):
         super(MyExperiment, self).__init__(output, local_rank=0)
         self.log(f"{locals()}")
@@ -873,6 +873,11 @@ class MyExperiment(Experiment):
         train_queries_answers = data.train_queries_answers
         valid_queries_answers = data.valid_queries_answers
         test_queries_answers = data.test_queries_answers
+
+        if not train_all:
+            tasks = train_tasks.split(",")
+            for task in set(train_queries_answers.keys()) - set(tasks):
+                train_queries_answers.pop(task)
 
         train_path_queries: TYPE_train_queries_answers = {}
         train_other_queries: TYPE_train_queries_answers = {}
@@ -1205,6 +1210,8 @@ class MyExperiment(Experiment):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--train_tasks', type=str, default="Pe", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--train_all', type=bool, default=True, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--eval_all', type=bool, default=False, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 def main(data_home, dataset, name,
@@ -1213,7 +1220,7 @@ def main(data_home, dataset, name,
          train_device, test_device,
          resume, resume_by_score,
          lr, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg, eval_tasks, eval_all
+         hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
@@ -1239,7 +1246,7 @@ def main(data_home, dataset, name,
         train_device, test_device,
         resume, resume_by_score,
         lr, cpu_num,
-        hidden_dim, input_dropout, gamma, center_reg, eval_tasks, eval_all
+        hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all
     )
 
 
