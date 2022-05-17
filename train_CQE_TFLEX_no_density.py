@@ -902,14 +902,9 @@ class MyExperiment(Experiment):
 
         if not eval_all:
             tasks = eval_tasks.split(",")
-            ts = [i for i in valid_queries_answers.keys()]
-            for task in ts:
-                if task not in tasks:
-                    del valid_queries_answers[task]
-            ts = [i for i in test_queries_answers.keys()]
-            for task in ts:
-                if task not in tasks:
-                    del test_queries_answers[task]
+            for task in tasks:
+                valid_queries_answers.pop(task)
+                test_queries_answers.pop(task)
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
