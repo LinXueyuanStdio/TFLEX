@@ -892,6 +892,8 @@ class ComplexQueryData(TemporalKnowledgeData):
             return sum([len(row[-1]) for row in qa]) / len(qa) if len(qa) > 0 else 0
 
         for query_name in self.test_queries_answers.keys():
+            if query_name == "Pe" or query_name == "Pt":
+                return
             valid_qa = self.valid_queries_answers[query_name]["queries_answers"] if query_name in self.valid_queries_answers else []
             test_qa = self.test_queries_answers[query_name]["queries_answers"] if query_name in self.test_queries_answers else []
             self.valid_queries_answers[query_name]["queries_answers"] = valid_qa[:10000]
