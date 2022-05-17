@@ -902,10 +902,12 @@ class MyExperiment(Experiment):
 
         if not eval_all:
             tasks = eval_tasks.split(",")
-            for task in valid_queries_answers:
+            ts = [i for i in valid_queries_answers.keys()]
+            for task in ts:
                 if task not in tasks:
                     del valid_queries_answers[task]
-            for task in test_queries_answers:
+            ts = [i for i in test_queries_answers.keys()]
+            for task in ts:
                 if task not in tasks:
                     del test_queries_answers[task]
         valid_dataloader = DataLoader(
