@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import expression
-from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers
+from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers, GDELT
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
@@ -297,7 +297,7 @@ class TemporalUnion(nn.Module):
         self.dim = dim
         self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
         self.feature_layer_2 = nn.Linear(self.dim, self.dim)
-        self.time_feature_layer_1 = nn.Linear(self.dim * 3, self.dim)
+        self.time_feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
         self.time_feature_layer_2 = nn.Linear(self.dim, self.dim)
 
         nn.init.xavier_uniform_(self.feature_layer_1.weight)
@@ -1214,6 +1214,8 @@ def main(data_home, dataset, name,
         dataset = ICEWS14(data_home)
     elif dataset == "ICEWS05_15":
         dataset = ICEWS05_15(data_home)
+    elif dataset == "GDELT":
+        dataset = GDELT(data_home)
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
     data = ComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
