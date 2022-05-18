@@ -464,6 +464,12 @@ class FLEX(nn.Module):
             feature, logic, time_feature, time_logic = q
             return self.time_next(feature, logic, time_feature, time_logic)
 
+        def beforePt(e1, r1, e2):
+            return TimeBefore(TimeProjection2(e1, r1, e2))
+
+        def afterPt(e1, r1, e2):
+            return TimeAfter(TimeProjection2(e1, r1, e2))
+
         neural_ops = {
             "And": And,
             "And3": And3,
@@ -478,6 +484,8 @@ class FLEX(nn.Module):
             "TimeBefore": TimeBefore,
             "TimeAfter": TimeAfter,
             "TimeNext": TimeNext,
+            "afterPt": afterPt,
+            "beforePt": beforePt,
         }
         return expression.NeuralParser(neural_ops)
 
