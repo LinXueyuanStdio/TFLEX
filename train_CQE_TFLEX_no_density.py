@@ -546,22 +546,6 @@ class FLEX(nn.Module):
             embedding_of_args.append(token_embedding)
         return tuple(embedding_of_args)
 
-    def cat_to_tensor(self, token_list: List[TYPE_token]) -> TYPE_token:
-        feature = []
-        logic = []
-        time_feature = []
-        time_logic = []
-        for x in token_list:
-            feature.append(x[0])
-            logic.append(x[1])
-            time_feature.append(x[2])
-            time_logic.append(x[3])
-        feature = torch.cat(feature, dim=0).unsqueeze(1)
-        logic = torch.cat(logic, dim=0).unsqueeze(1)
-        time_feature = torch.cat(time_feature, dim=0).unsqueeze(1)
-        time_logic = torch.cat(time_logic, dim=0).unsqueeze(1)
-        return feature, logic, time_feature, time_logic
-
     def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
         return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
 
@@ -1260,28 +1244,3 @@ def main(data_home, dataset, name,
 
 if __name__ == '__main__':
     main()
-    # max_id = 20
-    # entity_count = max_id
-    # relation_count = max_id
-    # timestamp_count = max_id
-    # hidden_dim = 10
-    # gamma = 10
-    # center_reg = 0.02
-    # test_batch_size = 1
-    # input_dropout = 0.1
-    # model = FLEX(
-    #     nentity=entity_count,
-    #     nrelation=relation_count,
-    #     ntimestamp=timestamp_count,
-    #     hidden_dim=hidden_dim,
-    #     gamma=gamma,
-    #     center_reg=center_reg,
-    #     test_batch_size=test_batch_size,
-    #     drop=input_dropout,
-    # )
-    # B = 8
-    # query_args = ["e1", "r1", "t1", "e2", "r2", "t2", "r3", "t3"]
-    # query_structure = ("Pe_e2u", query_args)
-    # query_tensor = torch.randint(0, max_id, (B, len(query_args)))
-    # predict = model.single_predict(query_structure, query_tensor)
-    # print(predict)
