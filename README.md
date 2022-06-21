@@ -11,13 +11,13 @@ $$q=V_{?},\exists t:criticize(China, Japan, t) \land (visit(Xi Jinping, V_{?}, t
 ## Get Started
 
 ```shell
-# FB15k-237
+# ICEWS14
 CUDA_VISIBLE_DEVICES=0 python train_CQE_TFLEX.py --name="TFLEX" --dataset="ICEWS14"
 
-# FB15k
+# ICEWS05-15
 CUDA_VISIBLE_DEVICES=0 python train_CQE_TFLEX.py --name="TFLEX" --dataset="ICEWS05_15"
 
-# NELL
+# GDELT
 CUDA_VISIBLE_DEVICES=0 python train_CQE_TFLEX.py --name="TFLEX" --dataset="GDELT"
 ```
 
