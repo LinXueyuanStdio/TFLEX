@@ -554,6 +554,8 @@ class ComplexQueryData(TemporalKnowledgeData):
             #         ([1, 2, 3, 4, 5], {2, 3, 5}),
             #     ]
             # }
+            # answers = Pe_aPt(1, 2, 3, 4, 5)
+            # then, answers == {2, 3}
         }
         self.valid_queries_answers: TYPE_test_queries_answers = {
             # "Pe_aPt": {
@@ -564,6 +566,9 @@ class ComplexQueryData(TemporalKnowledgeData):
             #         ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
             #     ]
             # }
+            # answers = Pe_aPt(1, 2, 3, 4, 5)
+            # in training set, answers == {2, 3}
+            # in validation set, answers == {2, 3, 5}, more harder and complete
         }
         self.test_queries_answers: TYPE_test_queries_answers = {}
         # meta

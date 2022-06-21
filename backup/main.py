@@ -21,10 +21,10 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from dataloader import TestDataset, TrainDataset
+from backup.dataloader import TestDataset, TrainDataset
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.nn.BetaE import KGReasoning
-from util import flatten_query, parse_time, set_global_seed, eval_tuple
+from backup.util import flatten_query, parse_time, set_global_seed, eval_tuple
 
 query_name_dict = {('e', ('r',)): '1p',
                    ('e', ('r', 'r')): '2p',

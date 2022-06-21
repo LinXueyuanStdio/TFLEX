@@ -20,15 +20,15 @@ from torch import Tensor, optim
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
-import discrete as d2
+from backup import discrete as d2
 from ComplexQueryData import *
-from dataloader import TestDataset
+from backup.dataloader import TestDataset
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
-from util import flatten_query, flatten
+from backup.util import flatten_query, flatten
 
 
 class CQDTrainDataset(Dataset):

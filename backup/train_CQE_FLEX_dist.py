@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from ComplexQueryData import query_name_dict, QueryStructure, flatten_query, ComplexQueryDatasetCachePath, ComplexQueryData, FB15k_237_BetaE, FB15k_BetaE, NELL_BetaE, all_tasks, name_query_dict
-from dataloader import DistributedTestDataset, DistributedTrainDataset
+from backup.dataloader import DistributedTestDataset, DistributedTrainDataset
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
