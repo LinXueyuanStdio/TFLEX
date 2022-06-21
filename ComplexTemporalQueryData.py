@@ -775,10 +775,10 @@ class ComplexQueryData(TemporalKnowledgeData):
             "e2u": test_sample_count,
             "Pe_e2u": test_sample_count,  # 2u, up
             # time
-            # "t2i_Pe": test_sample_count,
-            # "Pe_t2i": test_sample_count,  # t-pi, t-ip
-            # "t2u": test_sample_count,
-            # "Pe_t2u": test_sample_count,  # t-2u, t-up
+            "t2i_Pe": test_sample_count,
+            "Pe_t2i": test_sample_count,  # t-pi, t-ip
+            "t2u": test_sample_count,
+            "Pe_t2u": test_sample_count,  # t-2u, t-up
         }
 
         def achieve_answers(train_query_structure_func, valid_query_structure_func, test_query_structure_func, for_test=False):
