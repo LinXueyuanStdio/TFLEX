@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/10/26
 @description: 分结构，按每个结构依次训练
 """

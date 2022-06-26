@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2022/2/20
 @description: 实验的基础能力 demo
 """

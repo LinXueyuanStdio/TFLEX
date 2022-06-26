@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/10/26
 @description: 分布式训练，单机多卡
 """

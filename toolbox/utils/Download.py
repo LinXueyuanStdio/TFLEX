@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2022/3/17
 @description: null
 A rudimentary URL downloader (like wget or curl) to demonstrate Rich progress bars.

@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/12/7
 @description: axis [-1,1], arg [0,1]
 """

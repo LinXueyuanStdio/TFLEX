@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/12/7
 @description: axis [-1,1], arg [0,1] 加入并算子（不需要，因为训练阶段没有并的情况
 """

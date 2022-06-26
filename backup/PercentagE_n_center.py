@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/12/7
 @description: 2个 axis [-1,1], 一个 arg [0,1]
 """

@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/12/7
 @description: 经度嵌入
 这是中心参数和范围参数都多头的版本

@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/10/26
 @description: TODO 用 transformer 硬莽。token=feature
 """

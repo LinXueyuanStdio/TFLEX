@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2022/2/19
 @description: 监听指定文件夹下的日志，以 web api 的形式提供服务给 log_app
 ```

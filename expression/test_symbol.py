@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2022/3/1
 @description: Base TestCase
 """

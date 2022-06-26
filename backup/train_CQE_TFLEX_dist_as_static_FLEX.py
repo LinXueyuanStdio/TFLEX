@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/10/26
 @description: TODO 忽略时间信息，视为静态图进行补全
 """

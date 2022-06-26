@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/10/27
 @description: 交互式表达式解释器，输入 query 输出 answer
 """

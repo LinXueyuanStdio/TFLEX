@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2021/10/26
 @description: 整理模型，重构代码，加了注释
 """

@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2022/2/19
 @description: 可视化
 run the command below to open tensorbard

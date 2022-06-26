@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email:
 @date: 2022/3/1
 @description:
 Safe(ish) evaluation of mathematical expression using Python's ast module.
