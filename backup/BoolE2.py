@@ -1,6 +1,6 @@
 """
 @author: lxy
-@email: linxy59@mail2.sysu.edu.cn
+@email:
 @date: 2021/12/7
 @description: axis [-1,1], arg [0,1]
 """

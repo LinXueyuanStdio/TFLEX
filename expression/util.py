@@ -1,6 +1,6 @@
 """
 @author: lxy
-@email: linxy59@mail2.sysu.edu.cn
+@email:
 @date: 2022/3/1
 @description: Utilities for writing code that runs on Python 2 and 3
 """

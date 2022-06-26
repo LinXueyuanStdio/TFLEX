@@ -1,6 +1,6 @@
 """
 @author: lxy
-@email: linxy59@mail2.sysu.edu.cn
+@email:
 @date: 2021/12/7
 @description: 球极投影
 两个中心参数共用一个范围参数
