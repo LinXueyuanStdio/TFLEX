@@ -1,6 +1,6 @@
-# FLEX
+# TFLEX
 
-code for "TFLEX: Temporal Feature-Logic Embedding Framework for CompleX Knowledge Graph Reasoning"
+code for "TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph"
 
 $$q=V_{?},\exists t:criticize(China, Japan, t) \land (visit(Xi Jinping, V_{?}, t'>t) \land \lnot visit(Obama, V_{?}, t'>t))$$
 
