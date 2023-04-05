@@ -15,12 +15,16 @@ query_structures = {
     "Pe2": "def Pe2(e1, r1, t1, r2, t2): return Pe(Pe(e1, r1, t1), r2, t2)",  # 2p
     "Pe3": "def Pe3(e1, r1, t1, r2, t2, r3, t3): return Pe(Pe(Pe(e1, r1, t1), r2, t2), r3, t3)",  # 3p
     # 3. time multi-hop
+    "aPt": "def aPt(s, r, o): return after(Pt(s, r, o))",  # a for after
+    "bPt": "def bPt(s, r, o): return before(Pt(s, r, o))",  # b for before
     "Pt_lPe": "def Pt_lPe(e1, r1, t1, r2, e2): return Pt(Pe(e1, r1, t1), r2, e2)",  # l for left (as head entity)
     "Pt_rPe": "def Pt_rPe(e1, r1, e2, r2, t1): return Pt(e1, r1, Pe(e2, r2, t1))",  # r for right (as tail entity)
     "Pe_Pt": "def Pe_Pt(e1, r1, e2, r2, e3): return Pe(e1, r1, Pt(e2, r2, e3))",  # at
     "Pe_aPt": "def Pe_aPt(e1, r1, e2, r2, e3): return Pe(e1, r1, after(Pt(e2, r2, e3)))",  # a for after
     "Pe_bPt": "def Pe_bPt(e1, r1, e2, r2, e3): return Pe(e1, r1, before(Pt(e2, r2, e3)))",  # b for before
     "Pe_nPt": "def Pe_nPt(e1, r1, e2, r2, e3): return Pe(e1, r1, next(Pt(e2, r2, e3)))",  # n for next
+    "Pt_sPe_Pt": "def Pt_sPe_Pt(s1, r1, s2, r2, o1, r3, o2): return Pt(Pe(s1, r1, Pt(s2, r2, o1)), r3, o2)",
+    "Pt_oPe_Pt": "def Pt_sPe_Pt(s1, r1, s2, r2, s3, r3, o1): return Pt(s1, r1, Pe(s2, r2, Pt(s3, r3, o1)))",
     # 4. entity and & time and
     "e2i": "def e2i(e1, r1, t1, e2, r2, t2): return And(Pe(e1, r1, t1), Pe(e2, r2, t2))",  # 2i
     "e3i": "def e3i(e1, r1, t1, e2, r2, t2, e3, r3, t3): return And3(Pe(e1, r1, t1), Pe(e2, r2, t2), Pe(e3, r3, t3))",  # 3i

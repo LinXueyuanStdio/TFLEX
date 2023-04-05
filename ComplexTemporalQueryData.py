@@ -715,6 +715,10 @@ class ComplexQueryData(TemporalKnowledgeData):
             "e2i_N": max_sample_count // 10,
             "e3i_N": max_sample_count // 10,  # npi, pni, inp, 2in, 3in
             # time
+            "aPt": max_sample_count // 10,
+            "bPt": max_sample_count // 10,
+            "Pt_sPe_Pt": max_sample_count // 10,
+            "Pt_oPe_Pt": max_sample_count // 10,
             "Pt_lPe": max_sample_count // 10,
             "Pt_rPe": max_sample_count // 10,
             "Pe_Pt": max_sample_count // 10,
@@ -748,6 +752,10 @@ class ComplexQueryData(TemporalKnowledgeData):
             "e2i_N": test_sample_count,
             "e3i_N": test_sample_count,  # npi, pni, inp, 2in, 3in
             # time
+            "aPt": test_sample_count,
+            "bPt": test_sample_count,
+            "Pt_sPe_Pt": test_sample_count,
+            "Pt_oPe_Pt": test_sample_count,
             "Pt_lPe": test_sample_count,
             "Pt_rPe": test_sample_count,
             "Pe_Pt": test_sample_count,
