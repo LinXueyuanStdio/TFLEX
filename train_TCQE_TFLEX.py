@@ -1175,7 +1175,7 @@ class MyExperiment(Experiment):
             avg_t_C_t = ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"]
             avg_U_e = ["e2u", "Pe_e2u"]
             avg_U_t = ["t2u", "Pe_t2u"]
-            avg_unseen = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
+            avg_x = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
 
             def avg(avg_e):
                 avg_e = map(lambda x: average_metrics[x] if x in average_metrics else 0, avg_e)
@@ -1187,9 +1187,11 @@ class MyExperiment(Experiment):
             avg_t_C_t = avg(avg_t_C_t)
             avg_U_e = avg(avg_U_e)
             avg_U_t = avg(avg_U_t)
-            avg_unseen = avg(avg_unseen)
+            avg_x = avg(avg_x)
+            AVG = [avg_e, avg_t, avg_e_C_e, avg_t_C_t, avg_U_e, avg_U_t, avg_x]
+            AVG = sum(AVG) / len(AVG)
             self.log(f"avg_e: {avg_e:.2%}\navg_t: {avg_t:.2%}\navg_e_C_e: {avg_e_C_e:.2%}\navg_t_C_t: {avg_t_C_t:.2%}\n" +
-                    f"avg_U_e: {avg_U_e:.2%}\navg_U_t: {avg_U_t:.2%}\navg_unseen: {avg_unseen:.2%}")
+                    f"avg_U_e: {avg_U_e:.2%}\navg_U_t: {avg_U_t:.2%}\navg_x: {avg_x:.2%}\nAVG: {AVG:.2%}")
 
         score = average_metrics["MRR"]
         return score, row_results
