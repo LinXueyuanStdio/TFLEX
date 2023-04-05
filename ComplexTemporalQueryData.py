@@ -728,6 +728,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             "Pe2", "Pe3", "e2i", "e3i",  # 2p, 3p, 2i, 3i
             "e2i_NPe", "e2i_PeN", "Pe_e2i_Pe_NPe", "e2i_N", "e3i_N",  # npi, pni, inp, 2in, 3in
             # time
+            "aPt", "bPt", "Pt_sPe_Pt", "Pt_oPe_Pt",
             "Pt_lPe", "Pt_rPe", "Pe_Pt", "Pe_aPt", "Pe_bPt", "Pe_nPt",  # t-1p, t-2p
             "t2i", "t3i", "Pt_le2i", "Pt_re2i", "Pe_at2i", "Pe_bt2i", "Pe_nt2i", "between",  # t-2i, t-3i
             "t2i_NPt", "t2i_PtN", "Pe_t2i_PtPe_NPt", "t2i_N", "t3i_N",  # t-npi, t-pni, t-inp, t-2in, t-3in
