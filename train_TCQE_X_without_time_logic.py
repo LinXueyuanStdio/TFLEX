@@ -136,7 +136,8 @@ class EntityIntersection(nn.Module):
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         feature = torch.sum(feature_attention * feature, dim=0)
 
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
         logic, _ = torch.min(logic, dim=0)
         return feature, logic, time_feature
@@ -162,7 +163,8 @@ class TemporalIntersection(nn.Module):
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         feature = torch.sum(feature_attention * feature, dim=0)
 
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
         logic, _ = torch.min(logic, dim=0)
         return feature, logic, time_feature
@@ -259,7 +261,8 @@ class EntityUnion(nn.Module):
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         feature = torch.sum(feature_attention * feature, dim=0)
 
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
         logic, _ = torch.max(logic, dim=0)
         # for time, it is intersection
@@ -287,7 +290,8 @@ class TemporalUnion(nn.Module):
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         feature = torch.sum(feature_attention * feature, dim=0)
 
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
         # for entity, it is intersection
         logic, _ = torch.min(logic, dim=0)

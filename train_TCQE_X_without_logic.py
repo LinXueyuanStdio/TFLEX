@@ -128,8 +128,10 @@ class EntityIntersection(nn.Module):
 
     def forward(self, feature, time_feature):
         # N x B x d
-        feature = self.feature_layer_2(F.relu(self.feature_layer_1(feature)))
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(feature))), dim=0)
+        feature = torch.sum(feature_attention * feature, dim=0)
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
         return feature, time_feature
 
 
@@ -149,8 +151,10 @@ class TemporalIntersection(nn.Module):
 
     def forward(self, feature, time_feature):
         # N x B x d
-        feature = self.feature_layer_2(F.relu(self.feature_layer_1(feature)))
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(feature))), dim=0)
+        feature = torch.sum(feature_attention * feature, dim=0)
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
         return feature, time_feature
 
 
@@ -239,8 +243,10 @@ class EntityUnion(nn.Module):
 
     def forward(self, feature, time_feature):
         # N x B x d
-        feature = self.feature_layer_2(F.relu(self.feature_layer_1(feature)))
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(feature))), dim=0)
+        feature = torch.sum(feature_attention * feature, dim=0)
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
         return feature, time_feature
 
 
@@ -260,8 +266,10 @@ class TemporalUnion(nn.Module):
 
     def forward(self, feature, time_feature):
         # N x B x d
-        feature = self.feature_layer_2(F.relu(self.feature_layer_1(feature)))
-        time_feature = self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature)))
+        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(feature))), dim=0)
+        feature = torch.sum(feature_attention * feature, dim=0)
+        feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(time_feature))), dim=0)
+        time_feature = torch.sum(feature_attention * time_feature, dim=0)
         return feature, time_feature
 
 
