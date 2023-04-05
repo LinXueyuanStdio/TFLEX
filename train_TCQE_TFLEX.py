@@ -1167,6 +1167,30 @@ class MyExperiment(Experiment):
             row = row_results[i]
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
 
+        if scope == "Test":
+            # avg MRR by groups
+            avg_e = ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"]
+            avg_t = ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"]
+            avg_e_C_e = ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"]
+            avg_t_C_t = ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"]
+            avg_U_e = ["e2u", "Pe_e2u"]
+            avg_U_t = ["t2u", "Pe_t2u"]
+            avg_unseen = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
+
+            def avg(avg_e):
+                avg_e = map(lambda x: average_metrics[x] if x in average_metrics else 0, avg_e)
+                avg_e = sum(avg_e) / len(avg_e)
+                return avg_e
+            avg_e = avg(avg_e)
+            avg_t = avg(avg_t)
+            avg_e_C_e = avg(avg_e_C_e)
+            avg_t_C_t = avg(avg_t_C_t)
+            avg_U_e = avg(avg_U_e)
+            avg_U_t = avg(avg_U_t)
+            avg_unseen = avg(avg_unseen)
+            self.log(f"avg_e: {avg_e:.2%}\navg_t: {avg_t:.2%}\navg_e_C_e: {avg_e_C_e:.2%}\navg_t_C_t: {avg_t_C_t:.2%}\n" +
+                    f"avg_U_e: {avg_U_e:.2%}\navg_U_t: {avg_U_t:.2%}\navg_unseen: {avg_unseen:.2%}")
+
         score = average_metrics["MRR"]
         return score, row_results
 
