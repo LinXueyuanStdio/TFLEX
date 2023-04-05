@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2022/3/17
 @description: null
 A rudimentary URL downloader (like wget or curl) to demonstrate Rich progress bars.

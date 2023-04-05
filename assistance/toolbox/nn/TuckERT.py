@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -25,7 +24,7 @@ class TuckERT(nn.Module):
         self.T = nn.Embedding(self.nt, dt)
 
         # Core tensor
-        self.W = nn.Parameter(torch.tensor(np.random.uniform(-0.1, 0.1, (dr, de, de, dt)), dtype=torch.float, device=self.device, requires_grad=True))
+        self.W = nn.Parameter(torch.rand((dr, de, de, dt)), requires_grad=True)
 
         # "Specia"l layers
         self.input_dropout = nn.Dropout(input_dropout)
@@ -39,13 +38,13 @@ class TuckERT(nn.Module):
         nn.init.xavier_normal_(self.E.weight.data)
         nn.init.xavier_normal_(self.R.weight.data)
         nn.init.xavier_normal_(self.T.weight.data)
+        nn.init.uniform_(self.W, -0.1, 0.1)
 
     def forward(self, e1_idx, r_idx, t_idx):
         # Mode 1 product with entity vector
         e1 = self.E(e1_idx)
         x = self.bne(e1)
         x = self.input_dropout(x)
-        x = e1
         x = x.view(-1, 1, self.de)
 
         # Mode 2 product with relation vector

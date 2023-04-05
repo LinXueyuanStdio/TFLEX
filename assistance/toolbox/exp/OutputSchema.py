@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2021/10/26
 @description: 输出目录管理
 """

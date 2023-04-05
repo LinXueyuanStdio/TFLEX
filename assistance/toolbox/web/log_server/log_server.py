@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2022/2/20
 @description: 监听远程日志服务器
 """
@@ -102,16 +100,16 @@ def _read_save_log(_save_log_dir: str, ignore_null_loss_or_metric: bool = True, 
     """
     给定一个包含metric.log, hyper.log, meta.log以及other.log的文件夹，返回一个包含数据的dict. 如果为null则返回空字典
     不读取loss.log, 因为里面的内容对table无意义。
-    
+
     :param _save_log_dir: 日志存放的目录， 已经最后一级了，即该目录下应该包含metric.log等了
     :param ignore_null_loss_or_metric: 是否忽略metric和loss都为空的文件
     :param file_stats::
-    
+
             {
                 'meta.log': [current_line, last_modified_time],
                 'hyper.log':[], 'metric.log':[], 'other.log':[]
             }
-            
+
     :return:
         _dict: {'metric': {nested dict}, 'loss': {} }
         file_stats: {'meta.log': [current_line, last_modified_time],
@@ -171,7 +169,7 @@ def _read_save_log(_save_log_dir: str, ignore_null_loss_or_metric: bool = True, 
 def _read_nonstep_log_file(filepath: str, start_line: int = 0) -> (dict, int):
     """
     给定一个filepath, 读取里面非Step: 开头的line，每一行为json，使用后面的内容覆盖前面的内容
-    
+
     :param filepath: 读取文件的路径
     :param start_line: 从哪一行开始读取
     :return: 返回一个字典(没有内容为空)和最后读取到的行号
@@ -196,7 +194,7 @@ def _read_nonstep_log_file(filepath: str, start_line: int = 0) -> (dict, int):
 def merge(a: dict, b: dict, use_b: bool = True) -> dict:
     """
     将两个dict recursive合并到a中，有相同key的，根据use_b判断使用哪个值
-    
+
     :param a: 字典 a
     :param b: 字典 b
     :param use_b: 是否使用字典 b 的值

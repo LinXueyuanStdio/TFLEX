@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2021/10/26
 @description: null
 """
@@ -649,14 +647,14 @@ class KGReasoning(nn.Module):
                     if args.cuda:
                         ranking = ranking.scatter_(1,
                                                    argsort,
-                                                   torch.arange(model.num_entity).float().repeat(argsort.shape[0],
-                                                                                                 1).cuda()
+                                                   torch.arange(model.nentity).float().repeat(argsort.shape[0],
+                                                                                                      1).cuda()
                                                    )  # achieve the ranking of all entities
                     else:
                         ranking = ranking.scatter_(1,
                                                    argsort,
-                                                   torch.arange(model.num_entity).float().repeat(argsort.shape[0],
-                                                                                                 1)
+                                                   torch.arange(model.nentity).float().repeat(argsort.shape[0],
+                                                                                                      1)
                                                    )  # achieve the ranking of all entities
                 for idx, (i, query, query_structure) in enumerate(zip(argsort[:, 0], queries_unflatten, query_structures)):
                     hard_answer = hard_answers[query]

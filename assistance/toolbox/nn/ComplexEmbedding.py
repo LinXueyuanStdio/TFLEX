@@ -197,7 +197,6 @@ class ComplexDiv(nn.Module):
         r_a, r_b = r
 
         r_norm = torch.sqrt(r_a ** 2 + r_b ** 2)
-        r_norm = torch.where(r_norm <= 5e-5, torch.ones_like(r_norm) * 5e-5, r_norm)
 
         t_a = (h_a * r_a + h_b * r_b) / r_norm
         t_b = (h_b * r_a - h_a * r_b) / r_norm

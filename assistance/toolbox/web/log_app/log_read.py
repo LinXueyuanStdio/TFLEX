@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2022/2/20
 @description: 监听远程日志服务器
 """
@@ -50,7 +48,7 @@ class LogAgent:
 def is_log_dir_has_step(_save_log_dir: str, check_files=('metric.log', 'loss.log')) -> bool:
     """
     给定log_dir, 判断是否有step数据
-    
+
     :param _save_log_dir 日志存放的目录
     :param check_files: 检查file是否含有step
     :return: 是否有step数据
@@ -76,7 +74,7 @@ def is_log_dir_has_step(_save_log_dir: str, check_files=('metric.log', 'loss.log
 def is_dirname_log_record(dir_path: str) -> bool:
     """
     检查dir_path是否是一个合法的log目录。合法的log目录里必须包含meta.log。
-    
+
     :param dir_path: 被检测的路径
     :return: 是否合法
     """
@@ -88,7 +86,7 @@ def is_dirname_log_record(dir_path: str) -> bool:
 def is_log_record_finish(save_log_dir: str) -> bool:
     """
     检测日志的记录是否已经结束
-    
+
     :param save_log_dir: 日志存放的目录
     :return:
     """
@@ -132,7 +130,7 @@ def flatten_dict(prefix, _dict, connector='-'):
 class StandbyStepLogReader(threading.Thread):
     """
     用于多线程读取日志的类. 配合画图使用的。
-    
+
     :param save_log_dir: 日志存放的目录
     :param uuid: 用于唯一识别 Reader 的 uuid
     :param wait_seconds:  在文件关闭后再等待{wait_seconds}秒结束进程
@@ -164,7 +162,7 @@ class StandbyStepLogReader(threading.Thread):
     def _create_file_handler(self, filenames=('metric.log', 'loss.log')):
         """
         检查是否有未加入的handler，有则加入进来
-        
+
         :return:
         """
         for filename in filenames:
@@ -178,7 +176,7 @@ class StandbyStepLogReader(threading.Thread):
     def _is_finish_in_meta(self) -> bool:
         """
         检查是否已经在meta中写明了finish的状态了
-        
+
         :return: bool
         """
 
@@ -203,7 +201,7 @@ class StandbyStepLogReader(threading.Thread):
     def read_update_single_log(filepaths: List[str], ranges: dict) -> dict:
         """
         调用这个函数，获取filepaths中满足range_min, range_max的log
-        
+
         :param filepaths: 完整的path路径
         :param ranges: {'metric':[min, max] }
         :return: 返回值的结构如下。loss这个list是进行了step排序的
@@ -211,7 +209,7 @@ class StandbyStepLogReader(threading.Thread):
                 loss: [dict('step':x, epoch:value, 'loss':{'loss1':xx})],
                 metric:[dict('step':x, epoch:value, 'metric':{'SpanFMetric':{'f':xx}})]
             }
-                
+
         """
         updates = defaultdict(list)
         for filepath in filepaths:
@@ -240,7 +238,7 @@ class StandbyStepLogReader(threading.Thread):
     def read_update(self, only_once: bool = False, handler_names=('metric', 'loss')) -> dict:
         """
         调用这个函数，获取新的更新。如果第一次调用则是读取到当前所有的记录。
-        
+
         :param only_once: 是否只读取内容一次。是的话就不会保持读取到的行数，之后直接退出了
         :param handler_names: 只check包含在handler_name的内容
         :return: 返回值的结构如下
@@ -250,7 +248,7 @@ class StandbyStepLogReader(threading.Thread):
                 finish:bool(not every time),
                 total_steps:int(only the first access)
             }
-                
+
         """
         updates = {}
         if not self._quit:
@@ -318,7 +316,7 @@ class StandbyStepLogReader(threading.Thread):
     def stop(self):
         """
         如果手动停止某个任务
-        
+
         :return:
         """
         self._stop_flag = True
@@ -333,7 +331,7 @@ class StandbyStepLogReader(threading.Thread):
     def run(self):
         """
         重载了多线程的运行函数
-        
+
         :return:
         """
         while time.time() - self._last_access_time < self._wait_seconds and not self._stop_flag and \

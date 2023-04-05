@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2022/2/20
 @description: 实验的基础能力 demo
 """

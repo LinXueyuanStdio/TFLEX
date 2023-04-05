@@ -1,6 +1,4 @@
 """
-@author: lxy
-@email: linxy59@mail2.sysu.edu.cn
 @date: 2021/12/9
 @description: 这里维护各种模型的复现结果。用户进行实验后，可以拉取实验结果，一键生成对应的 latex 表格，就不用手动抄写到论文中了
 https://pandas.pydata.org/docs/reference/api/pandas.io.formats.style.Styler.to_latex.html
