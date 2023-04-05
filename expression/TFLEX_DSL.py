@@ -24,7 +24,7 @@ query_structures = {
     "Pe_bPt": "def Pe_bPt(e1, r1, e2, r2, e3): return Pe(e1, r1, before(Pt(e2, r2, e3)))",  # b for before
     "Pe_nPt": "def Pe_nPt(e1, r1, e2, r2, e3): return Pe(e1, r1, next(Pt(e2, r2, e3)))",  # n for next
     "Pt_sPe_Pt": "def Pt_sPe_Pt(s1, r1, s2, r2, o1, r3, o2): return Pt(Pe(s1, r1, Pt(s2, r2, o1)), r3, o2)",
-    "Pt_oPe_Pt": "def Pt_sPe_Pt(s1, r1, s2, r2, s3, r3, o1): return Pt(s1, r1, Pe(s2, r2, Pt(s3, r3, o1)))",
+    "Pt_oPe_Pt": "def Pt_oPe_Pt(s1, r1, s2, r2, s3, r3, o1): return Pt(s1, r1, Pe(s2, r2, Pt(s3, r3, o1)))",
     # 4. entity and & time and
     "e2i": "def e2i(e1, r1, t1, e2, r2, t2): return And(Pe(e1, r1, t1), Pe(e2, r2, t2))",  # 2i
     "e3i": "def e3i(e1, r1, t1, e2, r2, t2, e3, r3, t3): return And3(Pe(e1, r1, t1), Pe(e2, r2, t2), Pe(e3, r3, t3))",  # 3i
