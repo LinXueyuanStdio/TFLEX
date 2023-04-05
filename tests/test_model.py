@@ -1,6 +1,6 @@
 import torch
 
-from train_CQE_TFLEX import FLEX
+from train_TCQE_TFLEX import TFLEX
 
 max_id = 20
 entity_count = max_id
@@ -11,7 +11,7 @@ gamma = 10
 center_reg = 0.02
 test_batch_size = 1
 input_dropout = 0.1
-model = FLEX(
+model = TFLEX(
     nentity=entity_count,
     nrelation=relation_count,
     ntimestamp=timestamp_count,
