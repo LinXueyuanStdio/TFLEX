@@ -275,11 +275,11 @@ class TemporalUnion(nn.Module):
         return feature, logic, time_logic
 
 
-class FLEX(nn.Module):
+class TFLEX(nn.Module):
     def __init__(self, nentity, nrelation, ntimestamp, hidden_dim, gamma,
                  test_batch_size=1,
                  center_reg=None, drop: float = 0.):
-        super(FLEX, self).__init__()
+        super(TFLEX, self).__init__()
         self.nentity = nentity
         self.nrelation = nrelation
         self.hidden_dim = hidden_dim
@@ -833,7 +833,7 @@ def main(data_home, dataset, name,
     relation_count = data.relation_count
     timestamp_count = data.timestamp_count
     max_relation_id = relation_count
-    model = FLEX(
+    model = TFLEX(
         nentity=entity_count,
         nrelation=relation_count + max_relation_id,  # with reverse relations
         ntimestamp=timestamp_count,
