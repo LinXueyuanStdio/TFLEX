@@ -22,18 +22,25 @@ QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 L = 1
+pi = 3.14159265358979323846
+
+
+def convert_to_arg(x):
+    y = torch.tanh(2 * x) * pi / 2 + pi / 2
+    return y
+
+
+def convert_to_axis(x):
+    y = torch.tanh(x) * pi
+    return y
 
 
 def convert_to_logic(x):
-    # [0, 1]
-    y = torch.sigmoid(2 * x)
-    return y
+    return convert_to_arg(x)
 
 
 def convert_to_feature(x):
-    # [-1, 1]
-    y = torch.tanh(x) * L
-    return y
+    return convert_to_axis(x)
 
 
 def convert_to_time_feature(x):
@@ -134,19 +141,47 @@ class EntityIntersection(nn.Module):
         nn.init.xavier_uniform_(self.time_feature_layer_1.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_2.weight)
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embeddings, arg_embeddings, time_feature, time_logic):
         # N x B x d
-        logits = torch.cat([feature, logic], dim=-1)  # N x B x 2d
-        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
-        feature = torch.sum(feature_attention * feature, dim=0)
+        logits = torch.cat([axis_embeddings - arg_embeddings, axis_embeddings + arg_embeddings], dim=-1)
+        axis_layer1_act = F.relu(self.layer_axis1(logits))
+
+        axis_attention = F.softmax(self.layer_axis2(axis_layer1_act), dim=0)
+
+        x_embeddings = torch.cos(axis_embeddings)
+        y_embeddings = torch.sin(axis_embeddings)
+        x_embeddings = torch.sum(axis_attention * x_embeddings, dim=0)
+        y_embeddings = torch.sum(axis_attention * y_embeddings, dim=0)
+
+        # when x_embeddings are very closed to zero, the tangent may be nan
+        # no need to consider the sign of x_embeddings
+        x_embeddings[torch.abs(x_embeddings) < 1e-3] = 1e-3
+
+        axis_embeddings = torch.atan(y_embeddings / x_embeddings)
+
+        indicator_x = x_embeddings < 0
+        indicator_y = y_embeddings < 0
+        indicator_two = indicator_x & torch.logical_not(indicator_y)
+        indicator_three = indicator_x & indicator_y
+
+        axis_embeddings[indicator_two] = axis_embeddings[indicator_two] + pi
+        axis_embeddings[indicator_three] = axis_embeddings[indicator_three] - pi
+
+        # DeepSets
+        arg_layer1_act = F.relu(self.layer_arg1(logits))
+        arg_layer1_mean = torch.mean(arg_layer1_act, dim=0)
+        gate = torch.sigmoid(self.layer_arg2(arg_layer1_mean))
+
+        arg_embeddings = self.drop(arg_embeddings)
+        arg_embeddings, _ = torch.min(arg_embeddings, dim=0)
+        arg_embeddings = arg_embeddings * gate
 
         logits = torch.cat([time_feature, time_logic], dim=-1)  # N x B x 2d
         feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(logits))), dim=0)
         time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
-        logic, _ = torch.min(logic, dim=0)
         time_logic, _ = torch.min(time_logic, dim=0)
-        return feature, logic, time_feature, time_logic
+        return axis_embeddings, arg_embeddings, time_feature, time_logic
 
 
 class TemporalIntersection(nn.Module):
@@ -163,35 +198,63 @@ class TemporalIntersection(nn.Module):
         nn.init.xavier_uniform_(self.time_feature_layer_1.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_2.weight)
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embeddings, arg_embeddings, time_feature, time_logic):
         # N x B x d
-        logits = torch.cat([feature, logic], dim=-1)  # N x B x 2d
-        feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
-        feature = torch.sum(feature_attention * feature, dim=0)
+        logits = torch.cat([axis_embeddings - arg_embeddings, axis_embeddings + arg_embeddings], dim=-1)
+        axis_layer1_act = F.relu(self.layer_axis1(logits))
+
+        axis_attention = F.softmax(self.layer_axis2(axis_layer1_act), dim=0)
+
+        x_embeddings = torch.cos(axis_embeddings)
+        y_embeddings = torch.sin(axis_embeddings)
+        x_embeddings = torch.sum(axis_attention * x_embeddings, dim=0)
+        y_embeddings = torch.sum(axis_attention * y_embeddings, dim=0)
+
+        # when x_embeddings are very closed to zero, the tangent may be nan
+        # no need to consider the sign of x_embeddings
+        x_embeddings[torch.abs(x_embeddings) < 1e-3] = 1e-3
+
+        axis_embeddings = torch.atan(y_embeddings / x_embeddings)
+
+        indicator_x = x_embeddings < 0
+        indicator_y = y_embeddings < 0
+        indicator_two = indicator_x & torch.logical_not(indicator_y)
+        indicator_three = indicator_x & indicator_y
+
+        axis_embeddings[indicator_two] = axis_embeddings[indicator_two] + pi
+        axis_embeddings[indicator_three] = axis_embeddings[indicator_three] - pi
+
+        # DeepSets
+        arg_layer1_act = F.relu(self.layer_arg1(logits))
+        arg_layer1_mean = torch.mean(arg_layer1_act, dim=0)
+        gate = torch.sigmoid(self.layer_arg2(arg_layer1_mean))
+
+        arg_embeddings = self.drop(arg_embeddings)
+        arg_embeddings, _ = torch.min(arg_embeddings, dim=0)
+        arg_embeddings = arg_embeddings * gate
 
         logits = torch.cat([time_feature, time_logic], dim=-1)  # N x B x 2d
         feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(logits))), dim=0)
         time_feature = torch.sum(feature_attention * time_feature, dim=0)
 
-        logic, _ = torch.min(logic, dim=0)
         time_logic, _ = torch.min(time_logic, dim=0)
-        return feature, logic, time_feature, time_logic
+        return axis_embeddings, arg_embeddings, time_feature, time_logic
 
 
 class EntityNegation(nn.Module):
     def __init__(self, dim):
         super(EntityNegation, self).__init__()
         self.dim = dim
-        self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
-        self.feature_layer_2 = nn.Linear(self.dim, self.dim)
-        nn.init.xavier_uniform_(self.feature_layer_1.weight)
-        nn.init.xavier_uniform_(self.feature_layer_2.weight)
 
-    def forward(self, feature, logic, time_feature, time_logic):
-        logits = torch.cat([feature, logic], dim=-1)  # N x B x 2d
-        feature = self.feature_layer_2(F.relu(self.feature_layer_1(logits)))
-        logic = 1 - logic
-        return feature, logic, time_feature, time_logic
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
+        indicator_positive = axis_embedding >= 0
+        indicator_negative = axis_embedding < 0
+
+        axis_embedding[indicator_positive] = axis_embedding[indicator_positive] - pi
+        axis_embedding[indicator_negative] = axis_embedding[indicator_negative] + pi
+
+        arg_embedding = pi - arg_embedding
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class TemporalNegation(nn.Module):
@@ -203,11 +266,11 @@ class TemporalNegation(nn.Module):
         nn.init.xavier_uniform_(self.feature_layer_1.weight)
         nn.init.xavier_uniform_(self.feature_layer_2.weight)
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
         logits = torch.cat([time_feature, time_logic], dim=-1)  # N x B x 2d
         time_feature = self.feature_layer_2(F.relu(self.feature_layer_1(logits)))
         time_logic = 1 - time_logic
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 def scale_feature(feature):
@@ -225,11 +288,11 @@ class TemporalBefore(nn.Module):
         super(TemporalBefore, self).__init__()
         self.dim = dim
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
         time_feature = scale_feature(time_feature - L / 2 - time_logic / 2)
         time_logic = (L - time_logic) / 2
 
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class TemporalAfter(nn.Module):
@@ -237,21 +300,21 @@ class TemporalAfter(nn.Module):
         super(TemporalAfter, self).__init__()
         self.dim = dim
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
         time_feature = scale_feature(time_feature + L / 2 + time_logic / 2)
         time_logic = (L - time_logic) / 2
 
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class TemporalNext(nn.Module):
     def __init__(self):
         super(TemporalNext, self).__init__()
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
         time_feature = scale_feature(time_feature)
         time_logic = 1 - time_logic
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class EntityUnion(nn.Module):
@@ -268,9 +331,9 @@ class EntityUnion(nn.Module):
         nn.init.xavier_uniform_(self.time_feature_layer_1.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_2.weight)
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
         # N x B x d
-        logits = torch.cat([feature, logic], dim=-1)  # N x B x 2d
+        logits = torch.cat([axis_embedding, arg_embedding], dim=-1)  # N x B x 2d
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         feature = torch.sum(feature_attention * feature, dim=0)
 
@@ -282,7 +345,7 @@ class EntityUnion(nn.Module):
         # for time, it is intersection
         time_logic, _ = torch.min(time_logic, dim=0)
         # logic = torch.prod(logic, dim=0)
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class TemporalUnion(nn.Module):
@@ -299,9 +362,9 @@ class TemporalUnion(nn.Module):
         nn.init.xavier_uniform_(self.time_feature_layer_1.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_2.weight)
 
-    def forward(self, feature, logic, time_feature, time_logic):
+    def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
         # N x B x d
-        logits = torch.cat([feature, logic], dim=-1)  # N x B x 2d
+        logits = torch.cat([axis_embedding, arg_embedding], dim=-1)  # N x B x 2d
         feature_attention = F.softmax(self.feature_layer_2(F.relu(self.feature_layer_1(logits))), dim=0)
         feature = torch.sum(feature_attention * feature, dim=0)
 
@@ -314,7 +377,7 @@ class TemporalUnion(nn.Module):
         # for time, it is union
         time_logic, _ = torch.max(time_logic, dim=0)
         # logic = torch.prod(logic, dim=0)
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class TFLEX(nn.Module):
@@ -754,36 +817,25 @@ class TFLEX(nn.Module):
             scores = scores.squeeze(dim=1)  # (B, N)
         return scores  # (B, N)
 
-    def distance_between_entity_and_query(self, entity_feature, query_feature, query_logic):
+    def distance_between_entity_and_query(self, entity_embedding, query_axis_embedding, query_arg_embedding):
         """
-        entity_feature (B, 1, N, d)
-        query_feature  (B, 1, 1, dt) or (B, 2, 1, dt)
-        query_logic    (B, 1, 1, dt) or (B, 2, 1, dt)
-        query    =                 [(feature - logic) | feature | (feature + logic)]
-        entity   = entity_feature            |             |               |
-                         |                   |             |               |
-        1) from entity to center of the interval           |               |
-        d_center = entity_feature -                     feature            |
-                         |<------------------------------->|               |
-        2) from entity to left of the interval                             |
-        d_left   = entity_feature - (feature - logic)                      |
-                         |<----------------->|                             |
-        3) from entity to right of the interval                            |
-        d_right  = entity_feature -                               (feature + logic)
-                         |<----------------------------------------------->|
+        entity_embedding     (B, 1, N, d)
+        query_axis_embedding (B, 1, 1, dt) or (B, 2, 1, dt)
+        query_arg_embedding  (B, 1, 1, dt) or (B, 2, 1, dt)
         """
-        d_center = entity_feature - query_feature
-        d_left = entity_feature - (query_feature - query_logic)
-        d_right = entity_feature - (query_feature + query_logic)
+        delta1 = entity_embedding - (query_axis_embedding - query_arg_embedding)
+        delta2 = entity_embedding - (query_axis_embedding + query_arg_embedding)
 
-        # inner distance
-        feature_distance = torch.abs(d_center)
-        inner_distance = torch.min(feature_distance, query_logic)
-        # outer distance
-        outer_distance = torch.min(torch.abs(d_left), torch.abs(d_right))
-        outer_distance[feature_distance < query_logic] = 0.  # if entity is inside, we don't care about outer.
+        distance2axis = torch.abs(torch.sin((entity_embedding - query_axis_embedding) / 2))
+        distance_base = torch.abs(torch.sin(query_arg_embedding / 2))
 
-        distance = torch.norm(outer_distance, p=1, dim=-1) + self.cen * torch.norm(inner_distance, p=1, dim=-1)
+        indicator_in = distance2axis < distance_base
+        distance_out = torch.min(torch.abs(torch.sin(delta1 / 2)), torch.abs(torch.sin(delta2 / 2)))
+        distance_out[indicator_in] = 0.
+
+        distance_in = torch.min(distance2axis, distance_base)
+
+        distance = torch.norm(distance_out, p=1, dim=-1) + self.cen * torch.norm(distance_in, p=1, dim=-1)
         return distance
 
     def distance_between_timestamp_and_query(self, timestamp_feature, time_feature, time_logic):
