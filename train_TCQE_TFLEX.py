@@ -970,11 +970,11 @@ class MyExperiment(Experiment):
             model.train()
             log = self.train(model, opt, train_path_iterator, step, train_device)
             for metric in log:
-                self.vis.add_scalar('path_' + metric, log[metric], step)
+                self.visualize_store.add_scalar('path_' + metric, log[metric], step)
             if train_other_iterator is not None:
                 log = self.train(model, opt, train_other_iterator, step, train_device)
                 for metric in log:
-                    self.vis.add_scalar('other_' + metric, log[metric], step)
+                    self.visualize_store.add_scalar('other_' + metric, log[metric], step)
                 log = self.train(model, opt, train_path_iterator, step, train_device)
 
             progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
@@ -1131,7 +1131,7 @@ class MyExperiment(Experiment):
         num_queries = 0
         for query_structure in result:
             for metric in result[query_structure]:
-                self.vis.add_scalar("_".join([scope, query_structure, metric]), result[query_structure][metric], step_num)
+                self.visualize_store.add_scalar("_".join([scope, query_structure, metric]), result[query_structure][metric], step_num)
                 if metric != 'num_queries':
                     average_metrics[metric] += result[query_structure][metric]
             num_queries += result[query_structure]['num_queries']
@@ -1139,7 +1139,7 @@ class MyExperiment(Experiment):
 
         for metric in average_metrics:
             average_metrics[metric] /= num_query_structures
-            self.vis.add_scalar("_".join([scope, 'average', metric]), average_metrics[metric], step_num)
+            self.visualize_store.add_scalar("_".join([scope, 'average', metric]), average_metrics[metric], step_num)
 
         header = "{0:<8s}".format(scope)
         row_results = defaultdict(list)
