@@ -66,6 +66,10 @@ class EntityProjection(nn.Module):
                 q_feature, q_time_feature, q_time_logic,
                 r_feature, r_time_feature, r_time_logic,
                 t_feature, t_time_feature, t_time_logic):
+        # debug
+        print("q_feature", q_feature.shape, "q_time_feature", q_time_feature.shape, "q_time_logic", q_time_logic.shape)
+        print("r_feature", r_feature.shape, "r_time_feature", r_time_feature.shape, "r_time_logic", r_time_logic.shape)
+        print("t_feature", t_feature.shape, "t_time_feature", t_time_feature.shape, "t_time_logic", t_time_logic.shape)
         x = torch.cat([
             q_feature + r_feature + t_feature,
             q_time_feature + r_time_feature + t_time_feature,
