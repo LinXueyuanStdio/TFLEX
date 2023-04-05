@@ -7,22 +7,19 @@ from typing import List, Tuple, Optional
 
 from expression.symbol import Procedure
 
-type_entity = "e"
-type_relation = "r"
-type_timestamp = "t"
 NamedSample = List[Tuple[str, int]]
 
 
 def is_entity(name) -> bool:
-    return name.startswith(type_entity)
+    return name.startswith("e") or name.startswith("s") or name.startswith("o")
 
 
 def is_relation(name) -> bool:
-    return name.startswith(type_relation)
+    return name.startswith("r")
 
 
 def is_timestamp(name) -> bool:
-    return name.startswith(type_timestamp)
+    return name.startswith("t")
 
 
 class FixedQuery:
