@@ -566,7 +566,7 @@ class ComplexQueryData(TemporalKnowledgeData):
             # }
             # answers = Pe_aPt(1, 2, 3, 4, 5)
             # in training set, answers == {2, 3}
-            # in validation set, answers == {2, 3, 5}, more harder and complete
+            # in validation set, answers == {2, 3, 5}, harder and more complete
         }
         self.test_queries_answers: TYPE_test_queries_answers = {}
         # meta
@@ -577,8 +577,44 @@ class ComplexQueryData(TemporalKnowledgeData):
             # }
         }
 
+    def restore_from_cache(self):
+        self.all_triples = read_cache(self.cache_path.cache_all_triples_path)
+        self.train_triples = read_cache(self.cache_path.cache_train_triples_path)
+        self.test_triples = read_cache(self.cache_path.cache_test_triples_path)
+        self.valid_triples = read_cache(self.cache_path.cache_valid_triples_path)
+        self.all_triples_ids = read_cache(self.cache_path.cache_all_triples_ids_path)
+        self.train_triples_ids = read_cache(self.cache_path.cache_train_triples_ids_path)
+        self.test_triples_ids = read_cache(self.cache_path.cache_test_triples_ids_path)
+        self.valid_triples_ids = read_cache(self.cache_path.cache_valid_triples_ids_path)
+        self.all_entities = read_cache(self.cache_path.cache_all_entities_path)
+        self.all_relations = read_cache(self.cache_path.cache_all_relations_path)
+        self.all_timestamps = read_cache(self.cache_path.cache_all_timestamps_path)
+        self.entities_ids = read_cache(self.cache_path.cache_entities_ids_path)
+        self.relations_ids = read_cache(self.cache_path.cache_relations_ids_path)
+        self.timestamps_ids = read_cache(self.cache_path.cache_timestamps_ids_path)
+        self.idx2entity = read_cache(self.cache_path.cache_idx2entity_path)
+        self.idx2relation = read_cache(self.cache_path.cache_idx2relation_path)
+        self.idx2timestamp = read_cache(self.cache_path.cache_idx2timestamp_path)
+        self.relation2idx = read_cache(self.cache_path.cache_relation2idx_path)
+        self.entity2idx = read_cache(self.cache_path.cache_entity2idx_path)
+        self.timestamp2idx = read_cache(self.cache_path.cache_timestamps2idx_path)
+
+        self.train_queries_answers = read_cache(self.cache_path.cache_train_queries_answers_path)
+        self.valid_queries_answers = read_cache(self.cache_path.cache_valid_queries_answers_path)
+        self.test_queries_answers = read_cache(self.cache_path.cache_test_queries_answers_path)
+
+        self.read_meta()
+
+    def patch(self):
+        self.restore_from_cache()
+        self.sampling()
+        self.cache_sampling_data()
+
     def transform_all_data(self):
         TemporalKnowledgeData.transform_all_data(self)
+        self.sampling()
+
+    def sampling(self):
         # 0. prepare data.
         # add inverse relations
         max_relation_id = self.relation_count
@@ -937,9 +973,13 @@ class ComplexQueryData(TemporalKnowledgeData):
 
     def cache_all_data(self):
         TemporalKnowledgeData.cache_all_data(self)
+        self.cache_sampling_data()
+
+    def cache_sampling_data(self):
         cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
         cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
         cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
+        cache_data(self.meta(), self.cache_path.cache_metadata_path)
 
     def read_meta(self, meta):
         TemporalKnowledgeData.read_meta(self, meta)
