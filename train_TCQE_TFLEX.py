@@ -337,7 +337,7 @@ class TFLEX(nn.Module):
         # entity only have feature part but no logic part
         self.entity_feature_embedding = nn.Embedding(nentity, self.entity_dim)
 
-        self.timestamp_time_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
+        self.timestamp_feature_embedding = nn.Embedding(ntimestamp, self.timestamp_dim)
 
         self.relation_feature_embedding = nn.Embedding(nrelation, self.relation_dim)
         self.relation_logic_embedding = nn.Embedding(nrelation, self.relation_dim)
@@ -492,7 +492,7 @@ class TFLEX(nn.Module):
         embedding_range = self.embedding_range.item()
         nn.init.uniform_(tensor=self.entity_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
-        nn.init.uniform_(tensor=self.timestamp_time_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
+        nn.init.uniform_(tensor=self.timestamp_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
 
         nn.init.uniform_(tensor=self.relation_feature_embedding.weight.data, a=-embedding_range, b=embedding_range)
         nn.init.uniform_(tensor=self.relation_logic_embedding.weight.data, a=-embedding_range, b=embedding_range)
@@ -506,7 +506,7 @@ class TFLEX(nn.Module):
         return convert_to_feature(self.scale(self.entity_feature_embedding(idx)))
 
     def timestamp_feature(self, idx):
-        return convert_to_time_feature(self.scale(self.timestamp_time_feature_embedding(idx)))
+        return convert_to_time_feature(self.scale(self.timestamp_feature_embedding(idx)))
 
     def entity_token(self, idx) -> TYPE_token:
         feature = self.entity_feature(idx)
