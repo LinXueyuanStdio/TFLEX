@@ -1,9 +1,0 @@
-tqdm
-pytorch
-numpy
-scikit-learn
-scipy
-flask
-Flask-Cors
-jieba
-rouge
