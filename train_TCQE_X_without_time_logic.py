@@ -190,7 +190,7 @@ class TemporalNegation(nn.Module):
     def __init__(self, dim):
         super(TemporalNegation, self).__init__()
         self.dim = dim
-        self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
+        self.feature_layer_1 = nn.Linear(self.dim, self.dim)
         self.feature_layer_2 = nn.Linear(self.dim, self.dim)
         nn.init.xavier_uniform_(self.feature_layer_1.weight)
         nn.init.xavier_uniform_(self.feature_layer_2.weight)
