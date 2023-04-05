@@ -603,7 +603,8 @@ class ComplexQueryData(TemporalKnowledgeData):
         self.valid_queries_answers = read_cache(self.cache_path.cache_valid_queries_answers_path)
         self.test_queries_answers = read_cache(self.cache_path.cache_test_queries_answers_path)
 
-        self.read_meta()
+        meta = read_cache(self.cache_path.cache_metadata_path)
+        self.read_meta(meta)
 
     def patch(self):
         self.restore_from_cache()
