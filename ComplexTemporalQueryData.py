@@ -905,7 +905,7 @@ class ComplexQueryData(TemporalKnowledgeData):
                 cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
 
             # 2. sampling valid/test dataset
-            if query_structure_name in test_sample_counts and query_structure_name not in self.valid_queries_answers:
+            if query_structure_name == "Pt_sPe_Pt" or (query_structure_name in test_sample_counts and query_structure_name not in self.valid_queries_answers):
                 sample_count = test_sample_counts[query_structure_name]
                 bar = Progbar(sample_count)
                 conflict_patient = 0
