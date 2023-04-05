@@ -846,7 +846,7 @@ class MyExperiment(Experiment):
                  lr, cpu_num,
                  hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all
                  ):
-        super(MyExperiment, self).__init__(output, local_rank=0)
+        super(MyExperiment, self).__init__(output)
         self.log(f"{locals()}")
 
         self.model_param_store.save_scripts([__file__])
