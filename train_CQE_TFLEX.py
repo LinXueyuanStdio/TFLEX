@@ -22,6 +22,7 @@ from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
 
+
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
@@ -837,7 +838,7 @@ class FLEX(nn.Module):
 
 class MyExperiment(Experiment):
 
-    def __init__(self, output: OutputSchema, data: ComplexQueryData,
+    def __init__(self, output: OutputSchema, data: ComplexQueryData, model,
                  start_step, max_steps, every_test_step, every_valid_step,
                  batch_size, test_batch_size, negative_sample_size,
                  train_device, test_device,
@@ -925,16 +926,7 @@ class MyExperiment(Experiment):
             self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
 
         # 2. build model
-        model = FLEX(
-            nentity=entity_count,
-            nrelation=relation_count + max_relation_id,  # with reverse relations
-            ntimestamp=timestamp_count,
-            hidden_dim=hidden_dim,
-            gamma=gamma,
-            center_reg=center_reg,
-            test_batch_size=test_batch_size,
-            drop=input_dropout,
-        ).to(train_device)
+        model = model.to(train_device)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         best_score = 0
         best_test_score = 0
@@ -1200,10 +1192,14 @@ class MyExperiment(Experiment):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--train_tasks', type=str, default="Pe", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--train_all', type=bool, default=True, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--eval_all', type=bool, default=False, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--train_tasks', type=str, default=
+              "Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,"
+              + "Pt,aPt,bPt,Pe_Pt,Pt_sPe_Pt,Pt_oPe_Pt,t2i,t3i,t2i_Pe,Pe_t2i,"
+              + "e2i_N,e3i_N,Pe_e2i_Pe_NPe,e2i_PeN,e2i_NPe,"
+              + "t2i_N,t3i_N,Pe_t2i_PtPe_NPt,t2i_PtN,t2i_NPt", help='the tasks for training')
+@click.option('--train_all', type=bool, default=False, help='if training all, it will use all tasks in data.train_queries_answers')
+@click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='the tasks for evaluation')
+@click.option('--eval_all', type=bool, default=False, help='if evaluating all, it will use all tasks in data.test_queries_answers')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
@@ -1229,8 +1225,22 @@ def main(data_home, dataset, name,
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
 
+    entity_count = data.entity_count
+    relation_count = data.relation_count
+    timestamp_count = data.timestamp_count
+    max_relation_id = relation_count
+    model = FLEX(
+        nentity=entity_count,
+        nrelation=relation_count + max_relation_id,  # with reverse relations
+        ntimestamp=timestamp_count,
+        hidden_dim=hidden_dim,
+        gamma=gamma,
+        center_reg=center_reg,
+        test_batch_size=test_batch_size,
+        drop=input_dropout,
+    )
     MyExperiment(
-        output, data,
+        output, data, model,
         start_step, max_steps, every_test_step, every_valid_step,
         batch_size, test_batch_size, negative_sample_size,
         train_device, test_device,

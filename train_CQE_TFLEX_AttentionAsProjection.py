@@ -2,25 +2,21 @@
 @date: 2021/10/26
 @description: null
 """
-from collections import defaultdict
-from typing import List, Dict, Tuple, Optional, Union, Set
+from typing import List, Dict, Tuple, Optional, Union
 
 import click
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 import expression
-from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers, GDELT
-from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
+from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, GDELT
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
-from toolbox.data.dataloader import SingledirectionalOneShotIterator
-from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
-from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
+from train_CQE_TFLEX import MyExperiment
+
 
 QueryStructure = str
 TYPE_token = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
@@ -845,350 +841,6 @@ class FLEX(nn.Module):
         return score
 
 
-class MyExperiment(Experiment):
-
-    def __init__(self, output: OutputSchema, data: ComplexQueryData,
-                 start_step, max_steps, every_test_step, every_valid_step,
-                 batch_size, test_batch_size, negative_sample_size,
-                 train_device, test_device,
-                 resume, resume_by_score,
-                 lr, cpu_num,
-                 hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all
-                 ):
-        super(MyExperiment, self).__init__(output, local_rank=0)
-        self.log(f"{locals()}")
-
-        self.model_param_store.save_scripts([__file__])
-        entity_count = data.entity_count
-        relation_count = data.relation_count
-        timestamp_count = data.timestamp_count
-        max_relation_id = relation_count
-        self.log('-------------------------------' * 3)
-        self.log('# entity: %d' % entity_count)
-        self.log('# relation: %d' % relation_count)
-        self.log('# timestamp: %d' % timestamp_count)
-        self.log('# max steps: %d' % max_steps)
-
-        # 1. build train dataset
-        train_queries_answers = data.train_queries_answers
-        valid_queries_answers = data.valid_queries_answers
-        test_queries_answers = data.test_queries_answers
-
-        if not train_all:
-            tasks = train_tasks.split(",")
-            for task in set(train_queries_answers.keys()) - set(tasks):
-                train_queries_answers.pop(task)
-
-        train_path_queries: TYPE_train_queries_answers = {}
-        train_other_queries: TYPE_train_queries_answers = {}
-        path_list = ["Pe", "Pt", "Pe2", 'Pe3']
-        for query_structure_name in train_queries_answers:
-            if query_structure_name in path_list:
-                train_path_queries[query_structure_name] = train_queries_answers[query_structure_name]
-            else:
-                train_other_queries[query_structure_name] = train_queries_answers[query_structure_name]
-        train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
-            TrainDataset(train_path_queries, entity_count, timestamp_count, negative_sample_size),
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=cpu_num,
-            collate_fn=TrainDataset.collate_fn
-        ))
-        if len(train_other_queries) > 0:
-            train_other_iterator = SingledirectionalOneShotIterator(DataLoader(
-                TrainDataset(train_other_queries, entity_count, timestamp_count, negative_sample_size),
-                batch_size=batch_size,
-                shuffle=True,
-                num_workers=cpu_num,
-                collate_fn=TrainDataset.collate_fn
-            ))
-        else:
-            train_other_iterator = None
-
-        if not eval_all:
-            tasks = eval_tasks.split(",")
-            for task in set(valid_queries_answers.keys()) - set(tasks):
-                valid_queries_answers.pop(task)
-            for task in set(test_queries_answers.keys()) - set(tasks):
-                test_queries_answers.pop(task)
-        valid_dataloader = DataLoader(
-            TestDataset(valid_queries_answers, entity_count, timestamp_count),
-            batch_size=test_batch_size,
-            num_workers=max(cpu_num // 2, 1),
-            collate_fn=TestDataset.collate_fn
-        )
-
-        test_dataloader = DataLoader(
-            TestDataset(test_queries_answers, entity_count, timestamp_count),
-            batch_size=test_batch_size,
-            num_workers=max(1, cpu_num // 2),
-            collate_fn=TestDataset.collate_fn
-        )
-        self.log("Training info:")
-        for query_structure_name in train_queries_answers:
-            self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
-        self.log("Validation info:")
-        for query_structure_name in valid_queries_answers:
-            self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
-        self.log("Test info:")
-        for query_structure_name in test_queries_answers:
-            self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
-
-        # 2. build model
-        model = FLEX(
-            nentity=entity_count,
-            nrelation=relation_count + max_relation_id,  # with reverse relations
-            ntimestamp=timestamp_count,
-            hidden_dim=hidden_dim,
-            gamma=gamma,
-            center_reg=center_reg,
-            test_batch_size=test_batch_size,
-            drop=input_dropout,
-        ).to(train_device)
-        opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-        best_score = 0
-        best_test_score = 0
-        if resume:
-            if resume_by_score > 0:
-                start_step, _, best_score = self.model_param_store.load_by_score(model, opt, resume_by_score)
-            else:
-                start_step, _, best_score = self.model_param_store.load_best(model, opt)
-            self.dump_model(model)
-            model.eval()
-            with torch.no_grad():
-                self.debug("Resumed from score %.4f." % best_score)
-                self.debug("Take a look at the performance after resumed.")
-                self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_dataloader, test_device)
-                best_score, _ = self.visual_result(start_step + 1, result, "Valid")
-                self.debug("Test (step: %d):" % start_step)
-                result = self.evaluate(model, test_dataloader, test_device)
-                best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
-        else:
-            model.init()
-            self.dump_model(model)
-
-        current_learning_rate = lr
-        hyper = {
-            'center_reg': center_reg,
-            'learning_rate': lr,
-            'batch_size': batch_size,
-            "hidden_dim": hidden_dim,
-            "gamma": gamma,
-        }
-        self.metric_log_store.add_hyper(hyper)
-        for k, v in hyper.items():
-            self.log(f'{k} = {v}')
-        self.metric_log_store.add_progress(max_steps)
-        warm_up_steps = max_steps // 2
-
-        # 3. training
-        progbar = Progbar(max_step=max_steps)
-        for step in range(start_step, max_steps):
-            model.train()
-            log = self.train(model, opt, train_path_iterator, step, train_device)
-            for metric in log:
-                self.vis.add_scalar('path_' + metric, log[metric], step)
-            if train_other_iterator is not None:
-                log = self.train(model, opt, train_other_iterator, step, train_device)
-                for metric in log:
-                    self.vis.add_scalar('other_' + metric, log[metric], step)
-                log = self.train(model, opt, train_path_iterator, step, train_device)
-
-            progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
-            if (step + 1) % 10 == 0:
-                self.metric_log_store.add_loss(log, step + 1)
-
-            if (step + 1) >= warm_up_steps:
-                current_learning_rate = current_learning_rate / 5
-                print("")
-                self.log('Change learning_rate to %f at step %d' % (current_learning_rate, step))
-                opt = torch.optim.Adam(
-                    filter(lambda p: p.requires_grad, model.parameters()),
-                    lr=current_learning_rate
-                )
-                warm_up_steps = warm_up_steps * 1.5
-
-            if (step + 1) % every_valid_step == 0:
-                model.eval()
-                with torch.no_grad():
-                    print("")
-                    self.debug("Validation (step: %d):" % (step + 1))
-                    result = self.evaluate(model, valid_dataloader, test_device)
-                    score, row_results = self.visual_result(step + 1, result, "Valid")
-                    if score >= best_score:
-                        self.success("current score=%.4f > best score=%.4f" % (score, best_score))
-                        best_score = score
-                        self.metric_log_store.add_best_metric({"result": result}, "Valid")
-                        self.debug("saving best score %.4f" % score)
-                        self.model_param_store.save_best(model, opt, step, 0, score)
-                        self.latex_store.save_best_valid_result(row_results)
-                    else:
-                        self.model_param_store.save_by_score(model, opt, step, 0, score)
-                        self.latex_store.save_valid_result_by_score(row_results, score)
-                        self.fail("current score=%.4f < best score=%.4f" % (score, best_score))
-            if (step + 1) % every_test_step == 0:
-                model.eval()
-                with torch.no_grad():
-                    print("")
-                    self.debug("Test (step: %d):" % (step + 1))
-                    result = self.evaluate(model, test_dataloader, test_device)
-                    score, row_results = self.visual_result(step + 1, result, "Test")
-                    self.latex_store.save_test_result_by_score(row_results, score)
-                    if score >= best_test_score:
-                        best_test_score = score
-                        self.latex_store.save_best_test_result(row_results)
-                        self.metric_log_store.add_best_metric({"result": result}, "Test")
-                    print("")
-
-        # 5. report the best
-        start_step, _, best_score = self.model_param_store.load_best(model, opt)
-        model.eval()
-        with torch.no_grad():
-            self.debug("Reporting the best performance...")
-            self.debug("Resumed from score %.4f." % best_score)
-            self.debug("Take a look at the performance after resumed.")
-            self.debug("Validation (step: %d):" % start_step)
-            result = self.evaluate(model, valid_dataloader, test_device)
-            best_score, _ = self.visual_result(start_step + 1, result, "Valid")
-            self.debug("Test (step: %d):" % start_step)
-            result = self.evaluate(model, test_dataloader, test_device)
-            best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
-        self.metric_log_store.finish()
-
-    def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
-        model.train()
-        model.to(device)
-        optimizer.zero_grad()
-
-        grouped_query, grouped_idxs, positive_answer, negative_answer, subsampling_weight = next(train_iterator)
-        for key in grouped_query:
-            grouped_query[key] = grouped_query[key].to(device)
-        positive_answer = positive_answer.to(device)
-        negative_answer = negative_answer.to(device)
-        subsampling_weight = subsampling_weight.to(device)
-
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, grouped_query, grouped_idxs)
-
-        negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
-        positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
-        positive_sample_loss = - (subsampling_weight * positive_sample_loss).sum() / subsampling_weight.sum()
-        negative_sample_loss = - (subsampling_weight * negative_sample_loss).sum() / subsampling_weight.sum()
-
-        loss = (positive_sample_loss + negative_sample_loss) / 2
-        loss.backward()
-        optimizer.step()
-        log = {
-            'positive_sample_loss': positive_sample_loss.item(),
-            'negative_sample_loss': negative_sample_loss.item(),
-            'loss': loss.item(),
-        }
-        return log
-
-    def evaluate(self, model, test_dataloader, device="cuda:0"):
-        model.to(device)
-        total_steps = len(test_dataloader)
-        progbar = Progbar(max_step=total_steps)
-        logs = defaultdict(list)
-        step = 0
-        h10 = None
-        for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
-            for query_name in grouped_query:
-                grouped_query[query_name] = grouped_query[query_name].to(device)
-                grouped_candidate_answer[query_name] = grouped_candidate_answer[query_name].to(device)
-
-            grouped_score = model.grouped_predict(grouped_query, grouped_candidate_answer)
-            for query_name in grouped_score:
-                score = grouped_score[query_name]
-                easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
-                hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
-                score[easy_answer_mask] = -float('inf')  # we remove easy answer, because easy answer may exist in training set
-                ranking = score.argsort(dim=1, descending=True)  # sorted idx (B, N)
-
-                ranks = []
-                hits = []
-                for i in range(10):
-                    hits.append([])
-                num_queries = ranking.shape[0]
-                for i in range(num_queries):
-                    for answer_id in hard_answer[i]:
-                        rank = torch.where(ranking[i] == answer_id)[0][0]
-                        ranks.append(rank + 1)
-                        for hits_level in range(10):
-                            hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
-                mrr = torch.mean(1 / torch.FloatTensor(ranks)).item()
-                h1 = torch.mean(torch.FloatTensor(hits[0])).item()
-                h3 = torch.mean(torch.FloatTensor(hits[2])).item()
-                h10 = torch.mean(torch.FloatTensor(hits[9])).item()
-                logs[query_name].append({
-                    'MRR': mrr,
-                    'hits@1': h1,
-                    'hits@3': h3,
-                    'hits@10': h10,
-                    'num_queries': num_queries,
-                })
-
-            step += 1
-            progbar.update(step, [("Hits @10", h10)])
-
-        metrics = defaultdict(lambda: defaultdict(int))
-        for query_name in logs:
-            for metric in logs[query_name][0].keys():
-                if metric == "num_queries":
-                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]])
-                else:
-                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]]) / len(logs[query_name])
-
-        return metrics
-
-    def visual_result(self, step_num: int, result, scope: str):
-        """Evaluate queries in dataloader"""
-        self.metric_log_store.add_metric({scope: result}, step_num, scope)
-        average_metrics = defaultdict(float)
-        num_query_structures = 0
-        num_queries = 0
-        for query_structure in result:
-            for metric in result[query_structure]:
-                self.vis.add_scalar("_".join([scope, query_structure, metric]), result[query_structure][metric], step_num)
-                if metric != 'num_queries':
-                    average_metrics[metric] += result[query_structure][metric]
-            num_queries += result[query_structure]['num_queries']
-            num_query_structures += 1
-
-        for metric in average_metrics:
-            average_metrics[metric] /= num_query_structures
-            self.vis.add_scalar("_".join([scope, 'average', metric]), average_metrics[metric], step_num)
-
-        header = "{0:<8s}".format(scope)
-        row_results = defaultdict(list)
-        row_results[header].append("avg")
-        row_results["num_queries"].append(num_queries)
-        for row in average_metrics:
-            cell = average_metrics[row]
-            row_results[row].append(cell)
-        for col in sorted(result):
-            row_results[header].append(col)
-            col_data = result[col]
-            for row in col_data:
-                cell = col_data[row]
-                row_results[row].append(cell)
-
-        def to_str(data):
-            if isinstance(data, float):
-                return "{0:>6.2%}  ".format(data)
-            elif isinstance(data, int):
-                return "{0:^6d}  ".format(data)
-            else:
-                return "{0:^6s}  ".format(data[:6])
-
-        for i in row_results:
-            row = row_results[i]
-            self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
-
-        score = average_metrics["MRR"]
-        return score, row_results
-
-
 @click.command()
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
 @click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15.")
@@ -1210,10 +862,14 @@ class MyExperiment(Experiment):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--train_tasks', type=str, default="Pe", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--train_all', type=bool, default=True, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--eval_all', type=bool, default=False, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--train_tasks', type=str, default=
+              "Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,"
+              +"Pt,aPt,bPt,Pe_Pt,Pt_sPe_Pt,Pt_oPe_Pt,t2i,t3i,t2i_Pe,Pe_t2i,"
+              +"e2i_N,e3i_N,Pe_e2i_Pe_NPe,e2i_PeN,e2i_NPe,"
+              +"t2i_N,t3i_N,Pe_t2i_PtPe_NPt,t2i_PtN,t2i_NPt", help='the tasks for training')
+@click.option('--train_all', type=bool, default=False, help='if training all, it will use all tasks in data.train_queries_answers')
+@click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='the tasks for evaluation')
+@click.option('--eval_all', type=bool, default=False, help='if evaluating all, it will use all tasks in data.test_queries_answers')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
@@ -1239,8 +895,22 @@ def main(data_home, dataset, name,
         "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
 
+    entity_count = data.entity_count
+    relation_count = data.relation_count
+    timestamp_count = data.timestamp_count
+    max_relation_id = relation_count
+    model = FLEX(
+        nentity=entity_count,
+        nrelation=relation_count + max_relation_id,  # with reverse relations
+        ntimestamp=timestamp_count,
+        hidden_dim=hidden_dim,
+        gamma=gamma,
+        center_reg=center_reg,
+        test_batch_size=test_batch_size,
+        drop=input_dropout,
+    )
     MyExperiment(
-        output, data,
+        output, data, model,
         start_step, max_steps, every_test_step, every_valid_step,
         batch_size, test_batch_size, negative_sample_size,
         train_device, test_device,
