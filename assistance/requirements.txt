@@ -1,0 +1,10 @@
+# pytorch 请自己根据cuda版本安装
+tqdm
+numpy
+scikit-learn
+scipy
+click
+tensorboardX
+pandas
+pathlib
+pyyaml

@@ -1,0 +1,63 @@
+site_name: Toolbox
+site_url: https://www.freqtrade.io/
+repo_url: https://github.com/LinXueyuanStdio/KGE-toolbox
+edit_uri: edit/develop/docs/
+use_directory_urls: True
+nav:
+    - Home: index.md
+    - Cheat Sheet: CheatSheet.md
+theme:
+  name: material
+  logo: "images/logo.png"
+  favicon: "images/logo.png"
+  custom_dir: "docs/overrides"
+  features:
+    - content.code.annotate
+    - search.share
+    - content.code.copy
+    - navigation.top
+    - navigation.footer
+  palette:
+    - scheme: default
+      primary: "blue grey"
+      accent: "tear"
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - scheme: slate
+      primary: "blue grey"
+      accent: "tear"
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+extra_css:
+  - "stylesheets/ft.extra.css"
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+markdown_extensions:
+  - attr_list
+  - admonition
+  - footnotes
+  - codehilite:
+      guess_lang: false
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.pathconverter
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      base_path: docs
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - mdx_truly_sane_lists
