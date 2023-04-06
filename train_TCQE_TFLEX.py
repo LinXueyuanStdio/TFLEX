@@ -1173,15 +1173,19 @@ class MyExperiment(Experiment):
 
     def visual_result(self, step_num: int, result, scope: str):
         group_scores = {}
+        group_row_results = defaultdict(list)
         for group, group_list in self.groups.items():
             group_result = {}
             for query_structure in group_list:
                 if query_structure in result:
                     group_result[query_structure] = result[group_result]
-            score, _ = self.visual_group_result(step_num, group_result, scope, group)
+            score, row_results = self.visual_group_result(step_num, group_result, scope, group)
             group_scores[group] = score
+            for row in row_results:
+                group_row_results[row].extend(row_results[row])
         AVG = sum(group_scores.values()) / len(group_scores)
         self.log(f"AVG: {AVG:.2%}")
+        return AVG, group_row_results
 
     def visual_group_result(self, step_num: int, result, scope: str, group: str):
         """Evaluate queries in dataloader"""
