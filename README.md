@@ -8,6 +8,12 @@ $$q=V_{?},\exists t:criticize(China, Japan, t) \land (visit(Xi Jinping, V_{?}, t
 
 - PyTorch 1.8.1 + cuda 10.2
 
+```
+pip install -r requirements
+cd assistence
+pip install -e .
+```
+
 ## Get Started
 
 ```shell
