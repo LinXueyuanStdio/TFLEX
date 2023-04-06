@@ -888,7 +888,7 @@ class TFLEX(nn.Module):
 @click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15, GDELT.")
 @click.option("--name", type=str, default="TFLEX_base", help="Name of the experiment.")
 @click.option("--start_step", type=int, default=0, help="start step.")
-@click.option("--max_steps", type=int, default=300001, help="Number of steps.")
+@click.option("--max_steps", type=int, default=200001, help="Number of steps.")
 @click.option("--every_test_step", type=int, default=10000, help="Number of steps.")
 @click.option("--every_valid_step", type=int, default=10000, help="Number of steps.")
 @click.option("--batch_size", type=int, default=512, help="Batch size.")
@@ -902,7 +902,7 @@ class TFLEX(nn.Module):
 @click.option('--cpu_num', type=int, default=4, help="used to speed up torch.dataloader")
 @click.option('--hidden_dim', type=int, default=800, help="embedding dimension")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
-@click.option('--gamma', type=float, default=30.0, help="margin in the loss")
+@click.option('--gamma', type=float, default=15.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--train_tasks', type=str, default=
               "Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,"
