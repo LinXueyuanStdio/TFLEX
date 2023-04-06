@@ -360,7 +360,9 @@ class TFLEX(nn.Module):
         self.batch_entity_range = torch.arange(nentity).float().repeat(test_batch_size, 1)
         self.epsilon = 2.0
         self.gamma = nn.Parameter(torch.Tensor([gamma]), requires_grad=False)
-        self.embedding_range = nn.Parameter(torch.Tensor([(self.gamma.item() + self.epsilon) / hidden_dim]), requires_grad=False)
+        self.embedding_range = nn.Parameter(
+            torch.Tensor([(self.gamma.item() + self.epsilon) / hidden_dim]),
+            requires_grad=False)
         embedding_range = self.embedding_range.item()
         self.modulus = nn.Parameter(torch.Tensor([0.5 * embedding_range]), requires_grad=True)
         self.cen = center_reg
@@ -550,7 +552,8 @@ class TFLEX(nn.Module):
         return tuple(embedding_of_args)
 
     def forward(self, positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict):
-        return self.forward_FLEX(positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
+        return self.forward_FLEX(
+            positive_sample, negative_sample, subsampling_weight, batch_queries_dict, batch_idxs_dict)
 
     def forward_FLEX(self,
                      positive_answer: Optional[torch.Tensor],
@@ -565,9 +568,9 @@ class TFLEX(nn.Module):
         """
         # 1. 将 查询 嵌入到低维空间
         (all_idxs_e, all_predict_e), \
-        (all_idxs_t, all_predict_t), \
-        (all_union_idxs_e, all_union_predict_e), \
-        (all_union_idxs_t, all_union_predict_t) = self.batch_predict(grouped_query, grouped_idxs)
+            (all_idxs_t, all_predict_t), \
+            (all_union_idxs_e, all_union_predict_e), \
+            (all_union_idxs_t, all_union_predict_t) = self.batch_predict(grouped_query, grouped_idxs)
 
         all_idxs = all_idxs_e + all_idxs_t + all_union_idxs_e + all_union_idxs_t
         if subsampling_weight is not None:
@@ -578,23 +581,32 @@ class TFLEX(nn.Module):
 
         # 2. 计算正例损失
         if positive_answer is not None:
-            scores_e = self.scoring_to_answers_by_idxs(all_idxs_e, positive_answer, all_predict_e, predict_entity=True, DNF_predict=False)
-            scores_t = self.scoring_to_answers_by_idxs(all_idxs_t, positive_answer, all_predict_t, predict_entity=False, DNF_predict=False)
-            scores_union_e = self.scoring_to_answers_by_idxs(all_union_idxs_e, positive_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
-            scores_union_t = self.scoring_to_answers_by_idxs(all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
+            scores_e = self.scoring_to_answers_by_idxs(
+                all_idxs_e, positive_answer, all_predict_e, predict_entity=True, DNF_predict=False)
+            scores_t = self.scoring_to_answers_by_idxs(
+                all_idxs_t, positive_answer, all_predict_t, predict_entity=False, DNF_predict=False)
+            scores_union_e = self.scoring_to_answers_by_idxs(
+                all_union_idxs_e, positive_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
+            scores_union_t = self.scoring_to_answers_by_idxs(
+                all_union_idxs_t, positive_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             positive_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
         # 3. 计算负例损失
         if negative_answer is not None:
-            scores_e = self.scoring_to_answers_by_idxs(all_idxs_e, negative_answer, all_predict_e, predict_entity=True, DNF_predict=False)
-            scores_t = self.scoring_to_answers_by_idxs(all_idxs_t, negative_answer, all_predict_t, predict_entity=False, DNF_predict=False)
-            scores_union_e = self.scoring_to_answers_by_idxs(all_union_idxs_e, negative_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
-            scores_union_t = self.scoring_to_answers_by_idxs(all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
+            scores_e = self.scoring_to_answers_by_idxs(
+                all_idxs_e, negative_answer, all_predict_e, predict_entity=True, DNF_predict=False)
+            scores_t = self.scoring_to_answers_by_idxs(
+                all_idxs_t, negative_answer, all_predict_t, predict_entity=False, DNF_predict=False)
+            scores_union_e = self.scoring_to_answers_by_idxs(
+                all_union_idxs_e, negative_answer, all_union_predict_e, predict_entity=True, DNF_predict=True)
+            scores_union_t = self.scoring_to_answers_by_idxs(
+                all_union_idxs_t, negative_answer, all_union_predict_t, predict_entity=False, DNF_predict=True)
             negative_scores = torch.cat([scores_e, scores_t, scores_union_e, scores_union_t], dim=0)
 
         return positive_scores, negative_scores, subsampling_weight, all_idxs
 
-    def single_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor) -> Union[TYPE_token, Tuple[TYPE_token, TYPE_token]]:
+    def single_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor) -> Union[TYPE_token,
+                                                                                                   Tuple[TYPE_token, TYPE_token]]:
         query_name, query_args = query_structure
         if query_contains_union_and_we_should_use_DNF(query_name):
             # transform to DNF
@@ -609,7 +621,8 @@ class TFLEX(nn.Module):
             predict = func(*embedding_of_args)  # B x dt
             return predict
 
-    def batch_predict(self, grouped_query: Dict[QueryStructure, torch.Tensor], grouped_idxs: Dict[QueryStructure, List[List[int]]]):
+    def batch_predict(self, grouped_query: Dict[QueryStructure, torch.Tensor],
+                      grouped_idxs: Dict[QueryStructure, List[List[int]]]):
         all_idxs_e, all_predict_e = [], []
         all_idxs_t, all_predict_t = [], []
         all_union_idxs_e, all_union_predict_1_e, all_union_predict_2_e = [], [], []
@@ -674,17 +687,20 @@ class TFLEX(nn.Module):
         if len(all_union_idxs_e) > 0:
             all_union_predict_1_e = cat_to_tensor(all_union_predict_1_e)  # (B, 1, d) * 5
             all_union_predict_2_e = cat_to_tensor(all_union_predict_2_e)  # (B, 1, d) * 5
-            all_union_predict_e: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_e, all_union_predict_2_e)])  # (B, 2, d) * 5
+            all_union_predict_e: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(
+                all_union_predict_1_e, all_union_predict_2_e)])  # (B, 2, d) * 5
         if len(all_union_idxs_t) > 0:
             all_union_predict_1_t = cat_to_tensor(all_union_predict_1_t)  # (B, 1, d) * 5
             all_union_predict_2_t = cat_to_tensor(all_union_predict_2_t)  # (B, 1, d) * 5
-            all_union_predict_t: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(all_union_predict_1_t, all_union_predict_2_t)])  # (B, 2, d) * 5
+            all_union_predict_t: TYPE_token = tuple([torch.cat([x, y], dim=1) for x, y in zip(
+                all_union_predict_1_t, all_union_predict_2_t)])  # (B, 2, d) * 5
         return (all_idxs_e, all_predict_e), \
                (all_idxs_t, all_predict_t), \
                (all_union_idxs_e, all_union_predict_e), \
                (all_union_idxs_t, all_union_predict_t)
 
-    def grouped_predict(self, grouped_query: Dict[QueryStructure, torch.Tensor], grouped_answer: Dict[QueryStructure, torch.Tensor]) -> Dict[QueryStructure, torch.Tensor]:
+    def grouped_predict(self, grouped_query: Dict[QueryStructure, torch.Tensor],
+                        grouped_answer: Dict[QueryStructure, torch.Tensor]) -> Dict[QueryStructure, torch.Tensor]:
         """
         return {"Pe": (B, L) }
         L 是答案个数，预测实体和预测时间戳 的答案个数不一样，所以不能对齐合并
@@ -700,7 +716,8 @@ class TFLEX(nn.Module):
 
         return grouped_score
 
-    def forward_predict(self, query_structure: QueryStructure, query_tensor: torch.Tensor, answer: torch.Tensor) -> torch.Tensor:
+    def forward_predict(
+            self, query_structure: QueryStructure, query_tensor: torch.Tensor, answer: torch.Tensor) -> torch.Tensor:
         # query_tensor  # (B, L), B for batch size, L for query args length
         # answer  # (B, N)
         query_name = query_structure
@@ -711,7 +728,8 @@ class TFLEX(nn.Module):
             func = self.parser.fast_function(query_name + "_DNF")
             embedding_of_args = self.embed_args(query_args, query_tensor)
             predict_1, predict_2 = func(*embedding_of_args)  # tuple[(B, d), (B, d)]
-            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1) for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
+            all_union_predict: TYPE_token = tuple([torch.stack([x, y], dim=1)
+                                                  for x, y in zip(predict_1, predict_2)])  # (B, 2, d) * 5
             if is_to_predict_entity_set(query_name):
                 return self.scoring_to_answers(answer, all_union_predict, predict_entity=True, DNF_predict=True)
             else:
@@ -727,7 +745,8 @@ class TFLEX(nn.Module):
             else:
                 return self.scoring_to_answers(answer, all_predict, predict_entity=False, DNF_predict=False)
 
-    def scoring_to_answers_by_idxs(self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
+    def scoring_to_answers_by_idxs(
+            self, all_idxs, answer: torch.Tensor, q: TYPE_token, predict_entity=True, DNF_predict=False):
         """
         B for batch size
         N for negative sampling size (maybe N=1 when positive samples only)
@@ -921,13 +940,16 @@ class MyExperiment(Experiment):
         )
         self.log("Training info:")
         for query_structure_name in train_queries_answers:
-            self.log(query_structure_name + ": " + str(len(train_queries_answers[query_structure_name]["queries_answers"])))
+            self.log(query_structure_name + ": " +
+                     str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         self.log("Validation info:")
         for query_structure_name in valid_queries_answers:
-            self.log(query_structure_name + ": " + str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
+            self.log(query_structure_name + ": " +
+                     str(len(valid_queries_answers[query_structure_name]["queries_answers"])))
         self.log("Test info:")
         for query_structure_name in test_queries_answers:
-            self.log(query_structure_name + ": " + str(len(test_queries_answers[query_structure_name]["queries_answers"])))
+            self.log(query_structure_name + ": " +
+                     str(len(test_queries_answers[query_structure_name]["queries_answers"])))
 
         # 2. build model
         model = model.to(train_device)
@@ -981,7 +1003,12 @@ class MyExperiment(Experiment):
                     self.visualize_store.add_scalar('other_' + metric, log[metric], step)
                 log = self.train(model, opt, train_path_iterator, step, train_device)
 
-            progbar.update(step + 1, [("step", step + 1), ("loss", log["loss"]), ("positive", log["positive_sample_loss"]), ("negative", log["negative_sample_loss"])])
+            progbar.update(
+                step + 1,
+                [("step", step + 1),
+                 ("loss", log["loss"]),
+                 ("positive", log["positive_sample_loss"]),
+                 ("negative", log["negative_sample_loss"])])
             if (step + 1) % 10 == 0:
                 self.metric_log_store.add_loss(log, step + 1)
 
@@ -1054,7 +1081,8 @@ class MyExperiment(Experiment):
         negative_answer = negative_answer.to(device)
         subsampling_weight = subsampling_weight.to(device)
 
-        positive_logit, negative_logit, subsampling_weight, _ = model(positive_answer, negative_answer, subsampling_weight, grouped_query, grouped_idxs)
+        positive_logit, negative_logit, subsampling_weight, _ = model(
+            positive_answer, negative_answer, subsampling_weight, grouped_query, grouped_idxs)
 
         negative_sample_loss = F.logsigmoid(-negative_logit).mean(dim=1)
         positive_sample_loss = F.logsigmoid(positive_logit).squeeze(dim=1)
@@ -1088,7 +1116,8 @@ class MyExperiment(Experiment):
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
                 hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
-                score[easy_answer_mask] = -float('inf')  # we remove easy answer, because easy answer may exist in training set
+                # we remove easy answer, because easy answer may exist in training set
+                score[easy_answer_mask] = -float('inf')
                 ranking = score.argsort(dim=1, descending=True)  # sorted idx (B, N)
 
                 ranks = []
@@ -1135,7 +1164,10 @@ class MyExperiment(Experiment):
         num_queries = 0
         for query_structure in result:
             for metric in result[query_structure]:
-                self.visualize_store.add_scalar("_".join([scope, query_structure, metric]), result[query_structure][metric], step_num)
+                self.visualize_store.add_scalar(
+                    "_".join([scope, query_structure, metric]),
+                    result[query_structure][metric],
+                    step_num)
                 if metric != 'num_queries':
                     average_metrics[metric] += result[query_structure][metric]
             num_queries += result[query_structure]['num_queries']
@@ -1171,31 +1203,30 @@ class MyExperiment(Experiment):
             row = row_results[i]
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
 
-        if scope == "Test":
-            # avg MRR by groups
-            avg_e = ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"]
-            avg_t = ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"]
-            avg_e_C_e = ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"]
-            avg_t_C_t = ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"]
-            avg_U_e = ["e2u", "Pe_e2u"]
-            avg_U_t = ["t2u", "Pe_t2u"]
-            avg_x = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
+        # avg MRR by groups
+        avg_e = ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"]
+        avg_t = ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"]
+        avg_e_C_e = ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"]
+        avg_t_C_t = ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"]
+        avg_U_e = ["e2u", "Pe_e2u"]
+        avg_U_t = ["t2u", "Pe_t2u"]
+        avg_x = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
 
-            def avg(avg_e):
-                avg_e = list(map(lambda x: result[x]["MRR"] if x in result else 0, avg_e))
-                avg_e = sum(avg_e) / len(avg_e)
-                return avg_e
-            avg_e = avg(avg_e)
-            avg_t = avg(avg_t)
-            avg_e_C_e = avg(avg_e_C_e)
-            avg_t_C_t = avg(avg_t_C_t)
-            avg_U_e = avg(avg_U_e)
-            avg_U_t = avg(avg_U_t)
-            avg_x = avg(avg_x)
-            AVG = [avg_e, avg_t, avg_e_C_e, avg_t_C_t, avg_U_e, avg_U_t, avg_x]
-            AVG = sum(AVG) / len(AVG)
-            self.log(f"avg_e: {avg_e:.2%}\navg_t: {avg_t:.2%}\navg_e_C_e: {avg_e_C_e:.2%}\navg_t_C_t: {avg_t_C_t:.2%}\n" +
-                    f"avg_U_e: {avg_U_e:.2%}\navg_U_t: {avg_U_t:.2%}\navg_x: {avg_x:.2%}\nAVG: {AVG:.2%}")
+        def avg(avg_e):
+            avg_e = list(map(lambda x: result[x]["MRR"] if x in result else 0, avg_e))
+            avg_e = sum(avg_e) / len(avg_e)
+            return avg_e
+        avg_e = avg(avg_e)
+        avg_t = avg(avg_t)
+        avg_e_C_e = avg(avg_e_C_e)
+        avg_t_C_t = avg(avg_t_C_t)
+        avg_U_e = avg(avg_U_e)
+        avg_U_t = avg(avg_U_t)
+        avg_x = avg(avg_x)
+        AVG = [avg_e, avg_t, avg_e_C_e, avg_t_C_t, avg_U_e, avg_U_t, avg_x]
+        AVG = sum(AVG) / len(AVG)
+        self.log(f"avg_e: {avg_e:.2%}\navg_t: {avg_t:.2%}\navg_e_C_e: {avg_e_C_e:.2%}\navg_t_C_t: {avg_t_C_t:.2%}\n" +
+                 f"avg_U_e: {avg_U_e:.2%}\navg_U_t: {avg_U_t:.2%}\navg_x: {avg_x:.2%}\nAVG: {AVG:.2%}")
 
         score = average_metrics["MRR"]
         return score, row_results
@@ -1215,21 +1246,24 @@ class MyExperiment(Experiment):
 @click.option("--train_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--test_device", type=str, default="cuda:0", help="choice: cuda:0, cuda:1, cpu.")
 @click.option("--resume", type=bool, default=False, help="Resume from output directory.")
-@click.option("--resume_by_score", type=float, default=0.0, help="Resume by score from output directory. Resume best if it is 0. Default: 0")
+@click.option("--resume_by_score", type=float, default=0.0,
+              help="Resume by score from output directory. Resume best if it is 0. Default: 0")
 @click.option("--lr", type=float, default=0.0001, help="Learning rate.")
 @click.option('--cpu_num', type=int, default=4, help="used to speed up torch.dataloader")
 @click.option('--hidden_dim', type=int, default=800, help="embedding dimension")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
-@click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--train_tasks', type=str, default=
-              "Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,"
+@click.option('--center_reg', type=float, default=0.02,
+              help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
+@click.option('--train_tasks', type=str, default="Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,"
               + "Pt,aPt,bPt,Pe_Pt,Pt_sPe_Pt,Pt_oPe_Pt,t2i,t3i,t2i_Pe,Pe_t2i,"
               + "e2i_N,e3i_N,Pe_e2i_Pe_NPe,e2i_PeN,e2i_NPe,"
               + "t2i_N,t3i_N,Pe_t2i_PtPe_NPt,t2i_PtN,t2i_NPt", help='the tasks for training')
-@click.option('--train_all', type=bool, default=False, help='if training all, it will use all tasks in data.train_queries_answers')
+@click.option('--train_all', type=bool, default=False,
+              help='if training all, it will use all tasks in data.train_queries_answers')
 @click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='the tasks for evaluation')
-@click.option('--eval_all', type=bool, default=False, help='if evaluating all, it will use all tasks in data.test_queries_answers')
+@click.option('--eval_all', type=bool, default=False,
+              help='if evaluating all, it will use all tasks in data.test_queries_answers')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
