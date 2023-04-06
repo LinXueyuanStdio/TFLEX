@@ -273,7 +273,7 @@ class MyExperiment(Experiment):
 
 @click.command()
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
-@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15.")
+@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15, GDELT.")
 @click.option("--name", type=str, default="TuckERT", help="Name of the experiment.")
 @click.option("--times", type=int, default=1, help="Run multi times to get error bars.")
 @click.option("--start_step", type=int, default=0, help="start step.")
