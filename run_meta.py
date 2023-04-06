@@ -20,13 +20,13 @@ def main(data_home, dataset):
             for query_structure in groups[k]:
                 v = data.query_meta[query_structure]
                 queries_count[query_structure].extend(
-                    [v["train"]["queries_count"],
-                     v["valid"]["queries_count"],
-                     v["test"]["queries_count"]])
+                    [str(v["train"]["queries_count"] if v["train"]["queries_count"] > 0 else "-"),
+                     str(v["valid"]["queries_count"]),
+                     str(v["test"]["queries_count"])])
                 avg_answers_count[query_structure].extend(
-                    [v["train"]["avg_answers_count"],
-                     v["valid"]["avg_answers_count"],
-                     v["test"]["avg_answers_count"]])
+                    [str(v["train"]["avg_answers_count"]),
+                     str(v["valid"]["avg_answers_count"]),
+                     str(v["test"]["avg_answers_count"])])
     print("queries_count")
     for k in groups:
         for query_structure in groups[k]:
