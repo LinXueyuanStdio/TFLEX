@@ -8,7 +8,7 @@ from ComplexTemporalQueryData import *
 
 @click.command()
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
-def main(data_home, dataset):
+def main(data_home):
     queries_count = defaultdict(list)
     avg_answers_count = defaultdict(list)
     for dataset in [ICEWS14(data_home), ICEWS05_15(data_home), GDELT(data_home)]:
