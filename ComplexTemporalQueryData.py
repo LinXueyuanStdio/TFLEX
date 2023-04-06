@@ -622,6 +622,8 @@ class ComplexQueryData(TemporalKnowledgeData):
             for a, b in patches:
                 if b in qa:
                     continue
+                if a not in qa:
+                    continue
                 qa[b] = qa[a]
                 qa.pop(a)
             return qa

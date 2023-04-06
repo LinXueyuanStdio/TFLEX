@@ -14,7 +14,9 @@ def main(data_home, dataset):
         cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
         data = ComplexQueryData(dataset, cache_path=cache)
         data.preprocess_data_if_needed()
-        data.patch2()
+        # data.patch2()
+        for i in data.dump():
+            print(i)
 
 if __name__ == '__main__':
     main()
