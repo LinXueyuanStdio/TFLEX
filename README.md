@@ -55,6 +55,8 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 To generate dataset, please run `python run_sampling_TCQs.py`.
 
+To show the meta of the generated dataset, run `python run_meta.py`.
+
 ## Interpreter
 
 To launch an interactive interpreter, please run `python run_reasoning_interpreter.py`
