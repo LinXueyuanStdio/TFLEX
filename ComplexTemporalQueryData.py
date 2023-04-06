@@ -1025,12 +1025,20 @@ class ComplexQueryData(TemporalKnowledgeData):
             dump.insert(len(dump) - 2, f"{k} : {pformat(v)}")
         return dump
 
+
 groups = {
-    "avg_e": ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"],
-    "avg_t": ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"],
+    "avg_e": ["Pe", "Pe2", "Pe3", "e2i", "e3i"],
+    "avg_t": ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i"],
     "avg_eCe": ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"],
     "avg_tCt": ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"],
     "avg_Ue": ["e2u", "Pe_e2u"],
     "avg_Ut": ["t2u", "Pe_t2u"],
-    "avg_x": ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"],
+    "avg_x": ["t2i_Pe", "Pe_t2i",
+              "e2i_Pe", "Pe_e2i",
+              "between",
+              "Pe_aPt", "Pe_bPt",
+              "Pt_sPe", "Pt_oPe",
+              "Pt_se2i", "Pt_oe2i",
+              "Pe_at2i", "Pe_bt2i",
+              ],
 }
