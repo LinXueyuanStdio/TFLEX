@@ -171,6 +171,9 @@ class SamplingParser(BasicParser):
         for t_id in timestamp_ids:
             variables[f"t{t_id}"] = FixedQuery(timestamps={t_id}, is_anchor=True)
 
+        def neighbor(s, k=10):
+            return random.sample(o_srt[s], k)
+
         def find_entity(s: Union[FixedQuery, Placeholder], r: Union[FixedQuery, Placeholder], t: Union[FixedQuery, Placeholder]):
             s_is_missing, r_is_missing, t_is_missing = isinstance(s, Placeholder), isinstance(r, Placeholder), isinstance(t, Placeholder)
             if s_is_missing and r_is_missing and t_is_missing:
@@ -435,6 +438,7 @@ class SamplingParser(BasicParser):
             "TimeBefore": TimeBefore,
             "TimeAfter": TimeAfter,
             "TimeNext": TimeNext,
+            "neighbor": neighbor,
         }
 
         # fast sampling

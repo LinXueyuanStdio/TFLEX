@@ -117,24 +117,21 @@ class ExpressionInterpreter(cmd.Cmd):
 
     def list_entities(self, k=5):
         if self.data is None:
-            print("you should load dataset first. please call `use_dataset()`")
-            return
+            return "you should load dataset first. please call `use_dataset()`"
         if k == -1:
             return self.data.all_entities
         return random.sample(self.data.all_entities, k)
 
     def list_relations(self, k=5):
         if self.data is None:
-            print("you should load dataset first. please call `use_dataset()`")
-            return
+            return "you should load dataset first. please call `use_dataset()`"
         if k == -1:
             return self.data.all_relations
         return random.sample(self.data.all_relations, k)
 
     def list_timestamps(self, k=5):
         if self.data is None:
-            print("you should load dataset first. please call `use_dataset()`")
-            return
+            return "you should load dataset first. please call `use_dataset()`"
         if k == -1:
             return self.data.all_timestamps
         return random.sample(self.data.all_timestamps, k)
@@ -144,8 +141,7 @@ class ExpressionInterpreter(cmd.Cmd):
                                test_batch_size=100, input_dropout=0.2, device="cuda"):
         from train_TCQE_TFLEX import TFLEX
         if self.dataset is None or self.data is None:
-            print("you should load dataset first. please call `use_dataset()`")
-            return
+            return "you should load dataset first. please call `use_dataset()`"
         output = OutputSchema(self.dataset + "-" + name)
         entity_count = self.data.entity_count
         relation_count = self.data.relation_count
@@ -259,18 +255,16 @@ class ExpressionInterpreter(cmd.Cmd):
     def switch_parser(self, mode="neural"):
         if mode == "neural":
             if self.neural_parser is None:
-                print("you should load neural parser first. please call `use_neural_interpreter()`")
-                return
+                return "you should load neural parser first. please call `use_neural_interpreter()`"
             self.switch_parser_to(self.neural_parser)
         elif mode == "sampling":
             if self.sampling_parser is None:
-                print("you should load sampling parser first. please call `use_sampling_interpreter()`")
-                return
+                return "you should load sampling parser first. please call `use_sampling_interpreter()`"
             self.switch_parser_to(self.sampling_parser)
         else:
-            if mode != "default":
-                print(f"unknown parser mode {mode}. reset to default parser")
             self.switch_parser_to(self.default_parser)
+            if mode != "default":
+                return f"unknown parser mode {mode}. reset to default parser"
 
     def default(self, line):
         try:
