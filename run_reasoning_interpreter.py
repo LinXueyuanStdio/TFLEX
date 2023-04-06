@@ -113,7 +113,7 @@ class ExpressionInterpreter(cmd.Cmd):
 
     def list_entities(self, k=5):
         if self.data is None:
-            print("you should load dataset first. please call `user_dataset()`")
+            print("you should load dataset first. please call `use_dataset()`")
             return
         if k == -1:
             return self.data.all_entities
@@ -121,7 +121,7 @@ class ExpressionInterpreter(cmd.Cmd):
 
     def list_relations(self, k=5):
         if self.data is None:
-            print("you should load dataset first. please call `user_dataset()`")
+            print("you should load dataset first. please call `use_dataset()`")
             return
         if k == -1:
             return self.data.all_relations
@@ -129,7 +129,7 @@ class ExpressionInterpreter(cmd.Cmd):
 
     def list_timestamps(self, k=5):
         if self.data is None:
-            print("you should load dataset first. please call `user_dataset()`")
+            print("you should load dataset first. please call `use_dataset()`")
             return
         if k == -1:
             return self.data.all_timestamps
@@ -140,7 +140,7 @@ class ExpressionInterpreter(cmd.Cmd):
                                test_batch_size=100, input_dropout=0.2, device="cuda"):
         from train_TCQE_TFLEX import TFLEX
         if self.dataset is None or self.data is None:
-            print("you should load dataset first. please call `user_dataset()`")
+            print("you should load dataset first. please call `use_dataset()`")
             return
         output = OutputSchema(self.dataset + "-" + name)
         entity_count = self.data.entity_count
