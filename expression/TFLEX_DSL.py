@@ -408,21 +408,33 @@ class SamplingParser(BasicParser):
                         timestamps = timestamps | set(sro_t[si][rj][ok])
             # print("find_timestamp", timestamps)
             return timestamps
-
+        def And(q1, q2): return FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps)
+        def And3(q1, q2, q3): return FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps)
+        def Or(q1, q2): return FixedQuery(answers=q1.answers | q2.answers, timestamps=q1.timestamps & q2.timestamps)
+        def Not(x): return FixedQuery(answers=all_entity_ids - x.answers, timestamps=x.timestamps)
+        def EntityProjection(e1, r1, t1): return FixedQuery(answers=find_entity(e1, r1, t1))
+        def TimeProjection(e1, r1, e2): return FixedQuery(timestamps=find_timestamp(e1, r1, e2))
+        def TimeAnd(q1, q2): return FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps)
+        def TimeAnd3(q1, q2, q3): return FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps)
+        def TimeOr(q1, q2): return FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps | q2.timestamps)
+        def TimeNot(x): return FixedQuery(answers=x.answers, timestamps=all_timestamp_ids - x.timestamps if len(x.timestamps) > 0 else all_timestamp_ids)
+        def TimeBefore(x): return FixedQuery(answers=x.answers, timestamps=set([t for t in timestamp_ids if t < min(x.timestamps)] if len(x.timestamps) > 0 else all_timestamp_ids))
+        def TimeAfter(x): return FixedQuery(answers=x.answers, timestamps=set([t for t in timestamp_ids if t > max(x.timestamps)] if len(x.timestamps) > 0 else all_timestamp_ids))
+        def TimeNext(x): return FixedQuery(answers=x.answers, timestamps=set([min(t + 1, max_timestamp_id) for t in x.timestamps] if len(x.timestamps) > 0 else all_timestamp_ids))
         neural_ops = {  # 4+4+3
-            "And": lambda q1, q2: FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps),
-            "And3": lambda q1, q2, q3: FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps),
-            "Or": lambda q1, q2: FixedQuery(answers=q1.answers | q2.answers, timestamps=q1.timestamps & q2.timestamps),
-            "Not": lambda x: FixedQuery(answers=all_entity_ids - x.answers, timestamps=x.timestamps),
-            "EntityProjection": lambda e1, r1, t1: FixedQuery(answers=find_entity(e1, r1, t1)),
-            "TimeProjection": lambda e1, r1, e2: FixedQuery(timestamps=find_timestamp(e1, r1, e2)),
-            "TimeAnd": lambda q1, q2: FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps),
-            "TimeAnd3": lambda q1, q2, q3: FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps),
-            "TimeOr": lambda q1, q2: FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps | q2.timestamps),
-            "TimeNot": lambda x: FixedQuery(answers=x.answers, timestamps=all_timestamp_ids - x.timestamps if len(x.timestamps) > 0 else all_timestamp_ids),
-            "TimeBefore": lambda x: FixedQuery(answers=x.answers, timestamps=set([t for t in timestamp_ids if t < min(x.timestamps)] if len(x.timestamps) > 0 else all_timestamp_ids)),
-            "TimeAfter": lambda x: FixedQuery(answers=x.answers, timestamps=set([t for t in timestamp_ids if t > max(x.timestamps)] if len(x.timestamps) > 0 else all_timestamp_ids)),
-            "TimeNext": lambda x: FixedQuery(answers=x.answers, timestamps=set([min(t + 1, max_timestamp_id) for t in x.timestamps] if len(x.timestamps) > 0 else all_timestamp_ids)),
+            "And": And,
+            "And3": And3,
+            "Or": Or,
+            "Not": Not,
+            "EntityProjection": EntityProjection,
+            "TimeProjection": TimeProjection,
+            "TimeAnd": TimeAnd,
+            "TimeAnd3": TimeAnd3,
+            "TimeOr": TimeOr,
+            "TimeNot": TimeNot,
+            "TimeBefore": TimeBefore,
+            "TimeAfter": TimeAfter,
+            "TimeNext": TimeNext,
         }
 
         # fast sampling

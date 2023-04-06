@@ -76,7 +76,7 @@ class ExpressionInterpreter(cmd.Cmd):
                     auto use neural interpreter or sampling interpreter to answer query and return k entities
                 answer_timestamps(query, k=5):
                     auto use neural interpreter or sampling interpreter to answer query and return k timestamps
-                help(): show this help message
+                commands(): show this help message
             """,
             "list_queries": lambda: query_structures,
             "use_dataset": self.use_dataset,
@@ -110,6 +110,10 @@ class ExpressionInterpreter(cmd.Cmd):
         ])
         self.data = data
         self.dataset = dataset
+        self.parser.symtable.update({
+            "data": data,
+            "dataset": dataset,
+        })
 
     def list_entities(self, k=5):
         if self.data is None:
