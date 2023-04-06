@@ -611,6 +611,27 @@ class ComplexQueryData(TemporalKnowledgeData):
         self.sampling()
         self.cache_sampling_data()
 
+    def patch2(self):
+        patches = [
+            ("Pt_le2i", "Pt_se2i"),
+            ("Pt_re2i", "Pt_oe2i"),
+            ("Pt_lPe", "Pt_sPe"),
+            ("Pt_rPe", "Pt_oPe"),
+        ]
+        def patch_data(qa):
+            for a, b in patches:
+                if b in qa:
+                    continue
+                qa[b] = qa[a]
+                qa.pop(a)
+            return qa
+        self.train_queries_answers = patch_data(self.train_queries_answers)
+        self.valid_queries_answers = patch_data(self.valid_queries_answers)
+        self.test_queries_answers = patch_data(self.test_queries_answers)
+        self.query_meta = patch_data(self.query_meta)
+
+        self.cache_sampling_data()
+
     def transform_all_data(self):
         TemporalKnowledgeData.transform_all_data(self)
         self.sampling()

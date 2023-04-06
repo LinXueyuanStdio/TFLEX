@@ -888,6 +888,16 @@ class MyExperiment(Experiment):
         valid_queries_answers = data.valid_queries_answers
         test_queries_answers = data.test_queries_answers
 
+        self.groups = {
+            "avg_e": ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"],
+            "avg_t": ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"],
+            "avg_eCe": ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"],
+            "avg_tCt": ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"],
+            "avg_Ue": ["e2u", "Pe_e2u"],
+            "avg_Ut": ["t2u", "Pe_t2u"],
+            "avg_x": ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"],
+        }
+
         if not train_all:
             tasks = train_tasks.split(",")
             for task in set(train_queries_answers.keys()) - set(tasks):
@@ -921,10 +931,15 @@ class MyExperiment(Experiment):
 
         if not eval_all:
             tasks = eval_tasks.split(",")
-            for task in set(valid_queries_answers.keys()) - set(tasks):
-                valid_queries_answers.pop(task)
-            for task in set(test_queries_answers.keys()) - set(tasks):
-                test_queries_answers.pop(task)
+        else:
+            tasks = []
+            for group in self.groups:
+                tasks.extend(self.groups[group])
+        for task in set(valid_queries_answers.keys()) - set(tasks):
+            valid_queries_answers.pop(task)
+        for task in set(test_queries_answers.keys()) - set(tasks):
+            test_queries_answers.pop(task)
+
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
@@ -1157,17 +1172,8 @@ class MyExperiment(Experiment):
         return metrics
 
     def visual_result(self, step_num: int, result, scope: str):
-        groups = {
-            "avg_e": ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"],
-            "avg_t": ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"],
-            "avg_eCe": ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"],
-            "avg_tCt": ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"],
-            "avg_Ue": ["e2u", "Pe_e2u"],
-            "avg_Ut": ["t2u", "Pe_t2u"],
-            "avg_x": ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"],
-        }
         group_scores = {}
-        for group, group_list in groups.items():
+        for group, group_list in self.groups.items():
             group_result = {}
             for query_structure in group_list:
                 if query_structure in result:
