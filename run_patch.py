@@ -21,6 +21,8 @@ def main(data_home, dataset):
         for i in data.dump():
             print(i)
         data.patch2()
+        del data
+        del cache
 
 if __name__ == '__main__':
     main()
