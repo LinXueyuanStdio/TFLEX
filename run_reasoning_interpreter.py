@@ -19,7 +19,7 @@ from expression.FLEX_DSL import query_structures
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.ModelParamStore import ModelParamStoreSchema
 from train_TCQE_TFLEX import TYPE_token
-
+from toolbox.utils.Log import blue, cyan, green, orange, grey, yellow, red, bold_red, reset
 
 class ExpressionInterpreter(cmd.Cmd):
     """
@@ -29,7 +29,7 @@ class ExpressionInterpreter(cmd.Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
-        self.prompt = 'you: '
+        self.prompt = cyan + 'you: ' + reset
         variables, functions = self.interactive_ops()
         self.default_parser = Interpreter(usersyms=dict(**variables, **functions))
         self.parser: Interpreter = self.default_parser
@@ -274,7 +274,7 @@ class ExpressionInterpreter(cmd.Cmd):
         try:
             output = self.parser.eval(line)
             if output is not None:
-                self.stdout.write(f"bot: {str(output)}\n")
+                self.stdout.write(f"{yellow}bot: {reset}{green}{output}{reset}\n")
 
         except SyntaxError:
             traceback.print_exc(0)

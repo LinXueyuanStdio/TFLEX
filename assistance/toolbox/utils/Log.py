@@ -26,19 +26,19 @@ logging.Logger.success = debug_success
 logging.Logger.failed = debug_failed
 
 
+blue = "\x1b[34m"
+cyan = "\x1b[36;21m"
+green = "\x1b[32;21m"
+orange = "\x1b[33;21m"
+grey = "\x1b[38;21m"
+yellow = "\x1b[33;21m"
+red = "\x1b[31;21m"
+bold_red = "\x1b[31;1m"
+reset = "\x1b[0m"
+
+
 class ColorFormatter(logging.Formatter):
     """Logging Formatter to add colors and count warning / errors"""
-
-    blue = "\x1b[34m"
-    cyan = "\x1b[36;21m"
-    green = "\x1b[32;21m"
-    orange = "\x1b[33;21m"
-    grey = "\x1b[38;21m"
-    yellow = "\x1b[33;21m"
-    red = "\x1b[31;21m"
-    bold_red = "\x1b[31;1m"
-    reset = "\x1b[0m"
-
     time_prefix = "[%(asctime)s]"
     filename_prefix = " (%(filename)s:%(lineno)d)  "
     msg = "%(levelname)s - %(message)s"
