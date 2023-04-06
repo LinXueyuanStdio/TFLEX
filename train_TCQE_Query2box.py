@@ -14,7 +14,7 @@ from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.nn.BetaE import BoxOffsetIntersection, CenterIntersection
 from toolbox.utils.RandomSeeds import set_seeds
 from train_TCQE_TFLEX import MyExperiment
-from train_TCQE_static_QE import TYPE_token, TCQE
+from TCQE_static_QE import TYPE_token, TCQE
 
 
 class EntityProjection(nn.Module):
@@ -103,7 +103,7 @@ class TFLEX(TCQE):
 
 @click.command()
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
-@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15.")
+@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15, GDELT.")
 @click.option("--name", type=str, default="TFLEX_base", help="Name of the experiment.")
 @click.option("--start_step", type=int, default=0, help="start step.")
 @click.option("--max_steps", type=int, default=300001, help="Number of steps.")
@@ -122,9 +122,7 @@ class TFLEX(TCQE):
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
-@click.option('--train_tasks', type=str, default=
-              "Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,"
-              + "e2i_N,e3i_N,Pe_e2i_Pe_NPe,e2i_PeN,e2i_NPe", help='the tasks for training')
+@click.option('--train_tasks', type=str, default="Pe,Pe2,Pe3,e2i,e3i,e2i_Pe,Pe_e2i,", help='the tasks for training')
 @click.option('--train_all', type=bool, default=False, help='if training all, it will use all tasks in data.train_queries_answers')
 @click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='the tasks for evaluation')
 @click.option('--eval_all', type=bool, default=False, help='if evaluating all, it will use all tasks in data.test_queries_answers')

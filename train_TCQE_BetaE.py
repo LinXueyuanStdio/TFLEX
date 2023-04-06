@@ -14,7 +14,7 @@ from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.nn.BetaE import BetaIntersection, BetaProjection, Regularizer
 from toolbox.utils.RandomSeeds import set_seeds
 from train_TCQE_TFLEX import MyExperiment
-from train_TCQE_static_QE import TYPE_token, TCQE
+from TCQE_static_QE import TYPE_token, TCQE
 
 
 class EntityProjection(nn.Module):
@@ -122,7 +122,7 @@ class TFLEX(TCQE):
 
 @click.command()
 @click.option("--data_home", type=str, default="data", help="The folder path to dataset.")
-@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15.")
+@click.option("--dataset", type=str, default="ICEWS14", help="Which dataset to use: ICEWS14, ICEWS05_15, GDELT.")
 @click.option("--name", type=str, default="TFLEX_base", help="Name of the experiment.")
 @click.option("--start_step", type=int, default=0, help="start step.")
 @click.option("--max_steps", type=int, default=300001, help="Number of steps.")
