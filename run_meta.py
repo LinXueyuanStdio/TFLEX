@@ -24,9 +24,9 @@ def main(data_home):
                      str(v["valid"]["queries_count"]),
                      str(v["test"]["queries_count"])])
                 avg_answers_count[query_structure].extend(
-                    [str(v["train"]["avg_answers_count"]),
-                     str(v["valid"]["avg_answers_count"]),
-                     str(v["test"]["avg_answers_count"])])
+                    ["{:.2f}".format(v["train"]["avg_answers_count"]),
+                     "{:.2f}".format(v["valid"]["avg_answers_count"]),
+                     "{:.2f}".format(v["test"]["avg_answers_count"])])
     print("queries_count")
     for k in groups:
         for query_structure in groups[k]:
