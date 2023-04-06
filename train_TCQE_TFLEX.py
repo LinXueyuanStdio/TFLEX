@@ -1182,7 +1182,7 @@ class MyExperiment(Experiment):
             avg_x = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
 
             def avg(avg_e):
-                avg_e = list(map(lambda x: average_metrics[x] if x in average_metrics else 0, avg_e))
+                avg_e = list(map(lambda x: result[x]["MRR"] if x in result else 0, avg_e))
                 avg_e = sum(avg_e) / len(avg_e)
                 return avg_e
             avg_e = avg(avg_e)
