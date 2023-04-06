@@ -30,6 +30,17 @@ class ExpressionInterpreter(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = 'you: '
+        variables, functions = self.interactive_ops()
+        self.default_parser = Interpreter(usersyms=dict(**variables, **functions))
+        self.parser: Interpreter = self.default_parser
+
+        self.data: Optional[ComplexQueryData] = None
+        self.dataset: Optional[str] = None
+
+        self.neural_parser: Optional[expression.NeuralParser] = None
+        self.sampling_parser: Optional[expression.SamplingParser] = None
+
+    def interactive_ops(self):
         variables = {
             "help": """
             available commands:
@@ -82,14 +93,7 @@ class ExpressionInterpreter(cmd.Cmd):
             "answer_entities": self.answer_entities,
             "answer_timestamps": self.answer_timestamps,
         }
-        self.default_parser = BasicParser(variables, functions)
-        self.parser: BasicParser = self.default_parser
-
-        self.data: Optional[ComplexQueryData] = None
-        self.dataset: Optional[str] = None
-
-        self.neural_parser: Optional[expression.NeuralParser] = None
-        self.sampling_parser: Optional[expression.SamplingParser] = None
+        return variables, functions
 
     def use_dataset(self, data_home, dataset):
         if dataset == "ICEWS14":
