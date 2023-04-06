@@ -45,7 +45,7 @@ class ExpressionInterpreter(cmd.Cmd):
             "data": None,
         }
         functions = {
-            "help": lambda: """
+            "commands": lambda: """
             available commands:
                 list_queries() : list all predefined queries
                 use_dataset(data_home="./data", dataset="ICEWS14"):
