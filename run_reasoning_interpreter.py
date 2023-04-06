@@ -52,11 +52,16 @@ class ExpressionInterpreter(cmd.Cmd):
                     use sampling interpreter to answer queries
                     this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
                     the answer may be wrong if there exists missing link. Note that TKG is incomplete.
-
                 neural_answer_entities(query, k=5):
                     use neural interpreter to answer query and return k entities
                 neural_answer_timestamps(query, k=5):
                     use neural interpreter to answer query and return k timestamps
+                sampling_answer(query, k=5):
+                    use sampling interpreter to answer query and return k entities
+                answer_entities(query, k=5):
+                    auto use neural interpreter or sampling interpreter to answer query and return k entities
+                answer_timestamps(query, k=5):
+                    auto use neural interpreter or sampling interpreter to answer query and return k timestamps
                 help(): show this help message
             """,
             "list_queries": query_structures,
@@ -70,12 +75,15 @@ class ExpressionInterpreter(cmd.Cmd):
             "list_relations": self.list_relations,
             "list_timestamps": self.list_timestamps,
             "use_neural_interpreter": self.use_neural_interpreter,
-            "use_sampling_interpreter": self.use_sampling_interpreter,
             "neural_answer_entities": self.neural_answer_entities,
             "neural_answer_timestamps": self.neural_answer_timestamps,
+            "use_sampling_interpreter": self.use_sampling_interpreter,
+            "sampling_answer": self.sampling_answer,
+            "answer_entities": self.answer_entities,
+            "answer_timestamps": self.answer_timestamps,
         }
         self.default_parser = BasicParser(variables, functions)
-        self.parser = self.default_parser
+        self.parser: BasicParser = self.default_parser
 
         self.data: Optional[ComplexQueryData] = None
         self.dataset: Optional[str] = None
@@ -125,9 +133,9 @@ class ExpressionInterpreter(cmd.Cmd):
             return self.data.all_timestamps
         return random.sample(self.data.all_timestamps, k)
 
-    def use_neural_interpreter(
-            self, name, hidden_dim=800, gamma=30.0, center_reg=0.0, test_batch_size=100, input_dropout=0.2,
-            device="cuda"):
+    def use_neural_interpreter(self, name,
+                               hidden_dim=800, gamma=30.0, center_reg=0.0,
+                               test_batch_size=100, input_dropout=0.2, device="cuda"):
         from train_TCQE_TFLEX import TFLEX
         if self.dataset is None or self.data is None:
             print("you should load dataset first. please call `user_dataset()`")
@@ -229,12 +237,12 @@ class ExpressionInterpreter(cmd.Cmd):
     def answer_entities(self, query, topk=10):
         if self.parser == self.neural_parser:
             return self.neural_answer_entities(query, topk)
-        return self.sampling_answer()
+        return self.sampling_answer(query, topk)
 
     def answer_timestamps(self, query, topk=10):
         if self.parser == self.neural_parser:
             return self.neural_answer_timestamps(query, topk)
-        return self.sampling_answer()
+        return self.sampling_answer(query, topk)
 
     def switch_parser_to(self, parser: BasicParser):
         if self.parser == parser:
