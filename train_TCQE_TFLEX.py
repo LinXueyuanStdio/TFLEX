@@ -1170,7 +1170,7 @@ class MyExperiment(Experiment):
             group_result = {}
             for query_structure in group_list:
                 if query_structure in result:
-                    group_result[query_structure] = result[group_result]
+                    group_result[query_structure] = result[query_structure]
             score, row_results = self.visual_group_result(step_num, group_result, scope, group)
             group_scores[group] = score
             for row in row_results:
