@@ -609,7 +609,7 @@ class NeuralParser(BasicParser):
     def __init__(self, neural_ops, variables=None):
         if variables is None:
             variables = {}
-        must_implement_neural_ops = [
+        must_implement_neural_ops = set({
             "And",
             "And3",
             "Or",
@@ -623,8 +623,9 @@ class NeuralParser(BasicParser):
             "TimeBefore",
             "TimeAfter",
             "TimeNext",
-        ]
-        for op in must_implement_neural_ops:
-            if op not in neural_ops:
-                raise Exception(f"{op} Not Found! You MUST implement neural operation '{op}'")
+        })
+        ops = set(neural_ops.keys())
+        not_implemented_ops = must_implement_neural_ops - ops
+        if len(not_implemented_ops) > 0:
+            raise Exception(f"You MUST implement neural operation '{not_implemented_ops}'")
         super().__init__(variables=variables, neural_ops=neural_ops)

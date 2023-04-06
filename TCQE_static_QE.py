@@ -374,9 +374,7 @@ class TCQE(nn.Module):
             "afterPt": afterPt,
             "beforePt": beforePt,
         }
-        for k, v in query_embedding_operator_dict.items():
-            neural_ops[k] = v
-        return expression.NeuralParser(neural_ops)
+        return expression.NeuralParser(dict(**neural_ops, **query_embedding_operator_dict))
 
     def init(self):
         embedding_range = self.embedding_range.item()

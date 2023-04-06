@@ -366,7 +366,7 @@ class TFLEX(nn.Module):
         self.cen = center_reg
         self.parser = self.build_parser()
 
-    def build_parser(self):
+    def build_neural_ops(self):
         def And(q1, q2):
             q1_feature, q1_logic, q1_time_feature, q1_time_logic = q1
             q2_feature, q2_logic, q2_time_feature, q2_time_logic = q2
@@ -486,6 +486,10 @@ class TFLEX(nn.Module):
             "afterPt": afterPt,
             "beforePt": beforePt,
         }
+        return neural_ops
+
+    def build_parser(self):
+        neural_ops = self.build_neural_ops()
         return expression.NeuralParser(neural_ops)
 
     def init(self):
