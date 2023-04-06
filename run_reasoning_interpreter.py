@@ -42,7 +42,10 @@ class ExpressionInterpreter(cmd.Cmd):
 
     def interactive_ops(self):
         variables = {
-            "help": """
+            "data": None,
+        }
+        functions = {
+            "help": lambda: """
             available commands:
                 list_queries() : list all predefined queries
                 use_dataset(data_home="./data", dataset="ICEWS14"):
@@ -75,11 +78,6 @@ class ExpressionInterpreter(cmd.Cmd):
                     auto use neural interpreter or sampling interpreter to answer query and return k timestamps
                 help(): show this help message
             """,
-            "list_queries": query_structures,
-
-        }
-        functions = {
-            "help": lambda: variables["help"],
             "list_queries": lambda: query_structures,
             "use_dataset": self.use_dataset,
             "list_entities": self.list_entities,
