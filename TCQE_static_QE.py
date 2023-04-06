@@ -290,13 +290,13 @@ class TCQE(nn.Module):
             return self.entity_negation(feature, logic)
 
         def EntityProjection2(e1, r1, t1):
-            s_feature, s_logic, s_time_feature = e1
-            r_feature, r_logic, r_time_feature = r1
-            t_feature, t_logic, t_time_feature = t1
+            s_feature, s_logic = e1
+            r_feature, r_logic = r1
+            t_feature, t_logic = t1
             return self.entity_projection(
-                s_feature, s_logic, s_time_feature,
-                r_feature, r_logic, r_time_feature,
-                t_feature, t_logic, t_time_feature
+                s_feature, s_logic,
+                r_feature, r_logic,
+                t_feature, t_logic
             )
         query_embedding_operator_dict = {
             "And": And,
