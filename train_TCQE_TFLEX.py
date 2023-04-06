@@ -1225,8 +1225,9 @@ class MyExperiment(Experiment):
         avg_x = avg(avg_x)
         AVG = [avg_e, avg_t, avg_e_C_e, avg_t_C_t, avg_U_e, avg_U_t, avg_x]
         AVG = sum(AVG) / len(AVG)
-        self.log(f"avg_e: {avg_e:.2%}\navg_t: {avg_t:.2%}\navg_e_C_e: {avg_e_C_e:.2%}\navg_t_C_t: {avg_t_C_t:.2%}\n" +
-                 f"avg_U_e: {avg_U_e:.2%}\navg_U_t: {avg_U_t:.2%}\navg_x: {avg_x:.2%}\nAVG: {AVG:.2%}")
+        self.log(f"avg_e: {avg_e:.2%}  avg_e_C_e: {avg_e_C_e:.2%}  avg_U_e: {avg_U_e:.2%}")
+        self.log(f"avg_t: {avg_t:.2%}  avg_t_C_t: {avg_t_C_t:.2%}  avg_U_t: {avg_U_t:.2%}")
+        self.log(f"avg_x: {avg_x:.2%}  AVG: {AVG:.2%}")
 
         score = average_metrics["MRR"]
         return score, row_results
