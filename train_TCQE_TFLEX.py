@@ -1157,15 +1157,36 @@ class MyExperiment(Experiment):
         return metrics
 
     def visual_result(self, step_num: int, result, scope: str):
+        groups = {
+            "avg_e": ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"],
+            "avg_t": ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"],
+            "avg_eCe": ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"],
+            "avg_tCt": ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"],
+            "avg_Ue": ["e2u", "Pe_e2u"],
+            "avg_Ut": ["t2u", "Pe_t2u"],
+            "avg_x": ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"],
+        }
+        group_scores = {}
+        for group, group_list in groups.items():
+            group_result = {}
+            for query_structure in group_list:
+                if query_structure in result:
+                    group_result[query_structure] = result[group_result]
+            score, _ = self.visual_group_result(step_num, group_result, scope, group)
+            group_scores[group] = score
+        AVG = sum(group_scores.values()) / len(group_scores)
+        self.log(f"AVG: {AVG:.2%}")
+
+    def visual_group_result(self, step_num: int, result, scope: str, group: str):
         """Evaluate queries in dataloader"""
-        self.metric_log_store.add_metric({scope: result}, step_num, scope)
+        self.metric_log_store.add_metric({scope+"_"+group: result}, step_num, scope+"_"+group)
         average_metrics = defaultdict(float)
         num_query_structures = 0
         num_queries = 0
         for query_structure in result:
             for metric in result[query_structure]:
                 self.visualize_store.add_scalar(
-                    "_".join([scope, query_structure, metric]),
+                    "_".join([scope, group, query_structure, metric]),
                     result[query_structure][metric],
                     step_num)
                 if metric != 'num_queries':
@@ -1175,11 +1196,14 @@ class MyExperiment(Experiment):
 
         for metric in average_metrics:
             average_metrics[metric] /= num_query_structures
-            self.visualize_store.add_scalar("_".join([scope, 'average', metric]), average_metrics[metric], step_num)
+            self.visualize_store.add_scalar(
+                "_".join([scope, group, 'average', metric]),
+                average_metrics[metric],
+                step_num)
 
         header = "{0:<8s}".format(scope)
         row_results = defaultdict(list)
-        row_results[header].append("avg")
+        row_results[header].append(group)
         row_results["num_queries"].append(num_queries)
         for row in average_metrics:
             cell = average_metrics[row]
@@ -1202,32 +1226,6 @@ class MyExperiment(Experiment):
         for i in row_results:
             row = row_results[i]
             self.log("{0:<8s}".format(i)[:8] + ": " + "".join([to_str(data) for data in row]))
-
-        # avg MRR by groups
-        avg_e = ["Pe", "Pe2", "Pe3", "e2i", "e3i", "e2i_Pe", "Pe_e2i"]
-        avg_t = ["Pt", "aPt", "bPt", "Pe_Pt", "Pt_sPe_Pt", "Pt_oPe_Pt", "t2i", "t3i", "t2i_Pe", "Pe_t2i"]
-        avg_e_C_e = ["e2i_N", "e3i_N", "Pe_e2i_Pe_NPe", "e2i_PeN", "e2i_NPe"]
-        avg_t_C_t = ["t2i_N", "t3i_N", "Pe_t2i_PtPe_NPt", "t2i_PtN", "t2i_NPt"]
-        avg_U_e = ["e2u", "Pe_e2u"]
-        avg_U_t = ["t2u", "Pe_t2u"]
-        avg_x = ["between", "Pe_aPt", "Pe_at2i", "Pt_sPe", "Pt_se2i", "Pe_bPt", "Pe_bt2i", "Pt_oPe", "Pt_oe2i"]
-
-        def avg(avg_e):
-            avg_e = list(map(lambda x: result[x]["MRR"] if x in result else 0, avg_e))
-            avg_e = sum(avg_e) / len(avg_e)
-            return avg_e
-        avg_e = avg(avg_e)
-        avg_t = avg(avg_t)
-        avg_e_C_e = avg(avg_e_C_e)
-        avg_t_C_t = avg(avg_t_C_t)
-        avg_U_e = avg(avg_U_e)
-        avg_U_t = avg(avg_U_t)
-        avg_x = avg(avg_x)
-        AVG = [avg_e, avg_t, avg_e_C_e, avg_t_C_t, avg_U_e, avg_U_t, avg_x]
-        AVG = sum(AVG) / len(AVG)
-        self.log(f"avg_e: {avg_e:.2%}  avg_e_C_e: {avg_e_C_e:.2%}  avg_U_e: {avg_U_e:.2%}")
-        self.log(f"avg_t: {avg_t:.2%}  avg_t_C_t: {avg_t_C_t:.2%}  avg_U_t: {avg_U_t:.2%}")
-        self.log(f"avg_x: {avg_x:.2%}  AVG: {AVG:.2%}")
 
         score = average_metrics["MRR"]
         return score, row_results
