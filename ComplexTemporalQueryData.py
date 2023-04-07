@@ -651,7 +651,11 @@ class ComplexQueryData(TemporalKnowledgeData):
 
     def patch3(self):
         def patch_data(qa, split):
+            bar = Progbar(max_step=len(qa))
+            i = 0
             for query_name in qa:
+                i+=1
+                bar.update(i, [("query_name", query_name)])
                 path = self.cache_path.cache_queries_answers_path(split, query_name)
                 if path.exists():
                     continue
