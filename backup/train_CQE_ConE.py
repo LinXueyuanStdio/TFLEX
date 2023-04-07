@@ -389,7 +389,7 @@ class MyExperiment(Experiment):
 @click.option("--lr", type=float, default=0.0001, help="Learning rate.")
 @click.option('--tasks', type=str, default='1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up', help="tasks connected by dot, refer to the BetaE paper for detailed meaning and structure of each task")
 @click.option('--evaluate_union', type=str, default="DNF", help='choices=[DNF, DM] the way to evaluate union queries, transform it to disjunctive normal form (DNF) or use the De Morgan\'s laws (DM)')
-@click.option('--cpu_num', type=int, default=4, help="used to speed up torch.dataloader")
+@click.option('--cpu_num', type=int, default=1, help="used to speed up torch.dataloader")
 @click.option('--hidden_dim', type=int, default=800, help="embedding dimension")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")

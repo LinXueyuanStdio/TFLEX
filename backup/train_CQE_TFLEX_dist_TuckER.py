@@ -1531,7 +1531,7 @@ class MyExperiment(Experiment):
 @click.option("--resume", type=bool, default=False, help="Resume from output directory.")
 @click.option("--resume_by_score", type=float, default=0.0, help="Resume by score from output directory. Resume best if it is 0. Default: 0")
 @click.option("--lr", type=float, default=0.0001, help="Learning rate.")
-@click.option('--cpu_num', type=int, default=4, help="used to speed up torch.dataloader")
+@click.option('--cpu_num', type=int, default=1, help="used to speed up torch.dataloader")
 @click.option('--hidden_dim', type=int, default=800, help="embedding dimension")
 @click.option("--input_dropout", type=float, default=0.1, help="Input layer dropout.")
 @click.option('--gamma', type=float, default=30.0, help="margin in the loss")
