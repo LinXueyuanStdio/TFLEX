@@ -313,13 +313,13 @@ class TCQE(nn.Module):
             return self.time_negation(feature, logic)
 
         def TimeProjection2(e1, r1, e2):
-            s_feature, s_logic, s_time_feature = e1
-            r_feature, r_logic, r_time_feature = r1
-            o_feature, o_logic, o_time_feature = e2
+            s_feature, s_logic = e1
+            r_feature, r_logic = r1
+            o_feature, o_logic = e2
             return self.time_projection(
-                s_feature, s_logic, s_time_feature,
-                r_feature, r_logic, r_time_feature,
-                o_feature, o_logic, o_time_feature
+                s_feature, s_logic,
+                r_feature, r_logic,
+                o_feature, o_logic
             )
 
         def TimeAnd(q1, q2):
