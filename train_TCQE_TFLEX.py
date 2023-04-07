@@ -973,12 +973,12 @@ class MyExperiment(Experiment):
             with torch.no_grad():
                 self.debug("Resumed from score %.4f." % best_score)
                 self.debug("Take a look at the performance after resumed.")
-                self.debug("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_dataloader, test_device)
-                best_score, _ = self.visual_result(start_step + 1, result, "Valid")
                 self.debug("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_dataloader, test_device)
                 best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
+                self.debug("Validation (step: %d):" % start_step)
+                result = self.evaluate(model, valid_dataloader, test_device)
+                best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         else:
             model.init()
             self.dump_model(model)
@@ -1068,12 +1068,12 @@ class MyExperiment(Experiment):
             self.debug("Reporting the best performance...")
             self.debug("Resumed from score %.4f." % best_score)
             self.debug("Take a look at the performance after resumed.")
-            self.debug("Validation (step: %d):" % start_step)
-            result = self.evaluate(model, valid_dataloader, test_device)
-            best_score, _ = self.visual_result(start_step + 1, result, "Valid")
             self.debug("Test (step: %d):" % start_step)
             result = self.evaluate(model, test_dataloader, test_device)
             best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
+            self.debug("Validation (step: %d):" % start_step)
+            result = self.evaluate(model, valid_dataloader, test_device)
+            best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         self.metric_log_store.finish()
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
