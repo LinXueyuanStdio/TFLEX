@@ -167,10 +167,7 @@ def main(data_home, dataset, name,
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
     data = ComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
-    data.load_cache([
-        "meta",
-        "train_queries_answers", "valid_queries_answers", "test_queries_answers",
-    ])
+    data.load_cache(["meta"])
 
     entity_count = data.entity_count
     relation_count = data.relation_count

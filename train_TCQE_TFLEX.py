@@ -1284,7 +1284,7 @@ def main(data_home, dataset, name,
     data.preprocess_data_if_needed()
     data.load_cache([
         "meta",
-        # "train_queries_answers", "valid_queries_answers", "test_queries_answers",
+
     ])
 
     entity_count = data.entity_count
