@@ -49,6 +49,52 @@ class FixedQuery:
             self.answers = {idx}
         return self
 
+    def __eq__(self, __value: object) -> bool:
+        if __value is not FixedQuery:
+            return False
+        return self.answers == __value.answers and self.timestamps == __value.timestamps and self.is_anchor == __value.is_anchor
+
+    def __ne__(self, __value: object) -> bool:
+        if __value is not FixedQuery:
+            return True
+        return self.answers != __value.answers or self.timestamps != __value.timestamps or self.is_anchor != __value.is_anchor
+
+    def __str__(self) -> str:
+        return f"answers={self.answers}, timestamps={self.timestamps}, is_anchor={self.is_anchor}"
+
+    def __add__(a, b):
+        answers = a.answers | b.answers
+        timestamps = a.timestamps | b.timestamps
+        is_anchor = a.is_anchor or b.is_anchor
+        return FixedQuery(answers, timestamps, is_anchor)
+
+    def __minus__(a, b):
+        answers = a.answers - b.answers
+        timestamps = a.timestamps - b.timestamps
+        is_anchor = a.is_anchor or b.is_anchor
+        return FixedQuery(answers, timestamps, is_anchor)
+
+    def __contains__(a, b):
+        return a.answers.issuperset(b.answers) and a.timestamps.issuperset(b.timestamps)
+
+    def __and__(a, b):
+        answers = a.answers & b.answers
+        timestamps = a.timestamps & b.timestamps
+        is_anchor = a.is_anchor and b.is_anchor
+        return FixedQuery(answers, timestamps, is_anchor)
+
+    def __or__(a, b):
+        answers = a.answers | b.answers
+        timestamps = a.timestamps | b.timestamps
+        is_anchor = a.is_anchor or b.is_anchor
+        return FixedQuery(answers, timestamps, is_anchor)
+
+    def __xor__(a, b):
+        answers = a.answers ^ b.answers
+        timestamps = a.timestamps ^ b.timestamps
+        is_anchor = a.is_anchor or b.is_anchor
+        return FixedQuery(answers, timestamps, is_anchor)
+
 
 class Placeholder:
     """
