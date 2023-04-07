@@ -176,7 +176,7 @@ class TFLEX(TCQE):
               "Pe,Pe2,Pe3,e2i,e3i,"
               + "e2i_N,e3i_N,Pe_e2i_Pe_NPe,e2i_PeN,e2i_NPe", help='the tasks for training')
 @click.option('--train_all', type=bool, default=False, help='if training all, it will use all tasks in data.train_queries_answers')
-@click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='the tasks for evaluation')
+@click.option('--eval_tasks', type=str, default="Pe,Pe2,Pe3", help='the tasks for evaluation')
 @click.option('--eval_all', type=bool, default=False, help='if evaluating all, it will use all tasks in data.test_queries_answers')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
