@@ -877,6 +877,7 @@ class MyExperiment(Experiment):
         relation_count = data.relation_count
         timestamp_count = data.timestamp_count
         max_relation_id = relation_count
+        self.groups = groups
         self.log('-------------------------------' * 3)
         self.log('# entity: %d' % entity_count)
         self.log('# relation: %d' % relation_count)
@@ -884,16 +885,23 @@ class MyExperiment(Experiment):
         self.log('# max steps: %d' % max_steps)
 
         # 1. build train dataset
+        if train_all:
+            data.load_cache(["train_queries_answers"])
+        else:
+            data.train_queries_answers = data.load_cache_by_tasks(train_tasks.split(","), "train")
+
+        if eval_all:
+            tasks = []
+            for group in self.groups:
+                tasks.extend(self.groups[group])
+        else:
+            tasks = eval_tasks.split(",")
+        data.valid_queries_answers = data.load_cache_by_tasks(tasks, "valid")
+        data.test_queries_answers = data.load_cache_by_tasks(tasks, "test")
+
         train_queries_answers = data.train_queries_answers
         valid_queries_answers = data.valid_queries_answers
         test_queries_answers = data.test_queries_answers
-
-        self.groups = groups
-
-        if not train_all:
-            tasks = train_tasks.split(",")
-            for task in set(train_queries_answers.keys()) - set(tasks):
-                train_queries_answers.pop(task)
 
         train_path_queries: TYPE_train_queries_answers = {}
         train_other_queries: TYPE_train_queries_answers = {}
@@ -920,17 +928,6 @@ class MyExperiment(Experiment):
             ))
         else:
             train_other_iterator = None
-
-        if not eval_all:
-            tasks = eval_tasks.split(",")
-        else:
-            tasks = []
-            for group in self.groups:
-                tasks.extend(self.groups[group])
-        for task in set(valid_queries_answers.keys()) - set(tasks):
-            valid_queries_answers.pop(task)
-        for task in set(test_queries_answers.keys()) - set(tasks):
-            test_queries_answers.pop(task)
 
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
@@ -1287,7 +1284,7 @@ def main(data_home, dataset, name,
     data.preprocess_data_if_needed()
     data.load_cache([
         "meta",
-        "train_queries_answers", "valid_queries_answers", "test_queries_answers",
+        # "train_queries_answers", "valid_queries_answers", "test_queries_answers",
     ])
 
     entity_count = data.entity_count

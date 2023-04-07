@@ -523,6 +523,9 @@ class ComplexTemporalQueryDatasetCachePath(TemporalKnowledgeDatasetCachePath):
         self.cache_valid_queries_answers_path = self.cache_path / "valid_queries_answers.pkl"
         self.cache_test_queries_answers_path = self.cache_path / "test_queries_answers.pkl"
 
+    def cache_queries_answers_path(self, split: str, query_name: str) -> Path:
+        return self.cache_path / f"{split}_{query_name}_queries_answers.pkl"
+
 
 TYPE_train_queries_answers = Dict[str, Dict[str, Union[List[str], List[Tuple[List[int], Set[int]]]]]]
 TYPE_test_queries_answers = Dict[str, Dict[str, Union[List[str], List[Tuple[List[int], Set[int], Set[int]]]]]]
@@ -627,12 +630,54 @@ class ComplexQueryData(TemporalKnowledgeData):
                 qa[b] = qa[a]
                 qa.pop(a)
             return qa
+        self.load_cache(["train_queries_answers"])
         self.train_queries_answers = patch_data(self.train_queries_answers)
-        self.valid_queries_answers = patch_data(self.valid_queries_answers)
-        self.test_queries_answers = patch_data(self.test_queries_answers)
-        self.query_meta = patch_data(self.query_meta)
+        cache_data(self.train_queries_answers, self.cache_path.cache_train_queries_answers_path)
+        del self.train_queries_answers
 
-        self.cache_sampling_data()
+        self.load_cache(["valid_queries_answers"])
+        self.valid_queries_answers = patch_data(self.valid_queries_answers)
+        cache_data(self.valid_queries_answers, self.cache_path.cache_valid_queries_answers_path)
+        del self.valid_queries_answers
+
+        self.load_cache(["test_queries_answers"])
+        self.test_queries_answers = patch_data(self.test_queries_answers)
+        cache_data(self.test_queries_answers, self.cache_path.cache_test_queries_answers_path)
+        del self.test_queries_answers
+
+        self.load_cache(["meta"])
+        self.query_meta = patch_data(self.query_meta)
+        cache_data(self.meta(), self.cache_path.cache_metadata_path)
+
+    def patch3(self):
+        def patch_data(qa, split):
+            for query_name in qa:
+                path = self.cache_path.cache_queries_answers_path(split, query_name)
+                if path.exists():
+                    continue
+                cache_data(qa[query_name], path)
+        self.load_cache(["train_queries_answers"])
+        patch_data(self.train_queries_answers, "train")
+        del self.train_queries_answers
+
+        self.load_cache(["valid_queries_answers"])
+        patch_data(self.valid_queries_answers, "valid")
+        del self.valid_queries_answers
+
+        self.load_cache(["test_queries_answers"])
+        patch_data(self.test_queries_answers, "test")
+        del self.test_queries_answers
+
+    def load_cache_by_tasks(self, tasks: List[str], split="train"):
+        qa = {}
+        for query_name in tasks:
+            path = self.cache_path.cache_queries_answers_path(split, query_name)
+            if not path.exists():
+                print(f"not cache exists for {query_name} in {split}")
+                continue
+            query_data = read_cache(path)
+            qa[query_name] = query_data
+        return qa
 
     def transform_all_data(self):
         TemporalKnowledgeData.transform_all_data(self)
