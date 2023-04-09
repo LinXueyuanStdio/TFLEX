@@ -124,7 +124,7 @@ class TFLEX(TCQE):
 @click.option('--center_reg', type=float, default=0.02, help='center_reg for ConE, center_reg balances the in_cone dist and out_cone dist')
 @click.option('--train_tasks', type=str, default="Pe,Pe2,Pe3,e2i,e3i", help='the tasks for training')
 @click.option('--train_all', type=bool, default=False, help='if training all, it will use all tasks in data.train_queries_answers')
-@click.option('--eval_tasks', type=str, default="Pe,Pe2,Pe3", help='the tasks for evaluation')
+@click.option('--eval_tasks', type=str, default="e2i", help='the tasks for evaluation')
 @click.option('--eval_all', type=bool, default=False, help='if evaluating all, it will use all tasks in data.test_queries_answers')
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
