@@ -911,6 +911,14 @@ class MyExperiment(Experiment):
                 train_path_queries[query_structure_name] = train_queries_answers[query_structure_name]
             else:
                 train_other_queries[query_structure_name] = train_queries_answers[query_structure_name]
+
+        self.log("Training info:")
+        for query_structure_name in train_queries_answers:
+            self.log(query_structure_name + ": " +
+                     str(len(train_queries_answers[query_structure_name]["queries_answers"])))
+        del train_queries_answers
+        del data.train_queries_answers
+
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
             TrainDataset(train_path_queries, entity_count, timestamp_count, negative_sample_size),
             batch_size=batch_size,
@@ -929,6 +937,9 @@ class MyExperiment(Experiment):
         else:
             train_other_iterator = None
 
+        del train_path_queries
+        del train_other_iterator
+
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
             batch_size=test_batch_size,
@@ -942,10 +953,6 @@ class MyExperiment(Experiment):
             num_workers=max(1, cpu_num // 2),
             collate_fn=TestDataset.collate_fn
         )
-        self.log("Training info:")
-        for query_structure_name in train_queries_answers:
-            self.log(query_structure_name + ": " +
-                     str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         self.log("Validation info:")
         for query_structure_name in valid_queries_answers:
             self.log(query_structure_name + ": " +
@@ -955,12 +962,8 @@ class MyExperiment(Experiment):
             self.log(query_structure_name + ": " +
                      str(len(test_queries_answers[query_structure_name]["queries_answers"])))
 
-        del train_queries_answers
         del valid_queries_answers
         del test_queries_answers
-        del train_path_queries
-        del train_other_iterator
-        del data.train_queries_answers
         del data.valid_queries_answers
         del data.test_queries_answers
 
