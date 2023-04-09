@@ -57,21 +57,21 @@ class EntityProjection(nn.Module):
             nn.init.xavier_uniform_(getattr(self, f"layer{i}").weight)
 
     def forward(self,
-                q_feature, q_logic,
-                r_feature, r_logic,
+                q_axis_embedding, q_arg_embedding,
+                r_axis_embedding, r_arg_embedding,
                 t_feature, t_logic):
         x = torch.cat([
-            q_feature + r_feature,
-            q_logic + r_logic,
+            q_axis_embedding + r_axis_embedding,
+            q_arg_embedding + r_arg_embedding,
         ], dim=-1)
         for i in range(1, self.num_layers + 1):
             x = F.relu(getattr(self, f"layer{i}")(x))
         x = self.layer0(x)
 
-        feature, logic = torch.chunk(x, 2, dim=-1)
-        feature = convert_to_feature(feature)
-        logic = convert_to_logic(logic)
-        return feature, logic
+        axis_embedding, arg_embedding = torch.chunk(x, 2, dim=-1)
+        axis_embedding = convert_to_axis(axis_embedding)
+        arg_embedding = convert_to_arg(arg_embedding)
+        return axis_embedding, arg_embedding
 
 
 class EntityIntersection(nn.Module):
