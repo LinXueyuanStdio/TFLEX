@@ -938,7 +938,7 @@ class MyExperiment(Experiment):
             train_other_iterator = None
 
         del train_path_queries
-        del train_other_iterator
+        del train_other_queries
 
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
