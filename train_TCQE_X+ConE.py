@@ -14,6 +14,7 @@ from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDa
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
 from toolbox.exp.OutputSchema import OutputSchema
+from toolbox.nn.ConE import ConeIntersection, ConeNegation, ConeProjection
 from toolbox.utils.RandomSeeds import set_seeds
 from train_TCQE_TFLEX import MyExperiment
 
@@ -60,10 +61,12 @@ class EntityProjection(nn.Module):
         super(EntityProjection, self).__init__()
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
+
+        self.projection = ConeProjection(dim, hidden_dim, num_layers)
+
         self.dropout = nn.Dropout(drop)
-        token_dim = dim * 4
-        self.layer1 = nn.Linear(token_dim, self.hidden_dim)
-        self.layer0 = nn.Linear(self.hidden_dim, token_dim)
+        self.layer1 = nn.Linear(dim * 4, self.hidden_dim)
+        self.layer0 = nn.Linear(self.hidden_dim, dim * 2)
         for i in range(2, num_layers + 1):
             setattr(self, f"layer{i}", nn.Linear(self.hidden_dim, self.hidden_dim))
         for i in range(num_layers + 1):
@@ -73,6 +76,7 @@ class EntityProjection(nn.Module):
                 q_feature, q_logic, q_time_feature, q_time_logic,
                 r_feature, r_logic, r_time_feature, r_time_logic,
                 t_feature, t_logic, t_time_feature, t_time_logic):
+        axis_embedding, arg_embedding = self.projection(q_feature, q_logic, r_feature, r_logic)
         x = torch.cat([
             q_feature + r_feature + t_feature,
             q_logic + r_logic + t_logic,
@@ -83,12 +87,10 @@ class EntityProjection(nn.Module):
             x = F.relu(getattr(self, f"layer{i}")(x))
         x = self.layer0(x)
 
-        feature, logic, time_feature, time_logic = torch.chunk(x, 4, dim=-1)
-        feature = convert_to_feature(feature)
-        logic = convert_to_logic(logic)
+        time_feature, time_logic = torch.chunk(x, 2, dim=-1)
         time_feature = convert_to_time_feature(time_feature)
         time_logic = convert_to_time_logic(time_logic)
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class TimeProjection(nn.Module):
@@ -119,62 +121,29 @@ class TimeProjection(nn.Module):
             x = F.relu(getattr(self, "layer{}".format(nl))(x))
         x = self.layer0(x)
 
-        feature, logic, time_feature, time_logic = torch.chunk(x, 4, dim=-1)
-        feature = convert_to_feature(feature)
-        logic = convert_to_logic(logic)
+        axis_embedding, arg_embedding, time_feature, time_logic = torch.chunk(x, 4, dim=-1)
+        axis_embedding = convert_to_axis(feature)
+        arg_embedding = convert_to_arg(arg_embedding)
         time_feature = convert_to_time_feature(time_feature)
         time_logic = convert_to_time_logic(time_logic)
-        return feature, logic, time_feature, time_logic
+        return axis_embedding, arg_embedding, time_feature, time_logic
 
 
 class EntityIntersection(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, drop=0.2):
         super(EntityIntersection, self).__init__()
         self.dim = dim
-        self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
-        self.feature_layer_2 = nn.Linear(self.dim, self.dim)
         self.time_feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
         self.time_feature_layer_2 = nn.Linear(self.dim, self.dim)
 
-        nn.init.xavier_uniform_(self.feature_layer_1.weight)
-        nn.init.xavier_uniform_(self.feature_layer_2.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_1.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_2.weight)
 
+        self.intersection = ConeIntersection(dim, drop)
+
     def forward(self, axis_embeddings, arg_embeddings, time_feature, time_logic):
         # N x B x d
-        logits = torch.cat([axis_embeddings - arg_embeddings, axis_embeddings + arg_embeddings], dim=-1)
-        axis_layer1_act = F.relu(self.layer_axis1(logits))
-
-        axis_attention = F.softmax(self.layer_axis2(axis_layer1_act), dim=0)
-
-        x_embeddings = torch.cos(axis_embeddings)
-        y_embeddings = torch.sin(axis_embeddings)
-        x_embeddings = torch.sum(axis_attention * x_embeddings, dim=0)
-        y_embeddings = torch.sum(axis_attention * y_embeddings, dim=0)
-
-        # when x_embeddings are very closed to zero, the tangent may be nan
-        # no need to consider the sign of x_embeddings
-        x_embeddings[torch.abs(x_embeddings) < 1e-3] = 1e-3
-
-        axis_embeddings = torch.atan(y_embeddings / x_embeddings)
-
-        indicator_x = x_embeddings < 0
-        indicator_y = y_embeddings < 0
-        indicator_two = indicator_x & torch.logical_not(indicator_y)
-        indicator_three = indicator_x & indicator_y
-
-        axis_embeddings[indicator_two] = axis_embeddings[indicator_two] + pi
-        axis_embeddings[indicator_three] = axis_embeddings[indicator_three] - pi
-
-        # DeepSets
-        arg_layer1_act = F.relu(self.layer_arg1(logits))
-        arg_layer1_mean = torch.mean(arg_layer1_act, dim=0)
-        gate = torch.sigmoid(self.layer_arg2(arg_layer1_mean))
-
-        arg_embeddings = self.drop(arg_embeddings)
-        arg_embeddings, _ = torch.min(arg_embeddings, dim=0)
-        arg_embeddings = arg_embeddings * gate
+        axis_embeddings, arg_embeddings = self.intersection(axis_embeddings, arg_embeddings)
 
         logits = torch.cat([time_feature, time_logic], dim=-1)  # N x B x 2d
         feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(logits))), dim=0)
@@ -185,53 +154,20 @@ class EntityIntersection(nn.Module):
 
 
 class TemporalIntersection(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, drop=0.2):
         super(TemporalIntersection, self).__init__()
         self.dim = dim
-        self.feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
-        self.feature_layer_2 = nn.Linear(self.dim, self.dim)
         self.time_feature_layer_1 = nn.Linear(self.dim * 2, self.dim)
         self.time_feature_layer_2 = nn.Linear(self.dim, self.dim)
 
-        nn.init.xavier_uniform_(self.feature_layer_1.weight)
-        nn.init.xavier_uniform_(self.feature_layer_2.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_1.weight)
         nn.init.xavier_uniform_(self.time_feature_layer_2.weight)
 
+        self.intersection = ConeIntersection(dim, drop)
+
     def forward(self, axis_embeddings, arg_embeddings, time_feature, time_logic):
         # N x B x d
-        logits = torch.cat([axis_embeddings - arg_embeddings, axis_embeddings + arg_embeddings], dim=-1)
-        axis_layer1_act = F.relu(self.layer_axis1(logits))
-
-        axis_attention = F.softmax(self.layer_axis2(axis_layer1_act), dim=0)
-
-        x_embeddings = torch.cos(axis_embeddings)
-        y_embeddings = torch.sin(axis_embeddings)
-        x_embeddings = torch.sum(axis_attention * x_embeddings, dim=0)
-        y_embeddings = torch.sum(axis_attention * y_embeddings, dim=0)
-
-        # when x_embeddings are very closed to zero, the tangent may be nan
-        # no need to consider the sign of x_embeddings
-        x_embeddings[torch.abs(x_embeddings) < 1e-3] = 1e-3
-
-        axis_embeddings = torch.atan(y_embeddings / x_embeddings)
-
-        indicator_x = x_embeddings < 0
-        indicator_y = y_embeddings < 0
-        indicator_two = indicator_x & torch.logical_not(indicator_y)
-        indicator_three = indicator_x & indicator_y
-
-        axis_embeddings[indicator_two] = axis_embeddings[indicator_two] + pi
-        axis_embeddings[indicator_three] = axis_embeddings[indicator_three] - pi
-
-        # DeepSets
-        arg_layer1_act = F.relu(self.layer_arg1(logits))
-        arg_layer1_mean = torch.mean(arg_layer1_act, dim=0)
-        gate = torch.sigmoid(self.layer_arg2(arg_layer1_mean))
-
-        arg_embeddings = self.drop(arg_embeddings)
-        arg_embeddings, _ = torch.min(arg_embeddings, dim=0)
-        arg_embeddings = arg_embeddings * gate
+        axis_embeddings, arg_embeddings = self.intersection(axis_embeddings, arg_embeddings)
 
         logits = torch.cat([time_feature, time_logic], dim=-1)  # N x B x 2d
         feature_attention = F.softmax(self.time_feature_layer_2(F.relu(self.time_feature_layer_1(logits))), dim=0)
@@ -245,15 +181,10 @@ class EntityNegation(nn.Module):
     def __init__(self, dim):
         super(EntityNegation, self).__init__()
         self.dim = dim
+        self.negation = ConeNegation()
 
     def forward(self, axis_embedding, arg_embedding, time_feature, time_logic):
-        indicator_positive = axis_embedding >= 0
-        indicator_negative = axis_embedding < 0
-
-        axis_embedding[indicator_positive] = axis_embedding[indicator_positive] - pi
-        axis_embedding[indicator_negative] = axis_embedding[indicator_negative] + pi
-
-        arg_embedding = pi - arg_embedding
+        axis_embedding, arg_embedding = self.negation(axis_embedding, arg_embedding)
         return axis_embedding, arg_embedding, time_feature, time_logic
 
 
