@@ -2,6 +2,7 @@
 @date: 2021/10/26
 @description: null
 """
+import gc
 from collections import defaultdict
 from typing import List, Dict, Tuple, Optional, Union, Set
 
@@ -918,6 +919,7 @@ class MyExperiment(Experiment):
                      str(len(train_queries_answers[query_structure_name]["queries_answers"])))
         del train_queries_answers
         del data.train_queries_answers
+        gc.collect()
 
         train_path_iterator = SingledirectionalOneShotIterator(DataLoader(
             TrainDataset(train_path_queries, entity_count, timestamp_count, negative_sample_size),
@@ -939,6 +941,7 @@ class MyExperiment(Experiment):
 
         del train_path_queries
         del train_other_queries
+        gc.collect()
 
         valid_dataloader = DataLoader(
             TestDataset(valid_queries_answers, entity_count, timestamp_count),
@@ -966,6 +969,7 @@ class MyExperiment(Experiment):
         del test_queries_answers
         del data.valid_queries_answers
         del data.test_queries_answers
+        gc.collect()
 
         # 2. build model
         model = model.to(train_device)
