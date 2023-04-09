@@ -18,6 +18,7 @@ from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
 from toolbox.data.dataloader import SingledirectionalOneShotIterator
+from toolbox.evaluate.GatherMetric import AverageMeter
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.Progbar import Progbar
@@ -1123,7 +1124,13 @@ class MyExperiment(Experiment):
         model.to(device)
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
-        logs = defaultdict(list)
+        logs = defaultdict(lambda: {
+            'MRR': AverageMeter('MRR'),
+            'hits@1': AverageMeter('hits@1'),
+            'hits@3': AverageMeter('hits@3'),
+            'hits@10': AverageMeter('hits@10'),
+            'num_queries': AverageMeter('num_queries'),
+        })
         step = 0
         h10 = None
         for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
@@ -1155,13 +1162,12 @@ class MyExperiment(Experiment):
                 h1 = torch.mean(torch.FloatTensor(hits[0])).item()
                 h3 = torch.mean(torch.FloatTensor(hits[2])).item()
                 h10 = torch.mean(torch.FloatTensor(hits[9])).item()
-                logs[query_name].append({
-                    'MRR': mrr,
-                    'hits@1': h1,
-                    'hits@3': h3,
-                    'hits@10': h10,
-                    'num_queries': num_queries,
-                })
+
+                logs[query_name]['MRR'].update(mrr)
+                logs[query_name]['hits@1'].update(h1)
+                logs[query_name]['hits@3'].update(h3)
+                logs[query_name]['hits@10'].update(h10)
+                logs[query_name]['num_queries'].update(num_queries)
 
             step += 1
             progbar.update(step, [("Hits @10", h10)])
@@ -1170,9 +1176,9 @@ class MyExperiment(Experiment):
         for query_name in logs:
             for metric in logs[query_name][0].keys():
                 if metric == "num_queries":
-                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]])
+                    metrics[query_name][metric] = logs[query_name][metric].sum
                 else:
-                    metrics[query_name][metric] = sum([log[metric] for log in logs[query_name]]) / len(logs[query_name])
+                    metrics[query_name][metric] = logs[query_name][metric].avg
 
         return metrics
 
