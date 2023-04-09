@@ -1170,7 +1170,7 @@ class MyExperiment(Experiment):
                 logs[query_name]['num_queries'].update(num_queries)
 
             step += 1
-            progbar.update(step, [("Hits @10", h10)])
+            progbar.update(step, [("Hits @10", h10), ("query", ",".join(list(grouped_query.keys())))])
 
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:
