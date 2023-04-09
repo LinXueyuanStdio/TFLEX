@@ -122,7 +122,7 @@ class TimeProjection(nn.Module):
         x = self.layer0(x)
 
         axis_embedding, arg_embedding, time_feature, time_logic = torch.chunk(x, 4, dim=-1)
-        axis_embedding = convert_to_axis(feature)
+        axis_embedding = convert_to_axis(axis_embedding)
         arg_embedding = convert_to_arg(arg_embedding)
         time_feature = convert_to_time_feature(time_feature)
         time_logic = convert_to_time_logic(time_logic)
