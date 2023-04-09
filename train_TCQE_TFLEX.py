@@ -955,6 +955,15 @@ class MyExperiment(Experiment):
             self.log(query_structure_name + ": " +
                      str(len(test_queries_answers[query_structure_name]["queries_answers"])))
 
+        del train_queries_answers
+        del valid_queries_answers
+        del test_queries_answers
+        del train_path_queries
+        del train_other_iterator
+        del data.train_queries_answers
+        del data.valid_queries_answers
+        del data.test_queries_answers
+
         # 2. build model
         model = model.to(train_device)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
