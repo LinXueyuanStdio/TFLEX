@@ -1243,7 +1243,7 @@ class MyExperiment(Experiment):
                 logs[query_name]['num_queries'].update(num_queries)
                 for i in range(num_queries):
                     rank_i = ranking[i]
-                    answers_i = hard_answer[i]
+                    answers_i = torch.tensor(hard_answer[i], device=device)
                     candidate_answer_i = candidate_answers[i]
 
                     rank_of_answers = torch.nonzero(rank_i.view(-1)[..., None] == answers_i)[:, 0]
@@ -1261,6 +1261,8 @@ class MyExperiment(Experiment):
                         logs[query_name]['hits@1'].update(1.0 if rank < 1 else 0.0)
                         logs[query_name]['hits@3'].update(1.0 if rank < 3 else 0.0)
                         logs[query_name]['hits@10'].update(1.0 if rank < 10 else 0.0)
+
+                    del answers_i
 
             step += 1
             progbar.update(step, [("Hits @10", logs[query_name]['hits@10'].avg), ("query", ",".join(list(grouped_query.keys())))])
