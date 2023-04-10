@@ -1024,6 +1024,8 @@ class MyExperiment(Experiment):
                     tasks.extend(self.groups[group])
             else:
                 tasks = args.eval_tasks.split(",")
+            self.entity_ranks = torch.arange(data.entity_count, args.test_device)
+            self.timestamp_ranks = torch.arange(data.timestamp_count, args.test_device)
 
             if args.do_valid:
                 data.valid_queries_answers = data.load_cache_by_tasks(tasks, "valid")
@@ -1214,6 +1216,7 @@ class MyExperiment(Experiment):
         total_steps = len(test_dataloader)
         progbar = Progbar(max_step=total_steps)
         logs = defaultdict(lambda: {
+            'MSRR': AverageMeter('MSRR'),
             'MRR': AverageMeter('MRR'),
             'hits@1': AverageMeter('hits@1'),
             'hits@3': AverageMeter('hits@3'),
@@ -1221,7 +1224,6 @@ class MyExperiment(Experiment):
             'num_queries': AverageMeter('num_queries'),
         })
         step = 0
-        h10 = None
         for grouped_query, grouped_candidate_answer, grouped_easy_answer, grouped_hard_answer in test_dataloader:
             for query_name in grouped_query:
                 grouped_query[query_name] = grouped_query[query_name].to(device)
@@ -1232,34 +1234,36 @@ class MyExperiment(Experiment):
                 score = grouped_score[query_name]
                 easy_answer_mask: List[torch.Tensor] = grouped_easy_answer[query_name]
                 hard_answer: List[Set[int]] = grouped_hard_answer[query_name]
+                candidate_answers: torch.Tensor = grouped_candidate_answer[query_name]
                 # we remove easy answer, because easy answer may exist in training set
                 score[easy_answer_mask] = -float('inf')
-                ranking = score.argsort(dim=1, descending=True)  # sorted idx (B, N)
+                ranking = score.argsort(dim=1, descending=True)  # sorted entity idx (B, N)
 
-                ranks = []
-                hits = []
-                for i in range(10):
-                    hits.append([])
                 num_queries = ranking.shape[0]
-                for i in range(num_queries):
-                    for answer_id in hard_answer[i]:
-                        rank = torch.where(ranking[i] == answer_id)[0][0]
-                        ranks.append(rank + 1)
-                        for hits_level in range(10):
-                            hits[hits_level].append(1.0 if rank <= hits_level else 0.0)
-                mrr = torch.mean(1 / torch.FloatTensor(ranks)).item()
-                h1 = torch.mean(torch.FloatTensor(hits[0])).item()
-                h3 = torch.mean(torch.FloatTensor(hits[2])).item()
-                h10 = torch.mean(torch.FloatTensor(hits[9])).item()
-
-                logs[query_name]['MRR'].update(mrr)
-                logs[query_name]['hits@1'].update(h1)
-                logs[query_name]['hits@3'].update(h3)
-                logs[query_name]['hits@10'].update(h10)
                 logs[query_name]['num_queries'].update(num_queries)
+                for i in range(num_queries):
+                    rank_i = ranking[i]
+                    answers_i = hard_answer[i]
+                    candidate_answer_i = candidate_answers[i]
+
+                    rank_of_answers = torch.nonzero(rank_i.view(-1)[..., None] == answers_i)[:, 0]
+
+                    # MSRR, mean set reciprocal rank
+                    # MSR, mean set rank
+                    num_of_candidates, num_of_answers = len(candidate_answer_i), len(answers_i)
+                    expect_ranks = candidate_answer_i[:num_of_answers]
+                    MSRR = torch.mean(1 - (rank_of_answers-expect_ranks) / (num_of_candidates-num_of_answers)).item()
+                    logs[query_name]['MSRR'].update(MSRR)
+
+                    # mrr, hits@k
+                    for rank in rank_of_answers.cpu().numpy().data:
+                        logs[query_name]['MRR'].update(1 / (rank + 1))
+                        logs[query_name]['hits@1'].update(1.0 if rank < 1 else 0.0)
+                        logs[query_name]['hits@3'].update(1.0 if rank < 3 else 0.0)
+                        logs[query_name]['hits@10'].update(1.0 if rank < 10 else 0.0)
 
             step += 1
-            progbar.update(step, [("Hits @10", h10), ("query", ",".join(list(grouped_query.keys())))])
+            progbar.update(step, [("Hits @10", logs[query_name]['hits@10'].sum), ("query", ",".join(list(grouped_query.keys())))])
 
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:

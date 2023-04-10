@@ -1,12 +1,22 @@
 import torch
 
 
+def rankOf(vector, values):
+    """Returns the indices of the first occurrences of values in a tensor.
+
+    Args:
+        tensor (tensor): ranking tensor, shape [len(tensor)]
+        values (tensor): values to be ranked, shape [len(values)]
+
+    Returns:
+        tensor: indices of the first occurrences of values in a tensor, shape [len(values)]
+    """
+    return torch.nonzero(vector.view(-1)[..., None] == values)[:, 0]
+
+
 def indexOf(tensor: torch.Tensor, values: torch.Tensor):
     origin_shape = tensor.shape
     assert len(values.shape) == 1
-    # print("tensor shape:", tensor.shape, "values shape:", values.shape, "nonzero", torch.nonzero(tensor.view(-1)[..., None] == values).shape)
-    # print("tensor shape:", tensor.shape, "values shape:", values.shape, "nonzero",  (tensor.view(-1)[..., None] == values).shape)
-    # print("max", tensor.max(), "min", tensor.min(), "values max", values.max(), "values min", values.min())
     return torch.nonzero(tensor.view(-1)[..., None] == values)[:, 1].view(*origin_shape)
 
 
