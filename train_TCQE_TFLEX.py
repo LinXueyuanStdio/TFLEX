@@ -1172,7 +1172,7 @@ class MyExperiment(Experiment):
                         logs[query_name]['hits@10'].update(1.0 if rank < 10 else 0.0)
 
             step += 1
-            progbar.update(step, [("Hits @10", logs[query_name]['hits@10'].sum), ("query", ",".join(list(grouped_query.keys())))])
+            progbar.update(step, [("Hits @10", logs[query_name]['hits@10'].avg), ("query", ",".join(list(grouped_query.keys())))])
 
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:
