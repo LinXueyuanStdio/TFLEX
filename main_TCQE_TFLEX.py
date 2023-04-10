@@ -1243,7 +1243,7 @@ class MyExperiment(Experiment):
                 logs[query_name]['num_queries'].update(num_queries)
                 for i in range(num_queries):
                     rank_i = ranking[i]
-                    answers_i = torch.tensor(hard_answer[i], device=device)
+                    answers_i = torch.tensor(list(hard_answer[i]), device=device)
                     candidate_answer_i = candidate_answers[i]
 
                     rank_of_answers = torch.nonzero(rank_i.view(-1)[..., None] == answers_i)[:, 0]
