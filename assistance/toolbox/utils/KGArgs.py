@@ -44,21 +44,23 @@ class ParallelMode(Enum):
 
 @dataclass
 class DataLoaderArguments:
-    batch_size: Optional[int] = field(default=512, metadata={
-        "help": ""
-    })
-    shuffle: Optional[bool] = field(default=False, metadata={
-        "help": ""
-    })
-    drop_last: Optional[bool] = field(default=True, metadata={
-        "help": ""
-    })
-    num_workers: Optional[int] = field(default=2, metadata={
-        "help": ""
-    })
-    pin_memory: Optional[bool] = field(default=False, metadata={
-        "help": ""
-    })
+    train_batch_size: int = field(default=512, metadata={"help": "batch size"})
+    train_shuffle: bool = field(default=False, metadata={"help": "shuffle data"})
+    train_drop_last: bool = field(default=True, metadata={"help": "drop last batch"})
+    train_num_workers: int = field(default=2, metadata={"help": "number of workers"})
+    train_pin_memory: bool = field(default=False, metadata={"help": "pin memory"})
+
+    valid_batch_size: int = field(default=512, metadata={"help": "batch size"})
+    valid_shuffle: bool = field(default=False, metadata={"help": "shuffle data"})
+    valid_drop_last: bool = field(default=True, metadata={"help": "drop last batch"})
+    valid_num_workers: int = field(default=2, metadata={"help": "number of workers"})
+    valid_pin_memory: bool = field(default=False, metadata={"help": "pin memory"})
+
+    test_batch_size: int = field(default=512, metadata={"help": "batch size"})
+    test_shuffle: bool = field(default=False, metadata={"help": "shuffle data"})
+    test_drop_last: bool = field(default=True, metadata={"help": "drop last batch"})
+    test_num_workers: int = field(default=2, metadata={"help": "number of workers"})
+    test_pin_memory: bool = field(default=False, metadata={"help": "pin memory"})
 
 
 @dataclass
