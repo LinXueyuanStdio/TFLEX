@@ -1174,7 +1174,7 @@ class MyExperiment(Experiment):
 
         metrics = defaultdict(lambda: defaultdict(int))
         for query_name in logs:
-            for metric in logs[query_name][0].keys():
+            for metric in logs[query_name]:
                 if metric == "num_queries":
                     metrics[query_name][metric] = logs[query_name][metric].sum
                 else:
