@@ -4,6 +4,7 @@
 """
 import gc
 from collections import defaultdict
+import logging
 import os
 import sys
 from typing import List, Dict, Tuple, Optional, Union, Set
@@ -953,7 +954,7 @@ class MyExperiment(Experiment):
 
     def __init__(self, output: OutputSchema, data: ComplexQueryData, model, args: TrainingArguments):
         super(MyExperiment, self).__init__(output)
-        self.log(f"{locals()}")
+        self.debug(f"{locals()}")
 
         self.model_param_store.save_scripts([__file__])
         entity_count = data.entity_count
@@ -1423,6 +1424,7 @@ def grid_search(
     set_seeds(args_training.seed)
 
     output = build_output(args_data, args_output, args_exp)
+    output.logger.setLevel(logging.INFO)
     args_training.max_steps = 10000
 
     data = build_data(args_data)
@@ -1435,9 +1437,6 @@ def grid_search(
     from sklearn.model_selection import ParameterGrid
     best_score = 0
     for i, setting in enumerate(ParameterGrid(config)):
-        # input_dropout = setting["input_dropout"]
-        # hidden_dropout = setting["hidden_dropout"]
-        # embedding_dim = setting["embedding_dim"]
         args_model.hidden_dim = setting["hidden_dim"]
         args_model.input_dropout = setting["input_dropout"]
         args_model.center_reg = setting["center_reg"]

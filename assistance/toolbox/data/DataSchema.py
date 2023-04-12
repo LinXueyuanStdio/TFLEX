@@ -127,6 +127,9 @@ class BaseData:
     def __str__(self):
         return "\n".join(self.dump())
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(dataset={self.dataset}, cache_path={self.cache_path})"
+
 
 class RelationalTripletData(BaseData):
     """ The class is the main module that handles the knowledge graph.

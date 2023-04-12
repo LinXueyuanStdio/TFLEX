@@ -2,6 +2,7 @@
 @date: 2021/10/26
 @description: 输出目录管理
 """
+from logging import Logger
 from pathlib import Path
 from typing import Union
 
@@ -91,12 +92,12 @@ class OutputSchema:
     """
 
     def __init__(self, experiment_name: str, output_root: Union[str, Path] = "output", overwrite=False):
-        self.name = experiment_name
-        self.home_path = self.output_home_path(output_root)
+        self.name: str = experiment_name
+        self.home_path: Path = self.output_home_path(output_root)
         self.pathSchema = OutputPathSchema(self.home_path)
         if overwrite:
             self.pathSchema.clean()
-        self.logger = Log(str(self.home_path / "output.log"), name_scope=experiment_name + "output")
+        self.logger: Logger = Log(str(self.home_path / "output.log"), name_scope=experiment_name + "output")
 
     def output_home_path(self, output_root: Union[str, Path] = "output") -> Path:
         data_home_path: Path = Path(output_root) if type(output_root) is str else output_root

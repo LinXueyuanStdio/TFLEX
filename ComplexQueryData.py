@@ -101,6 +101,9 @@ class ComplexQueryData:
         self.nentity: int = 0
         self.nrelation: int = 0
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.cache_path})"
+
     def load_for_scoring_all(self, evaluate_union, tasks):
         if not self.cache_path.train_queries_answers_path.exists():
 

@@ -54,11 +54,13 @@ class Experiment:
             model.print_hyperparams(self.debug)
         self.debug("Trainable parameters".center(50, "-"))
         num_params = 0
+        param_size_list = []
         for name, param in model.named_parameters():
             if param.requires_grad:
                 ps = np.prod(param.size())
                 num_params += ps
-                self.debug(f"{name}: {sizeof_fmt(ps)}")
+                param_size_list += [f"{name}: {sizeof_fmt(ps)}"]
+        self.debug("\n".join(param_size_list))
         self.log('Total Parameters: %s (%d)' % (sizeof_fmt(num_params), num_params))
         self.debug("-" * 50)
 
