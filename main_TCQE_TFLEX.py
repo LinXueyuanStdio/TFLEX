@@ -23,6 +23,7 @@ from toolbox.evaluate.GatherMetric import AverageMeter
 from toolbox.exp.Experiment import Experiment
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.KGArgsParser import KGEArgParser
+from toolbox.utils.Log import Log
 from toolbox.utils.Progbar import Progbar
 from toolbox.utils.RandomSeeds import set_seeds
 
@@ -1180,6 +1181,7 @@ class MyExperiment(Experiment):
                 result = self.evaluate(model, valid_dataloader, args.test_device)
                 best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         self.metric_log_store.finish()
+        self.best_score = best_score
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
         model.train()
@@ -1408,6 +1410,53 @@ def main(
     data = build_data(args_data)
     model = build_model(args_model, data)
     MyExperiment(output, data, model, args_training)
+
+
+
+def grid_search(
+    args_data: DataArguments,
+    args_model: ModelArguments,
+    args_output: OutputArguments,
+    args_exp: ExperimentArguments,
+    args_training: TrainingArguments
+):
+    set_seeds(args_training.seed)
+
+    output = build_output(args_data, args_output, args_exp)
+    args_training.max_steps = 10000
+
+    data = build_data(args_data)
+    config = {
+        "hidden_dim": [100 * i for i in range(3, 7)],
+        "input_dropout": [0.1 * i for i in range(2)],
+        "center_reg": [0.01 * i for i in range(5)],
+        "gamma": [10+ i*5 for i in range(5)],
+    }
+    from sklearn.model_selection import ParameterGrid
+    best_score = 0
+    for i, setting in enumerate(ParameterGrid(config)):
+        # input_dropout = setting["input_dropout"]
+        # hidden_dropout = setting["hidden_dropout"]
+        # embedding_dim = setting["embedding_dim"]
+        args_model.hidden_dim = setting["hidden_dim"]
+        args_model.input_dropout = setting["input_dropout"]
+        args_model.center_reg = setting["center_reg"]
+        args_model.gamma = setting["gamma"]
+        parser.to_json_file({
+            "args_data": args_data,
+            "args_model": args_model,
+            "args_output": args_output,
+            "args_exp": args_exp,
+            "args_training": args_training,
+        }, output.output_path_child(f'config_{setting["hidden_dim"]}_{setting["gamma"]}_{setting["center_reg"]:.2f}_{setting["input_dropout"]:1f}.json'))
+        model = build_model(args_model, data)
+        exp = MyExperiment(output, data, model, args_training)
+        score = exp.best_score
+        log = Log(output.output_path_child("grid_search.log"))
+        if score > best_score:
+            best_score = score
+            log.info(f"best score: {best_score} at {setting}")
+
 
 
 if __name__ == '__main__':

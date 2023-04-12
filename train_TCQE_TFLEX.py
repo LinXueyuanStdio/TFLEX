@@ -1152,16 +1152,17 @@ class MyExperiment(Experiment):
                 logs[query_name]['num_queries'].update(num_queries)
                 for i in range(num_queries):
                     rank_i = ranking[i]
-                    answers_i = torch.tensor(list(hard_answer[i]), device=device)
+                    hard_answer_i = torch.tensor(list(hard_answer[i]), device=device)
                     candidate_answer_i = candidate_answers[i]
 
-                    rank_of_answers = torch.nonzero(rank_i.view(-1)[..., None] == answers_i)[:, 0]
+                    rank_of_answers = torch.nonzero(rank_i.view(-1)[..., None] == hard_answer_i)[:, 0]
 
                     # MSRR, mean set reciprocal rank
                     # MSR, mean set rank
-                    num_of_candidates, num_of_answers = len(candidate_answer_i), len(answers_i)
+                    num_of_easy_answer = len(easy_answer_mask[i].nonzero())
+                    num_of_candidates, num_of_answers = len(candidate_answer_i), len(hard_answer_i)
                     expect_ranks = candidate_answer_i[:num_of_answers]
-                    MSRR = torch.mean(1 - (rank_of_answers-expect_ranks) / (num_of_candidates-num_of_answers)).item()
+                    MSRR = torch.mean(1 - (rank_of_answers-expect_ranks) / (num_of_candidates-num_of_easy_answer-num_of_answers)).item()
                     logs[query_name]['MSRR'].update(MSRR)
 
                     # mrr, hits@k
@@ -1171,7 +1172,7 @@ class MyExperiment(Experiment):
                         logs[query_name]['hits@3'].update(1.0 if rank < 3 else 0.0)
                         logs[query_name]['hits@10'].update(1.0 if rank < 10 else 0.0)
 
-                    del answers_i
+                    del hard_answer_i
 
             step += 1
             progbar.update(step, [("Hits @10", logs[query_name]['hits@10'].avg), ("query", ",".join(list(grouped_query.keys())))])
