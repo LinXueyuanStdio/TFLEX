@@ -1025,8 +1025,8 @@ class MyExperiment(Experiment):
                     tasks.extend(self.groups[group])
             else:
                 tasks = args.test_tasks.split(",")
-            self.entity_ranks = torch.arange(data.entity_count, args.test_device)
-            self.timestamp_ranks = torch.arange(data.timestamp_count, args.test_device)
+            self.entity_ranks = torch.arange(0, data.entity_count, device=args.test_device)
+            self.timestamp_ranks = torch.arange(0, data.timestamp_count, device=args.test_device)
 
             if args.do_valid:
                 data.valid_queries_answers = data.load_cache_by_tasks(tasks, "valid")
