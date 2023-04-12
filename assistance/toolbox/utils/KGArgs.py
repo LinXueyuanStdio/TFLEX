@@ -73,7 +73,7 @@ class OutputArguments:
                 If :obj:`True`, overwrite the content of the output directory. Use this to continue training if
                 :obj:`output_dir` points to a checkpoint directory.
     """
-    output_dir: str = field(metadata={
+    output_dir: str = field(default="output", metadata={
         "help": "The output directory where the model predictions and checkpoints will be written."
     })
     overwrite_output_dir: bool = field(default=False, metadata={
