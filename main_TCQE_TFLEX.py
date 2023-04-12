@@ -1102,7 +1102,7 @@ class MyExperiment(Experiment):
         if args.do_train:
             self.metric_log_store.add_progress(args.max_steps)
             progbar = Progbar(max_step=args.max_steps)
-            for step in range(start_step, args.max_steps):
+            for step in range(args.start_step, args.max_steps):
                 model.train()
                 log = self.train(model, opt, train_path_iterator, step, args.train_device)
                 for metric in log:
