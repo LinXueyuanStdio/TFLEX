@@ -1019,12 +1019,12 @@ class MyExperiment(Experiment):
             gc.collect()
 
         if args.do_valid or args.do_test:
-            if args.eval_all:
+            if args.test_all:
                 tasks = []
                 for group in self.groups:
                     tasks.extend(self.groups[group])
             else:
-                tasks = args.eval_tasks.split(",")
+                tasks = args.test_tasks.split(",")
             self.entity_ranks = torch.arange(data.entity_count, args.test_device)
             self.timestamp_ranks = torch.arange(data.timestamp_count, args.test_device)
 
