@@ -82,7 +82,7 @@ class TrainingArguments:
     every_valid_step: int = field(default=10000, metadata={"help": "Number of steps."})
     every_test_step: int = field(default=10000, metadata={"help": "Number of steps."})
 
-    negative_sample_size: 128 = field(type=int, metadata={"help": "negative entities sampled per query"})
+    negative_sample_size: int = field(default=128, metadata={"help": "negative entities sampled per query"})
     lr: float = field(default=0.0001, metadata={"help": "Learning rate."})
 
     train_tasks: str = field(default="Pe,Pe2,Pe3,e2i,e3i,"
