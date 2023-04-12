@@ -61,13 +61,13 @@ class ExperimentArguments:
 @dataclass
 class TrainingArguments:
 
-    do_train: bool = field(default=False, metadata={
+    do_train: bool = field(default=True, metadata={
         "help": "Whether to run training."
     })
-    do_valid: bool = field(default=False, metadata={
+    do_valid: bool = field(default=True, metadata={
         "help": "Whether to run on the dev set."
     })
-    do_test: bool = field(default=False, metadata={
+    do_test: bool = field(default=True, metadata={
         "help": "Whether to run on the test set."
     })
     seed: int = field(default=42, metadata={"help": "random seed for initialization"})
