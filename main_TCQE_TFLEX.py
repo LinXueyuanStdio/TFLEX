@@ -1095,12 +1095,12 @@ class MyExperiment(Experiment):
             self.dump_model(model)
 
         current_learning_rate = args.lr
-        self.metric_log_store.add_hyper(args)
-        self.metric_log_store.add_progress(args.max_steps)
+        self.metric_log_store.add_hyper(args, "args")
         warm_up_steps = args.max_steps // 2
 
         # 3. training
         if args.do_train:
+            self.metric_log_store.add_progress(args.max_steps)
             progbar = Progbar(max_step=args.max_steps)
             for step in range(start_step, args.max_steps):
                 model.train()
