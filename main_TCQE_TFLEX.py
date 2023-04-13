@@ -958,15 +958,8 @@ class MyExperiment(Experiment):
 
         self.model_param_store.save_scripts([__file__])
         entity_count = data.entity_count
-        relation_count = data.relation_count
         timestamp_count = data.timestamp_count
-        max_relation_id = relation_count
         self.groups = groups
-        self.log('-------------------------------' * 3)
-        self.log('# entity: %d' % entity_count)
-        self.log('# relation: %d' % relation_count)
-        self.log('# timestamp: %d' % timestamp_count)
-        self.log('# max steps: %d' % args.max_steps)
 
         # 1. build train dataset
         if args.do_train:
@@ -1026,8 +1019,8 @@ class MyExperiment(Experiment):
                     tasks.extend(self.groups[group])
             else:
                 tasks = args.test_tasks.split(",")
-            self.entity_ranks = torch.arange(0, data.entity_count, device=args.test_device)
-            self.timestamp_ranks = torch.arange(0, data.timestamp_count, device=args.test_device)
+            self.entity_ranks = torch.arange(0, entity_count, device=args.test_device)
+            self.timestamp_ranks = torch.arange(0, timestamp_count, device=args.test_device)
 
             if args.do_valid:
                 data.valid_queries_answers = data.load_cache_by_tasks(tasks, "valid")
@@ -1083,12 +1076,12 @@ class MyExperiment(Experiment):
             self.dump_model(model)
             model.eval()
             with torch.no_grad():
-                self.debug("Resumed from score %.4f." % best_score)
-                self.debug("Take a look at the performance after resumed.")
-                self.debug("Test (step: %d):" % start_step)
+                self.log("Resumed from score %.4f." % best_score)
+                self.log("Take a look at the performance after resumed.")
+                self.log("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_dataloader, args.test_device)
                 best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
-                self.debug("Validation (step: %d):" % start_step)
+                self.log("Validation (step: %d):" % start_step)
                 result = self.evaluate(model, valid_dataloader, args.test_device)
                 best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         else:
@@ -1115,7 +1108,6 @@ class MyExperiment(Experiment):
                     log = self.train(model, opt, train_path_iterator, step, args.train_device)
 
                 progbar.update(step + 1, [
-                    ("step", step + 1),
                     ("loss", log["loss"]),
                     ("positive", log["positive_sample_loss"]),
                     ("negative", log["negative_sample_loss"]),
@@ -1137,14 +1129,14 @@ class MyExperiment(Experiment):
                     model.eval()
                     with torch.no_grad():
                         print("")
-                        self.debug("Validation (step: %d):" % (step + 1))
+                        self.log("Validation (step: %d):" % (step + 1))
                         result = self.evaluate(model, valid_dataloader, args.test_device)
                         score, row_results = self.visual_result(step + 1, result, "Valid")
                         if score >= best_score:
                             self.success("current score=%.4f > best score=%.4f" % (score, best_score))
                             best_score = score
                             self.metric_log_store.add_best_metric({"result": result}, "Valid")
-                            self.debug("saving best score %.4f" % score)
+                            self.log("saving best score %.4f" % score)
                             self.model_param_store.save_best(model, opt, step, 0, score)
                             self.latex_store.save_best_valid_result(row_results)
                         else:
@@ -1156,7 +1148,7 @@ class MyExperiment(Experiment):
                     model.eval()
                     with torch.no_grad():
                         print("")
-                        self.debug("Test (step: %d):" % (step + 1))
+                        self.log("Test (step: %d):" % (step + 1))
                         result = self.evaluate(model, test_dataloader, args.test_device)
                         score, row_results = self.visual_result(step + 1, result, "Test")
                         self.latex_store.save_test_result_by_score(row_results, score)
@@ -1166,19 +1158,19 @@ class MyExperiment(Experiment):
                             self.metric_log_store.add_best_metric({"result": result}, "Test")
                         print("")
 
-        # 5. report the best
+        # 4. report the best
         start_step, _, best_score = self.model_param_store.load_best(model, opt)
         model.eval()
         with torch.no_grad():
-            self.debug("Reporting the best performance...")
-            self.debug("Resumed from score %.4f." % best_score)
-            self.debug("Take a look at the performance after resumed.")
+            self.log("Reporting the best performance...")
+            self.log("Resumed from score %.4f." % best_score)
+            self.log("Take a look at the performance after resumed.")
             if args.do_test:
-                self.debug("Test (step: %d):" % start_step)
+                self.log("Test (step: %d):" % start_step)
                 result = self.evaluate(model, test_dataloader, args.test_device)
                 best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
             if args.do_valid:
-                self.debug("Validation (step: %d):" % start_step)
+                self.log("Validation (step: %d):" % start_step)
                 result = self.evaluate(model, valid_dataloader, args.test_device)
                 best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         self.metric_log_store.finish()
@@ -1253,9 +1245,10 @@ class MyExperiment(Experiment):
 
                     # MSRR, mean set reciprocal rank
                     # MSR, mean set rank
+                    num_of_easy_answer = len(easy_answer_mask[i].nonzero())
                     num_of_candidates, num_of_answers = len(candidate_answer_i), len(answers_i)
                     expect_ranks = candidate_answer_i[:num_of_answers]
-                    MSRR = torch.mean(1 - (rank_of_answers-expect_ranks) / (num_of_candidates-num_of_answers)).item()
+                    MSRR = torch.mean(1 - (rank_of_answers-expect_ranks) / (num_of_candidates-num_of_easy_answer-num_of_answers)).item()
                     logs[query_name]['MSRR'].update(MSRR)
 
                     # mrr, hits@k
@@ -1352,7 +1345,7 @@ class MyExperiment(Experiment):
 
 def build_output(args_data: DataArguments, args_output: OutputArguments, args_exp: ExperimentArguments):
     output = OutputSchema(
-        experiment_name=args_data.dataset + "-" + args_exp.name,
+        experiment_name=f"{args_data.dataset}-{args_exp.name}",
         output_root=args_output.output_dir,
         overwrite=args_output.overwrite_output_dir,
     )
@@ -1425,7 +1418,6 @@ def grid_search(
 
     output = build_output(args_data, args_output, args_exp)
     output.logger.setLevel(logging.INFO)
-    args_training.max_steps = 10000
 
     data = build_data(args_data)
     config = {
@@ -1452,9 +1444,10 @@ def grid_search(
         exp = MyExperiment(output, data, model, args_training)
         score = exp.best_score
         log = Log(output.output_path_child("grid_search.log"))
+        log.info(f"score: {score} at {setting}")
         if score > best_score:
             best_score = score
-            log.info(f"best score: {best_score} at {setting}")
+            log.success(f"current best score: {best_score} at {setting}")
 
 
 
@@ -1467,8 +1460,8 @@ if __name__ == '__main__':
         TrainingArguments,
     ])
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        args_data, args_model, args_output, args_exp, args_training = parser.parse_json_file(json_file=os.path.abspath(
-            sys.argv[1]))
+        json_file = os.path.abspath(sys.argv[1])
+        args_data, args_model, args_output, args_exp, args_training = parser.parse_json_file(json_file)
     else:
         args_data, args_model, args_output, args_exp, args_training = parser.parse_args_into_dataclasses()
     grid_search(args_data, args_model, args_output, args_exp, args_training)
