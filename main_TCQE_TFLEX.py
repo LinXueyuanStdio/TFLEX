@@ -1471,4 +1471,4 @@ if __name__ == '__main__':
             sys.argv[1]))
     else:
         args_data, args_model, args_output, args_exp, args_training = parser.parse_args_into_dataclasses()
-    main(args_data, args_model, args_output, args_exp, args_training)
+    grid_search(args_data, args_model, args_output, args_exp, args_training)
