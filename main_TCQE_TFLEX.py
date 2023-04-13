@@ -955,7 +955,7 @@ class MyExperiment(Experiment):
     def __init__(self, output: OutputSchema, data: ComplexQueryData, model, args: TrainingArguments):
         super(MyExperiment, self).__init__(output)
         self.debug(f"{locals()}")
-
+        self.metric_log_store.add_hyper(args, "args")
         self.model_param_store.save_scripts([__file__])
         entity_count = data.entity_count
         timestamp_count = data.timestamp_count
@@ -1094,7 +1094,6 @@ class MyExperiment(Experiment):
             self.dump_model(model)
 
         current_learning_rate = args.lr
-        self.metric_log_store.add_hyper(args, "args")
         warm_up_steps = args.max_steps // 2
 
         # 3. training
@@ -1434,7 +1433,9 @@ def grid_search(
     }
     from sklearn.model_selection import ParameterGrid
     best_score = 0
+    log = Log(output.output_path_child("grid_search.log"), "finetune")
     for i, setting in enumerate(ParameterGrid(config)):
+        log.info(f"training at {setting}")
         args_model.hidden_dim = setting["hidden_dim"]
         args_model.input_dropout = setting["input_dropout"]
         args_model.center_reg = setting["center_reg"]
@@ -1450,12 +1451,10 @@ def grid_search(
         exp = MyExperiment(output, data, model, args_training)
         score = exp.best_test_score
         exp.model_param_store.delete_model_best()  # delete the best because we resue the output dir
-        log = Log(output.output_path_child("grid_search.log"))
         log.info(f"score: {score} at {setting}")
         if score > best_score:
             best_score = score
             log.success(f"current best score: {best_score} at {setting}")
-
 
 
 if __name__ == '__main__':
