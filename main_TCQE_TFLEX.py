@@ -978,9 +978,10 @@ class MyExperiment(Experiment):
                     train_other_queries[query_structure_name] = train_queries_answers[query_structure_name]
 
             self.log("Training info:")
-            for query_structure_name in train_queries_answers:
-                self.log(
-                    f"{query_structure_name}: {len(train_queries_answers[query_structure_name]['queries_answers'])}")
+            self.log(str({
+                query_structure_name: len(train_queries_answers[query_structure_name]['queries_answers'])
+                for query_structure_name in train_queries_answers
+            }))
 
             del train_queries_answers
             del data.train_queries_answers
@@ -1026,9 +1027,10 @@ class MyExperiment(Experiment):
                 data.valid_queries_answers = data.load_cache_by_tasks(tasks, "valid")
                 valid_queries_answers = data.valid_queries_answers
                 self.log("Validation info:")
-                for query_structure_name in valid_queries_answers:
-                    self.log(
-                        f"{query_structure_name}: {len(valid_queries_answers[query_structure_name]['queries_answers'])}")
+                self.log(str({
+                    query_structure_name: len(valid_queries_answers[query_structure_name]['queries_answers'])
+                    for query_structure_name in valid_queries_answers
+                }))
                 valid_dataloader = DataLoader(
                     TestDataset(valid_queries_answers, entity_count, timestamp_count),
                     batch_size=args.test_batch_size,
@@ -1046,9 +1048,10 @@ class MyExperiment(Experiment):
                 data.test_queries_answers = data.load_cache_by_tasks(tasks, "test")
                 test_queries_answers = data.test_queries_answers
                 self.log("Test info:")
-                for query_structure_name in test_queries_answers:
-                    self.log(
-                        f"{query_structure_name}: {len(test_queries_answers[query_structure_name]['queries_answers'])}")
+                self.log(str({
+                    query_structure_name: len(test_queries_answers[query_structure_name]['queries_answers'])
+                    for query_structure_name in test_queries_answers
+                }))
                 test_dataloader = DataLoader(
                     TestDataset(test_queries_answers, entity_count, timestamp_count),
                     batch_size=args.test_batch_size,
@@ -1066,8 +1069,8 @@ class MyExperiment(Experiment):
         # 2. build model
         model = model.to(args.train_device)
         opt = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-        best_score = 0
-        best_test_score = 0
+        best_score = 0.0
+        best_test_score = 0.0
         if args.resume:
             if args.resume_by_score > 0:
                 start_step, _, best_score = self.model_param_store.load_by_score(model, opt, args.resume_by_score)
@@ -1078,12 +1081,14 @@ class MyExperiment(Experiment):
             with torch.no_grad():
                 self.log("Resumed from score %.4f." % best_score)
                 self.log("Take a look at the performance after resumed.")
-                self.log("Test (step: %d):" % start_step)
-                result = self.evaluate(model, test_dataloader, args.test_device)
-                best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
-                self.log("Validation (step: %d):" % start_step)
-                result = self.evaluate(model, valid_dataloader, args.test_device)
-                best_score, _ = self.visual_result(start_step + 1, result, "Valid")
+                if args.do_test:
+                    self.log("Test (step: %d):" % start_step)
+                    result = self.evaluate(model, test_dataloader, args.test_device)
+                    best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
+                if args.do_valid:
+                    self.log("Validation (step: %d):" % start_step)
+                    result = self.evaluate(model, valid_dataloader, args.test_device)
+                    best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         else:
             model.init()
             self.dump_model(model)
@@ -1175,6 +1180,7 @@ class MyExperiment(Experiment):
                 best_score, _ = self.visual_result(start_step + 1, result, "Valid")
         self.metric_log_store.finish()
         self.best_score = best_score
+        self.best_test_score = best_test_score
 
     def train(self, model, optimizer, train_iterator, step, device="cuda:0"):
         model.train()
@@ -1442,7 +1448,8 @@ def grid_search(
         }, output.output_path_child(f'config_{setting["hidden_dim"]}_{setting["gamma"]}_{setting["center_reg"]:.2f}_{setting["input_dropout"]:1f}.json'))
         model = build_model(args_model, data)
         exp = MyExperiment(output, data, model, args_training)
-        score = exp.best_score
+        score = exp.best_test_score
+        exp.model_param_store.delete_model_best()  # delete the best because we resue the output dir
         log = Log(output.output_path_child("grid_search.log"))
         log.info(f"score: {score} at {setting}")
         if score > best_score:

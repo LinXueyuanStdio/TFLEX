@@ -2,6 +2,7 @@
 @date: 2022/2/19
 @description: 模型保存和恢复
 """
+import os
 from typing import Tuple, List, Union, Optional
 
 import torch
@@ -86,7 +87,8 @@ class ModelParamStoreSchema:
      2）用于部署的模型参数的保存和读取
     """
 
-    def __init__(self, path: OutputPathSchema, best_checkpoint_filename="best_checkpoint.tar", best_model_filename="best_model.tar"):
+    def __init__(self, path: OutputPathSchema, best_checkpoint_filename="best_checkpoint.tar",
+                 best_model_filename="best_model.tar"):
         self.path = path
         self.best_checkpoint_path = path.checkpoint_path(best_checkpoint_filename)
         self.best_model_path = path.deploy_path(best_model_filename)
@@ -159,3 +161,9 @@ class ModelParamStoreSchema:
 
     def load_model_by_score(self, model: nn.Module, score: float) -> float:
         return load_model(model, str(self.model_path_with_score(score)))
+
+    def delete_model_best(self):
+        os.remove(str(self.best_model_path))
+
+    def delete_model_by_score(self, score: float):
+        os.remove(str(self.model_path_with_score(score)))
