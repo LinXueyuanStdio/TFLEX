@@ -3,7 +3,7 @@
 @description: null
 """
 from inspect import signature
-from typing import List, Tuple, Optional
+from typing import List, Set, Tuple, Optional, Union
 
 from expression.symbol import Procedure
 
@@ -22,78 +22,88 @@ def is_timestamp(name) -> bool:
     return name.startswith("t")
 
 
-class FixedQuery:
+class QuerySet:
     """
     推理过程的中间状态
     """
 
-    def __init__(self, answers=None, timestamps=None, is_anchor=False):
-        self.answers = answers if answers is not None else set()
-        self.timestamps = timestamps if timestamps is not None else set()
-        self.is_anchor = is_anchor
+    def __init__(self, ids=None):
+        self.ids = ids if ids is not None else set()
 
     def __len__(self):
-        answers_len = len(self.answers) if self.answers is not None else 0
-        timestamps_len = len(self.timestamps) if self.timestamps is not None else 0
-        return answers_len + timestamps_len
+        ids_len = len(self.ids) if self.ids is not None else 0
+        return ids_len
 
     def __repr__(self):
-        return f"answers={self.answers}, timestamps={self.timestamps}, is_anchor={self.is_anchor}"
-
-    def from_tuple(self, t: Tuple[str, int]):
-        self.is_anchor = True
-        type_of_idx, idx = t
-        if is_timestamp(type_of_idx):
-            self.timestamps = {idx}
-        else:
-            self.answers = {idx}
-        return self
-
-    def __eq__(self, __value: object) -> bool:
-        if __value is not FixedQuery:
-            return False
-        return self.answers == __value.answers and self.timestamps == __value.timestamps and self.is_anchor == __value.is_anchor
-
-    def __ne__(self, __value: object) -> bool:
-        if __value is not FixedQuery:
-            return True
-        return self.answers != __value.answers or self.timestamps != __value.timestamps or self.is_anchor != __value.is_anchor
+        return f"{self.__class__.__name__}({self.ids.__repr__()})"
 
     def __str__(self) -> str:
-        return f"answers={self.answers}, timestamps={self.timestamps}, is_anchor={self.is_anchor}"
-
-    def __add__(a, b):
-        answers = a.answers | b.answers
-        timestamps = a.timestamps | b.timestamps
-        is_anchor = a.is_anchor or b.is_anchor
-        return FixedQuery(answers, timestamps, is_anchor)
-
-    def __minus__(a, b):
-        answers = a.answers - b.answers
-        timestamps = a.timestamps - b.timestamps
-        is_anchor = a.is_anchor or b.is_anchor
-        return FixedQuery(answers, timestamps, is_anchor)
+        return f"{self.__class__.__name__}({self.ids.__repr__()})"
 
     def __contains__(a, b):
-        return a.answers.issuperset(b.answers) and a.timestamps.issuperset(b.timestamps)
+        if a.__class__.__name__ != b.__class__.__name__:
+            return False
+        if a is not QuerySet or b is not QuerySet:
+            return False
+        return a.ids.issuperset(b.ids)
+
+    def __eq__(self, __value: object) -> bool:
+        if __value is not QuerySet:
+            return False
+        if self.__class__.__name__ != __value.__class__.__name__:
+            return False
+        return self.ids == __value.ids
+
+    def __ne__(self, __value: object) -> bool:
+        if __value is not QuerySet:
+            return True
+        if self.__class__.__name__ != __value.__class__.__name__:
+            return True
+        return self.ids != __value.ids
+
+    def __add__(a, b):
+        if a.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for +: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = a.ids | b.ids
+        return a.__class__(ids)
+
+    def __minus__(a, b):
+        if a.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for -: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = a.ids - b.ids
+        return a.__class__(ids)
 
     def __and__(a, b):
-        answers = a.answers & b.answers
-        timestamps = a.timestamps & b.timestamps
-        is_anchor = a.is_anchor and b.is_anchor
-        return FixedQuery(answers, timestamps, is_anchor)
+        if a.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for &: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = a.ids & b.ids
+        return a.__class__(ids)
 
     def __or__(a, b):
-        answers = a.answers | b.answers
-        timestamps = a.timestamps | b.timestamps
-        is_anchor = a.is_anchor or b.is_anchor
-        return FixedQuery(answers, timestamps, is_anchor)
+        if a.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for |: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = a.ids | b.ids
+        return a.__class__(ids)
 
     def __xor__(a, b):
-        answers = a.answers ^ b.answers
-        timestamps = a.timestamps ^ b.timestamps
-        is_anchor = a.is_anchor or b.is_anchor
-        return FixedQuery(answers, timestamps, is_anchor)
+        if a.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for ^: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = a.ids ^ b.ids
+        return a.__class__(ids)
+
+
+class EntitySet(QuerySet):
+    def __init__(self, entity: Union[int, Set]) -> None:
+        if entity is int:
+            entity = {entity}
+        super().__init__(entity)
+
+
+class TimeSet(QuerySet):
+    def __init__(self, timestamp: Union[int, Set]) -> None:
+        if timestamp is int:
+            timestamp = {timestamp}
+        super().__init__(timestamp)
 
 
 class Placeholder:
@@ -128,17 +138,14 @@ class Placeholder:
     def to_tuple(self) -> Tuple[str, int]:
         return self.name, self.idx
 
-    def to_fixed_query(self) -> FixedQuery:
+    def to_fixed_query(self) -> QuerySet:
         if is_timestamp(self.name):
-            return FixedQuery(timestamps={self.idx}, is_anchor=True)
+            return TimeSet({self.idx})
         else:
-            return FixedQuery(answers={self.idx}, is_anchor=True)
+            return EntitySet({self.idx})
 
-    def fill_to(self, fixed_query: FixedQuery):
-        if is_timestamp(self.name):
-            fixed_query.timestamps = {self.idx}
-        else:
-            fixed_query.answers = {self.idx}
+    def fill_to(self, fixed_query: QuerySet):
+        fixed_query.ids = {self.idx}
 
 
 def get_param_name_list(func) -> List[str]:
@@ -164,7 +171,7 @@ def clear_placeholder_list(placeholder_list: List[Placeholder]):
         placeholder.clear()
 
 
-def placeholder_to_fixed_query(placeholder_list: List[Placeholder], fixed_query_list: List[FixedQuery]):
+def placeholder_to_fixed_query(placeholder_list: List[Placeholder], fixed_query_list: List[QuerySet]):
     for placeholder, fixed_query in zip(placeholder_list, fixed_query_list):
         placeholder.fill_to(fixed_query)
 
@@ -176,7 +183,7 @@ def placeholder2sample(placeholder_list: List[Placeholder]) -> List[int]:
     return [i.idx for i in placeholder_list]
 
 
-def placeholder2fixed(placeholder_list: List[Placeholder]) -> List[FixedQuery]:
+def placeholder2fixed(placeholder_list: List[Placeholder]) -> List[QuerySet]:
     """
     将占位符中采样到的idx 转化为 用于保存的格式
     """

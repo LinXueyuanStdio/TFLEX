@@ -1020,8 +1020,6 @@ class MyExperiment(Experiment):
                     tasks.extend(self.groups[group])
             else:
                 tasks = args.test_tasks.split(",")
-            self.entity_ranks = torch.arange(0, entity_count, device=args.test_device)
-            self.timestamp_ranks = torch.arange(0, timestamp_count, device=args.test_device)
 
             if args.do_valid:
                 data.valid_queries_answers = data.load_cache_by_tasks(tasks, "valid")
@@ -1084,11 +1082,13 @@ class MyExperiment(Experiment):
                 if args.do_test:
                     self.log("Test (step: %d):" % start_step)
                     result = self.evaluate(model, test_dataloader, args.test_device)
-                    best_test_score, _ = self.visual_result(start_step + 1, result, "Test")
+                    best_test_score, row_results = self.visual_result(start_step + 1, result, "Test")
+                    self.latex_store.save_best_test_result(row_results)
                 if args.do_valid:
                     self.log("Validation (step: %d):" % start_step)
                     result = self.evaluate(model, valid_dataloader, args.test_device)
-                    best_score, _ = self.visual_result(start_step + 1, result, "Valid")
+                    best_score, row_results = self.visual_result(start_step + 1, result, "Valid")
+                    self.latex_store.save_best_valid_result(row_results)
         else:
             model.init()
             self.dump_model(model)
@@ -1428,7 +1428,7 @@ def grid_search(
     config = {
         "hidden_dim": [100 * i for i in range(3, 7)],
         "input_dropout": [0.1 * i for i in range(2)],
-        "center_reg": [0.01 * i for i in range(5)],
+        "center_reg": [0.001 + 0.01 * i for i in range(5)],
         "gamma": [10+ i*5 for i in range(5)],
     }
     from sklearn.model_selection import ParameterGrid

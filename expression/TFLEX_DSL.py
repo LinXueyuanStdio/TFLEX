@@ -6,7 +6,7 @@ import random
 from math import pi
 from typing import List, Union
 
-from .ParamSchema import Placeholder, FixedQuery, placeholder2fixed, get_param_name_list
+from .ParamSchema import EntitySet, Placeholder, QuerySet, TimeSet, placeholder2fixed, get_param_name_list
 from .symbol import Interpreter
 
 query_structures = {
@@ -165,16 +165,16 @@ class SamplingParser(BasicParser):
             "t": Placeholder("t"),
         }
         for e_id in entity_ids:
-            variables[f"e{e_id}"] = FixedQuery(answers={e_id}, is_anchor=True)
+            variables[f"e{e_id}"] = EntitySet({e_id})
         for r_id in relation_ids:
-            variables[f"r{r_id}"] = FixedQuery(answers={r_id}, is_anchor=True)
+            variables[f"r{r_id}"] = QuerySet({r_id})
         for t_id in timestamp_ids:
-            variables[f"t{t_id}"] = FixedQuery(timestamps={t_id}, is_anchor=True)
+            variables[f"t{t_id}"] = TimeSet({t_id})
 
         def neighbor(s, k=10):
             return random.sample(o_srt[s], k)
 
-        def find_entity(s: Union[FixedQuery, Placeholder], r: Union[FixedQuery, Placeholder], t: Union[FixedQuery, Placeholder]):
+        def find_entity(s: Union[EntitySet, Placeholder], r: Union[QuerySet, Placeholder], t: Union[TimeSet, Placeholder]):
             s_is_missing, r_is_missing, t_is_missing = isinstance(s, Placeholder), isinstance(r, Placeholder), isinstance(t, Placeholder)
             if s_is_missing and r_is_missing and t_is_missing:
                 si = random.choice(list(srt_o.keys()))
@@ -186,7 +186,7 @@ class SamplingParser(BasicParser):
                 tk = random.choice(list(srt_o[si][rj].keys()))
                 t = t.fill_to_fixed_query(tk)
             elif not s_is_missing and r_is_missing and t_is_missing:
-                choices = list(s.answers)
+                choices = list(s.ids)
                 if len(choices) <= 0:
                     return set()
                 si = random.choice(choices)
@@ -203,7 +203,7 @@ class SamplingParser(BasicParser):
                 tk = random.choice(choices)
                 t = t.fill_to_fixed_query(tk)
             elif s_is_missing and not r_is_missing and t_is_missing:
-                choices = list(r.answers)
+                choices = list(r.ids)
                 if len(choices) <= 0:
                     return set()
                 rj = random.choice(choices)
@@ -220,7 +220,7 @@ class SamplingParser(BasicParser):
                 tk = random.choice(choices)
                 t = t.fill_to_fixed_query(tk)
             elif s_is_missing and r_is_missing and not t_is_missing:
-                choices = list(t.timestamps)
+                choices = list(t.ids)
                 if len(choices) <= 0:
                     return set()
                 tk = random.choice(choices)
@@ -237,12 +237,12 @@ class SamplingParser(BasicParser):
                 si = random.choice(choices)
                 s = s.fill_to_fixed_query(si)
             elif s_is_missing and not r_is_missing and not t_is_missing:
-                choices = list(t.timestamps)
+                choices = list(t.ids)
                 if len(choices) <= 0:
                     return set()
                 tk = random.choice(choices)
 
-                choices = list(r.answers)
+                choices = list(r.ids)
                 if len(choices) <= 0:
                     return set()
                 rj = random.choice(choices)
@@ -253,12 +253,12 @@ class SamplingParser(BasicParser):
                 si = random.choice(choices)
                 s = s.fill_to_fixed_query(si)
             elif not s_is_missing and r_is_missing and not t_is_missing:
-                choices = list(s.answers)
+                choices = list(s.ids)
                 if len(choices) <= 0:
                     return set()
                 si = random.choice(choices)
 
-                choices = list(t.timestamps)
+                choices = list(t.ids)
                 if len(choices) <= 0:
                     return set()
                 tk = random.choice(choices)
@@ -269,12 +269,12 @@ class SamplingParser(BasicParser):
                 rj = random.choice(choices)
                 r = r.fill_to_fixed_query(rj)
             elif not s_is_missing and not r_is_missing and t_is_missing:
-                choices = list(s.answers)
+                choices = list(s.ids)
                 if len(choices) <= 0:
                     return set()
                 si = random.choice(choices)
 
-                choices = list(r.answers)
+                choices = list(r.ids)
                 if len(choices) <= 0:
                     return set()
                 rj = random.choice(choices)
@@ -286,14 +286,14 @@ class SamplingParser(BasicParser):
                 t = t.fill_to_fixed_query(tk)
 
             answers = set()
-            for si in s.answers:
-                for rj in r.answers:
-                    for tk in t.timestamps:
+            for si in s.ids:
+                for rj in r.ids:
+                    for tk in t.ids:
                         answers = answers | set(srt_o[si][rj][tk])
             # print("find_entity", answers)
             return answers
 
-        def find_timestamp(s: Union[FixedQuery, Placeholder], r: Union[FixedQuery, Placeholder], o: Union[FixedQuery, Placeholder]):
+        def find_timestamp(s: Union[EntitySet, Placeholder], r: Union[QuerySet, Placeholder], o: Union[EntitySet, Placeholder]):
             s_is_missing, r_is_missing, o_is_missing = isinstance(s, Placeholder), isinstance(r, Placeholder), isinstance(o, Placeholder)
             if s_is_missing and r_is_missing and o_is_missing:
                 si = random.choice(list(sro_t.keys()))
@@ -305,7 +305,7 @@ class SamplingParser(BasicParser):
                 ok = random.choice(list(sro_t[si][rj].keys()))
                 o = o.fill_to_fixed_query(ok)
             elif not s_is_missing and r_is_missing and o_is_missing:
-                choices = list(s.answers)
+                choices = list(s.ids)
                 if len(choices) <= 0:
                     return set()
                 si = random.choice(choices)
@@ -322,7 +322,7 @@ class SamplingParser(BasicParser):
                 ok = random.choice(choices)
                 o = o.fill_to_fixed_query(ok)
             elif s_is_missing and not r_is_missing and o_is_missing:
-                choices = list(r.answers)
+                choices = list(r.ids)
                 if len(choices) <= 0:
                     return set()
                 rj = random.choice(choices)
@@ -339,7 +339,7 @@ class SamplingParser(BasicParser):
                 ok = random.choice(choices)
                 o = o.fill_to_fixed_query(ok)
             elif s_is_missing and r_is_missing and not o_is_missing:
-                choices = list(o.answers)
+                choices = list(o.ids)
                 if len(choices) <= 0:
                     return set()
                 ok = random.choice(choices)
@@ -356,12 +356,12 @@ class SamplingParser(BasicParser):
                 si = random.choice(choices)
                 s = s.fill_to_fixed_query(si)
             elif s_is_missing and not r_is_missing and not o_is_missing:
-                choices = list(o.answers)
+                choices = list(o.ids)
                 if len(choices) <= 0:
                     return set()
                 ok = random.choice(choices)
 
-                choices = list(r.answers)
+                choices = list(r.ids)
                 if len(choices) <= 0:
                     return set()
                 rj = random.choice(choices)
@@ -372,12 +372,12 @@ class SamplingParser(BasicParser):
                 si = random.choice(choices)
                 s = s.fill_to_fixed_query(si)
             elif not s_is_missing and r_is_missing and not o_is_missing:
-                choices = list(s.answers)
+                choices = list(s.ids)
                 if len(choices) <= 0:
                     return set()
                 si = random.choice(choices)
 
-                choices = list(o.answers)
+                choices = list(o.ids)
                 if len(choices) <= 0:
                     return set()
                 ok = random.choice(choices)
@@ -388,12 +388,12 @@ class SamplingParser(BasicParser):
                 rj = random.choice(choices)
                 r = r.fill_to_fixed_query(rj)
             elif not s_is_missing and not r_is_missing and o_is_missing:
-                choices = list(s.answers)
+                choices = list(s.ids)
                 if len(choices) <= 0:
                     return set()
                 si = random.choice(choices)
 
-                choices = list(r.answers)
+                choices = list(r.ids)
                 if len(choices) <= 0:
                     return set()
                 rj = random.choice(choices)
@@ -405,25 +405,26 @@ class SamplingParser(BasicParser):
                 o = o.fill_to_fixed_query(ok)
 
             timestamps = set()
-            for si in s.answers:
-                for rj in r.answers:
-                    for ok in o.answers:
+            for si in s.ids:
+                for rj in r.ids:
+                    for ok in o.ids:
                         timestamps = timestamps | set(sro_t[si][rj][ok])
             # print("find_timestamp", timestamps)
             return timestamps
-        def And(q1, q2): return FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps)
-        def And3(q1, q2, q3): return FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps)
-        def Or(q1, q2): return FixedQuery(answers=q1.answers | q2.answers, timestamps=q1.timestamps & q2.timestamps)
-        def Not(x): return FixedQuery(answers=all_entity_ids - x.answers, timestamps=x.timestamps)
-        def EntityProjection(e1, r1, t1): return FixedQuery(answers=find_entity(e1, r1, t1))
-        def TimeProjection(e1, r1, e2): return FixedQuery(timestamps=find_timestamp(e1, r1, e2))
-        def TimeAnd(q1, q2): return FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps & q2.timestamps)
-        def TimeAnd3(q1, q2, q3): return FixedQuery(answers=q1.answers & q2.answers & q3.answers, timestamps=q1.timestamps & q2.timestamps & q3.timestamps)
-        def TimeOr(q1, q2): return FixedQuery(answers=q1.answers & q2.answers, timestamps=q1.timestamps | q2.timestamps)
-        def TimeNot(x): return FixedQuery(answers=x.answers, timestamps=all_timestamp_ids - x.timestamps if len(x.timestamps) > 0 else all_timestamp_ids)
-        def TimeBefore(x): return FixedQuery(answers=x.answers, timestamps=set([t for t in timestamp_ids if t < min(x.timestamps)] if len(x.timestamps) > 0 else all_timestamp_ids))
-        def TimeAfter(x): return FixedQuery(answers=x.answers, timestamps=set([t for t in timestamp_ids if t > max(x.timestamps)] if len(x.timestamps) > 0 else all_timestamp_ids))
-        def TimeNext(x): return FixedQuery(answers=x.answers, timestamps=set([min(t + 1, max_timestamp_id) for t in x.timestamps] if len(x.timestamps) > 0 else all_timestamp_ids))
+
+        def And(q1, q2): return EntitySet(ids=q1.ids & q2.ids)
+        def And3(q1, q2, q3): return EntitySet(ids=q1.ids & q2.ids & q3.ids)
+        def Or(q1, q2): return EntitySet(ids=q1.ids | q2.ids)
+        def Not(x): return EntitySet(ids=all_entity_ids - x.ids)
+        def EntityProjection(s, r, t): return EntitySet(ids=find_entity(s, r, t))
+        def TimeProjection(s, r, o): return TimeSet(ids=find_timestamp(s, r, o))
+        def TimeAnd(q1, q2): return TimeSet(ids=q1.ids & q2.ids)
+        def TimeAnd3(q1, q2, q3): return TimeSet(ids=q1.ids & q2.ids & q3.ids)
+        def TimeOr(q1, q2): return TimeSet(ids=q1.ids | q2.ids)
+        def TimeNot(x): return TimeSet(ids=all_timestamp_ids - x.ids if len(x.ids) > 0 else all_timestamp_ids)
+        def TimeBefore(x): return TimeSet(ids=set([t for t in all_timestamp_ids if t < min(x.ids)] if len(x.ids) > 0 else all_timestamp_ids))
+        def TimeAfter(x): return TimeSet(ids=set([t for t in all_timestamp_ids if t > max(x.ids)] if len(x.ids) > 0 else all_timestamp_ids))
+        def TimeNext(x): return TimeSet(ids=set([min(t + 1, max_timestamp_id) for t in x.ids] if len(x.ids) > 0 else all_timestamp_ids))
         neural_ops = {  # 4+4+3
             "And": And,
             "And3": And3,
@@ -557,7 +558,7 @@ class SamplingParser(BasicParser):
             # return Pt(Pe(e1, r1, t1), r2, e2)
             t = random.choice(list(t_sro.keys()))
             t_ids = fast_Pt_lPe_targeted(e1, r1, t1, r2, e2, target=t)
-            return FixedQuery(timestamps=t_ids)
+            return TimeSet(t_ids)
 
         def fast_t2i_NPt(e1, r1, t1, r2, e2, e3, r3, e4):
             # return TimeAnd(TimeNot(Pt(Pe(e1, r1, t1), r2, e2)), Pt(e3, r3, e4))
@@ -570,7 +571,7 @@ class SamplingParser(BasicParser):
             not_t = random.choice(list(choices))
             right_t_ids = fast_Pt_targeted(e3, r3, e4, target=t)
             left_t_ids = all_timestamp_ids - fast_Pt_lPe_targeted(e1, r1, t1, r2, e2, target=not_t)
-            return FixedQuery(timestamps=left_t_ids & right_t_ids)
+            return TimeSet(left_t_ids & right_t_ids)
 
         def fast_e2i_NPe(e1, r1, t1, r2, t2, e2, r3, t3):
             # return And(Not(Pe(Pe(e1, r1, t1), r2, t2)), Pe(e2, r3, t3))
@@ -583,7 +584,7 @@ class SamplingParser(BasicParser):
             not_o = random.choice(list(choices))
             right_o_ids = fast_Pe_targeted(e2, r3, t3, target=o)
             left_o_ids = all_entity_ids - fast_Pe2_targeted(e1, r1, t1, r2, t2, target=not_o)
-            return FixedQuery(answers=left_o_ids & right_o_ids)
+            return EntitySet(left_o_ids & right_o_ids)
 
         def fast_Pe_Pt(e1, r1, e2, r2, e3):
             # return Pe(e1, r1, Pt(e2, r2, e3))
@@ -595,7 +596,7 @@ class SamplingParser(BasicParser):
             t_ids = fast_Pt_targeted(e2, r2, e3, target=t1_idx)
             for t_idx in t_ids:
                 o_ids = o_ids | srt_o[e1_idx][r1_idx][t_idx]
-            return FixedQuery(answers=o_ids)
+            return EntitySet(o_ids)
 
         def fast_Pe_e2i(e1, r1, t1, e2, r2, t2, r3, t3):
             # return Pe(And(Pe(e1, r1, t1), Pe(e2, r2, t2)), r3, t3)

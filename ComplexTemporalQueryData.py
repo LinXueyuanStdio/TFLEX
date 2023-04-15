@@ -8,7 +8,7 @@ from pprint import pformat
 from typing import List, Tuple, Dict, Set, Union, Any
 
 import expression
-from expression.ParamSchema import placeholder2sample, get_param_name_list, get_placeholder_list, placeholder2fixed, FixedQuery, clear_placeholder_list
+from expression.ParamSchema import placeholder2sample, get_param_name_list, get_placeholder_list, placeholder2fixed, QuerySet, clear_placeholder_list
 from toolbox.data.DataSchema import DatasetCachePath, BaseData
 from toolbox.data.DatasetSchema import RelationalTripletDatasetSchema
 from toolbox.data.functional import read_cache, cache_data
@@ -908,21 +908,21 @@ class ComplexQueryData(TemporalKnowledgeData):
                 # for queries containing negation, test may has no answers while train has lots of answers.
                 # if test has no answers, we are not able to calculate metrics.
                 clear_placeholder_list(placeholders)
-                sampling_query_answers: FixedQuery = train_query_structure_func(*placeholders)
-                if sampling_query_answers.answers is not None and len(sampling_query_answers.answers) > 0:
-                    answers = sampling_query_answers.answers
+                sampling_query_answers: QuerySet = train_query_structure_func(*placeholders)
+                if sampling_query_answers.ids is not None and len(sampling_query_answers.ids) > 0:
+                    answers = sampling_query_answers.ids
                     fixed = placeholder2fixed(placeholders)
-                    valid_answers = valid_query_structure_func(*fixed).answers
+                    valid_answers = valid_query_structure_func(*fixed).ids
                     if for_test and len(valid_answers) <= len(answers) and conflict_count < 100:
                         answers = set()
-                    test_answers = test_query_structure_func(*fixed).answers
-                elif sampling_query_answers.timestamps is not None and len(sampling_query_answers.timestamps) > 0:
-                    answers = sampling_query_answers.timestamps
+                    test_answers = test_query_structure_func(*fixed).ids
+                elif sampling_query_answers.ids is not None and len(sampling_query_answers.ids) > 0:
+                    answers = sampling_query_answers.ids
                     fixed = placeholder2fixed(placeholders)
-                    valid_answers = valid_query_structure_func(*fixed).timestamps
+                    valid_answers = valid_query_structure_func(*fixed).ids
                     if for_test and len(valid_answers) <= len(answers) and conflict_count < 100:
                         answers = set()
-                    test_answers = test_query_structure_func(*fixed).timestamps
+                    test_answers = test_query_structure_func(*fixed).ids
                 else:
                     answers = set()
                     valid_answers = set()

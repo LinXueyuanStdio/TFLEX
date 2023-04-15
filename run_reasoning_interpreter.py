@@ -13,6 +13,7 @@ import torch
 
 import expression
 from ComplexTemporalQueryData import *
+from expression.ParamSchema import EntitySet, TimeSet
 from expression.TFLEX_DSL import BasicParser
 from expression.symbol import Interpreter
 from expression.FLEX_DSL import query_structures
@@ -220,13 +221,15 @@ class ExpressionInterpreter(cmd.Cmd):
         self.sampling_parser = test_parser
         self.switch_parser_to(self.sampling_parser)
 
-    def sampling_answer(self, query: FixedQuery, topk=10):
+    def sampling_answer(self, query: Union[EntitySet, QuerySet, TimeSet], topk=10):
         answers = []
         timestamps = []
-        if len(query.answers) > 0:
-            answers = [self.data.all_entities[idx] for idx in query.answers]
-        if len(query.timestamps) > 0:
-            timestamps = [self.data.all_timestamps[idx] for idx in query.timestamps]
+        if query is EntitySet:
+            answers = [self.data.all_entities[idx] for idx in query.ids]
+        if query is TimeSet:
+            timestamps = [self.data.all_timestamps[idx] for idx in query.ids]
+        answers = random.sample(answers, min(topk, len(answers)))
+        timestamps = random.sample(timestamps, min(topk, len(timestamps)))
         if len(answers) > 0 and len(timestamps) > 0:
             return {
                 "answers": answers,
