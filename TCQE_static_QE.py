@@ -190,7 +190,7 @@ class TemporalNegation(nn.Module):
         self.dim = dim
 
     def forward(self, feature, logic):
-        return feature, logic
+        raise NotImplementedError("static query embeddings are unable to handle temporal information")
 
 
 class TemporalBefore(nn.Module):
@@ -199,7 +199,7 @@ class TemporalBefore(nn.Module):
         self.dim = dim
 
     def forward(self, feature, logic):
-        return feature, logic
+        raise NotImplementedError("static query embeddings are unable to handle temporal information")
 
 
 class TemporalAfter(nn.Module):
@@ -208,7 +208,7 @@ class TemporalAfter(nn.Module):
         self.dim = dim
 
     def forward(self, feature, logic):
-        return feature, logic
+        raise NotImplementedError("static query embeddings are unable to handle temporal information")
 
 
 class TemporalNext(nn.Module):
@@ -216,7 +216,7 @@ class TemporalNext(nn.Module):
         super(TemporalNext, self).__init__()
 
     def forward(self, feature, logic):
-        return feature, logic
+        raise NotImplementedError("static query embeddings are unable to handle temporal information")
 
 
 
