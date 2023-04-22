@@ -81,17 +81,3 @@ use_groundtruth_reasoning_interpreter()
 groundtruth_answer()
 OK. The bot correctly predict the hard answer which only exists in the test set!
 ```
-
-## Citation
-```
-@misc{https://doi.org/10.48550/arxiv.2205.14307,
-  doi = {10.48550/ARXIV.2205.14307},
-  url = {https://arxiv.org/abs/2205.14307},
-  author = {Lin, Xueyuan and Xu, Chengjin and E, Haihong and Su, Fenglong and Zhou, Gengxian and Hu, Tianyi and Li, Ningyuan and Sun, Mingzhi and Luo, Haoran},
-  keywords = {Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
-  title = {TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
-  publisher = {arXiv},
-  year = {2022},
-  copyright = {Creative Commons Attribution Non Commercial Share Alike 4.0 International}
-}
-```
