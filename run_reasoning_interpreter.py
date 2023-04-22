@@ -204,6 +204,7 @@ available commands:
         print(f"load best model at step {start_step} with score {best_score}")
         self.neural_parser = self.model.parser
         self.switch_parser_to(self.neural_parser)
+        return "using neural interpreter"
 
     def neural_answer_entities(self, query_token: TYPE_token, topk=10):
         answer_range = self.entity_count
@@ -260,6 +261,7 @@ available commands:
             test_srt_o, test_str_o, test_ors_t, test_trs_o, test_tro_s, test_rst_o, test_rso_t, test_t_sro, test_o_srt)
         self.groundtruth_parser = test_parser
         self.switch_parser_to(self.groundtruth_parser)
+        return "using groundtruth interpreter"
 
     def groundtruth_answer(self, query: Union[EntitySet, QuerySet, TimeSet], topk=10):
         if type(query) is EntitySet:
