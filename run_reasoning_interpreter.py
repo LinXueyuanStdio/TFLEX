@@ -157,6 +157,8 @@ available commands:
     def list_triples(self, k=5):
         if self.data is None:
             return "you should load dataset first. please call `use_dataset()`"
+        if self.data.all_triples is None or len(self.data.all_triples) <= 0:
+            self.data.load_cache(["all_triples"])
         if k == -1:
             return self.data.all_triples
         return random.sample(self.data.all_triples, k)
@@ -164,6 +166,8 @@ available commands:
     def list_triples_ids(self, k=5):
         if self.data is None:
             return "you should load dataset first. please call `use_dataset()`"
+        if self.data.all_triples_ids is None or len(self.data.all_triples_ids) <= 0:
+            self.data.load_cache(["all_triples_ids"])
         if k == -1:
             return self.data.all_triples_ids
         return random.sample(self.data.all_triples_ids, k)
