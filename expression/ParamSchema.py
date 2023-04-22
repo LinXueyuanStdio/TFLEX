@@ -40,56 +40,56 @@ class QuerySet:
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.ids.__repr__()})"
 
-    def __contains__(a, b):
-        if a.__class__.__name__ != b.__class__.__name__:
+    def __contains__(self, b):
+        if self.__class__.__name__ != b.__class__.__name__:
             return False
-        if a is not QuerySet or b is not QuerySet:
+        if type(self) is not QuerySet or type(b) is not QuerySet:
             return False
-        return a.ids.issuperset(b.ids)
+        return self.ids.issuperset(b.ids)
 
     def __eq__(self, __value: object) -> bool:
-        if __value is not QuerySet:
+        if type(__value) is not QuerySet:
             return False
         if self.__class__.__name__ != __value.__class__.__name__:
             return False
         return self.ids == __value.ids
 
     def __ne__(self, __value: object) -> bool:
-        if __value is not QuerySet:
+        if type(__value) is not QuerySet:
             return True
         if self.__class__.__name__ != __value.__class__.__name__:
             return True
         return self.ids != __value.ids
 
-    def __add__(a, b):
-        if a.__class__.__name__ != b.__class__.__name__:
-            raise TypeError(f"unsupported operand type(s) for +: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
-        ids = a.ids | b.ids
-        return a.__class__(ids)
+    def __add__(self, b):
+        if self.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for +: '{self.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = self.ids | b.ids
+        return self.__class__(ids)
 
-    def __minus__(a, b):
-        if a.__class__.__name__ != b.__class__.__name__:
-            raise TypeError(f"unsupported operand type(s) for -: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
-        ids = a.ids - b.ids
-        return a.__class__(ids)
+    def __minus__(self, b):
+        if self.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for -: '{self.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = self.ids - b.ids
+        return self.__class__(ids)
 
-    def __and__(a, b):
-        if a.__class__.__name__ != b.__class__.__name__:
-            raise TypeError(f"unsupported operand type(s) for &: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
-        ids = a.ids & b.ids
-        return a.__class__(ids)
+    def __and__(self, b):
+        if self.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for &: '{self.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = self.ids & b.ids
+        return self.__class__(ids)
 
-    def __or__(a, b):
-        if a.__class__.__name__ != b.__class__.__name__:
-            raise TypeError(f"unsupported operand type(s) for |: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
-        ids = a.ids | b.ids
-        return a.__class__(ids)
+    def __or__(self, b):
+        if self.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for |: '{self.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = self.ids | b.ids
+        return self.__class__(ids)
 
-    def __xor__(a, b):
-        if a.__class__.__name__ != b.__class__.__name__:
-            raise TypeError(f"unsupported operand type(s) for ^: '{a.__class__.__name__}' and '{b.__class__.__name__}'")
-        ids = a.ids ^ b.ids
-        return a.__class__(ids)
+    def __xor__(self, b):
+        if self.__class__.__name__ != b.__class__.__name__:
+            raise TypeError(f"unsupported operand type(s) for ^: '{self.__class__.__name__}' and '{b.__class__.__name__}'")
+        ids = self.ids ^ b.ids
+        return self.__class__(ids)
 
 
 class EntitySet(QuerySet):
