@@ -241,15 +241,10 @@ available commands:
         timestamps = []
         if type(query) is EntitySet:
             answers = [self.data.all_entities[idx] for idx in query.ids]
-        if type(query) is TimeSet:
+        elif type(query) is TimeSet:
             timestamps = [self.data.all_timestamps[idx] for idx in query.ids]
         # answers = random.sample(answers, min(topk, len(answers)))
         # timestamps = random.sample(timestamps, min(topk, len(timestamps)))
-        if len(answers) > 0 and len(timestamps) > 0:
-            return {
-                "answers": answers,
-                "timestamps": timestamps
-            }
         if len(answers) > 0:
             return answers
         return timestamps
