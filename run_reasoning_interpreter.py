@@ -71,12 +71,20 @@ available commands:
         use groundtruth interpreter to answer queries
         this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
         the answer may be wrong if there exists missing link. Note that TKG is incomplete.
-    neural_answer_entities(query, topk=5):
-        alias = ne(query, topk=5)
-        use neural interpreter to answer query and return k entities
-    neural_answer_timestamps(query, topk=5):
-        alias = nt(query, topk=5)
-        use neural interpreter to answer query and return k timestamps
+
+        tensor_id_of(idx: int) -> torch.LongTensor
+        tensor_entity(entity: str) -> torch.LongTensor
+        tensor_relation(relation: str) -> torch.LongTensor
+        tensor_timestamp(timestamp: str) -> torch.LongTensor
+        entity_token(entity: Union[int, str]) -> TYPE_token
+        relation_token(relation: Union[int, str]) -> TYPE_token
+        timestamp_token(timestamp: Union[int, str]) -> TYPE_token
+        neural_answer_entities(query, topk=5):
+            alias = ne(query, topk=5)
+            use neural interpreter to answer query and return k entities
+        neural_answer_timestamps(query, topk=5):
+            alias = nt(query, topk=5)
+            use neural interpreter to answer query and return k timestamps
     groundtruth_answer(query):
         alias = gt(query)
         use groundtruth interpreter to answer query and return k entities
@@ -103,6 +111,14 @@ available commands:
             "ne": self.neural_answer_entities,
             "neural_answer_timestamps": self.neural_answer_timestamps,
             "nt": self.neural_answer_timestamps,
+
+            "tensor_id_of": self.tensor_id_of,
+            "tensor_entity": self.tensor_entity,
+            "tensor_relation": self.tensor_relation,
+            "tensor_timestamp": self.tensor_timestamp,
+            "entity_token": self.entity_token,
+            "relation_token": self.relation_token,
+            "timestamp_token": self.timestamp_token,
 
             "use_groundtruth_interpreter": self.use_groundtruth_interpreter,
             "use_gt": self.use_groundtruth_interpreter,
