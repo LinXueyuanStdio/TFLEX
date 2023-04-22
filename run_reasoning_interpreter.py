@@ -238,7 +238,7 @@ available commands:
 
     def entity_token(self, entity: Union[int, str]) -> TYPE_token:
         if isinstance(entity, int):
-            idx = self.tensor_id_of(idx)
+            idx = self.tensor_id_of(entity)
         elif isinstance(entity, str):
             idx = self.tensor_entity(entity)
         else:
@@ -247,7 +247,7 @@ available commands:
 
     def relation_token(self, relation: Union[int, str]) -> TYPE_token:
         if isinstance(relation, int):
-            idx = self.tensor_id_of(idx)
+            idx = self.tensor_id_of(relation)
         elif isinstance(relation, str):
             idx = self.tensor_relation(relation)
         else:
@@ -256,7 +256,7 @@ available commands:
 
     def timestamp_token(self, timestamp: Union[int, str]) -> TYPE_token:
         if isinstance(timestamp, int):
-            idx = self.tensor_id_of(idx)
+            idx = self.tensor_id_of(timestamp)
         elif isinstance(timestamp, str):
             idx = self.tensor_timestamp(timestamp)
         else:
