@@ -51,14 +51,14 @@ class ExpressionInterpreter(cmd.Cmd):
             "commands": lambda: """
 available commands:
     list_queries() : list all predefined queries
-    use_dataset(data_home="./data", dataset="ICEWS14"):
+    use_dataset(data_home="./data", dataset_name="ICEWS14"):
         data_home: The folder path to dataset.
-        dataset: Which dataset to use: ICEWS14, ICEWS05_15, GDELT.
+        dataset_name: Which dataset to use: ICEWS14, ICEWS05_15, GDELT.
         usage example:
             >>> use_dataset()
             >>> use_dataset("data")
             >>> use_dataset("data", "ICEWS14")
-            >>> use_dataset(dataset="GDELT")
+            >>> use_dataset(dataset_name="GDELT")
     list_entities(k=5): randomly list k entities, -1 to list all
     list_relations(k=5): randomly list k relations, -1 to list all
     list_timestamps(k=5): randomly list k timestamps, -1 to list all
@@ -207,6 +207,45 @@ available commands:
         self.neural_parser = self.model.parser
         self.switch_parser_to(self.neural_parser)
         return "using neural interpreter"
+
+    def tensor_id_of(self, idx: int) -> torch.LongTensor:
+        return torch.LongTensor([[idx]]).to(self.model.device)
+
+    def tensor_entity(self, entity: str):
+        return self.tensor_id_of(self.data.entities_ids[entity])
+
+    def tensor_relation(self, relation: str):
+        return self.tensor_id_of(self.data.relations_ids[relation])
+
+    def tensor_timestamp(self, timestamp: str):
+        return self.tensor_id_of(self.data.timestamps_ids[timestamp])
+
+    def entity_token(self, entity: Union[int, str]) -> TYPE_token:
+        if isinstance(entity, int):
+            idx = self.tensor_id_of(idx)
+        elif isinstance(entity, str):
+            idx = self.tensor_entity(entity)
+        else:
+            raise TypeError(f"entity should be int or str, but got {type(entity)}")
+        return self.model.entity_token(idx)
+
+    def relation_token(self, relation: Union[int, str]) -> TYPE_token:
+        if isinstance(relation, int):
+            idx = self.tensor_id_of(idx)
+        elif isinstance(relation, str):
+            idx = self.tensor_relation(relation)
+        else:
+            raise TypeError(f"relation should be int or str, but got {type(relation)}")
+        return self.model.relation_token(idx)
+
+    def timestamp_token(self, timestamp: Union[int, str]) -> TYPE_token:
+        if isinstance(timestamp, int):
+            idx = self.tensor_id_of(idx)
+        elif isinstance(timestamp, str):
+            idx = self.tensor_timestamp(timestamp)
+        else:
+            raise TypeError(f"timestamp should be int or str, but got {type(timestamp)}")
+        return self.model.timestamp_token(idx)
 
     def neural_answer_entities(self, query_token: TYPE_token, topk=10):
         answer_range = self.entity_count
