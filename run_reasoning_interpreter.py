@@ -15,9 +15,8 @@ import json
 import expression
 from ComplexTemporalQueryData import *
 from expression.ParamSchema import EntitySet, TimeSet
-from expression.TFLEX_DSL import BasicParser
+from expression.TFLEX_DSL import BasicParser, query_structures
 from expression.symbol import Interpreter
-from expression.FLEX_DSL import query_structures
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.ModelParamStore import ModelParamStoreSchema
 from train_TCQE_TFLEX import TYPE_token
