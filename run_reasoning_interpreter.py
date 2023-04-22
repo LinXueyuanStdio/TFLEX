@@ -39,7 +39,7 @@ class ExpressionInterpreter(cmd.Cmd):
         self.dataset: Optional[str] = None
 
         self.neural_parser: Optional[expression.NeuralParser] = None
-        self.sampling_parser: Optional[expression.SamplingParser] = None
+        self.groundtruth_parser: Optional[expression.SamplingParser] = None
 
     def interactive_ops(self):
         variables = {
@@ -63,20 +63,20 @@ class ExpressionInterpreter(cmd.Cmd):
                 use_neural_interpreter(name="TFLEX"):
                     use neural interpreter to answer queries
                     this function will load the trained TCQE model to answer queries.
-                use_sampling_interpreter():
-                    use sampling interpreter to answer queries
+                use_groundtruth_interpreter():
+                    use groundtruth interpreter to answer queries
                     this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
                     the answer may be wrong if there exists missing link. Note that TKG is incomplete.
                 neural_answer_entities(query, k=5):
                     use neural interpreter to answer query and return k entities
                 neural_answer_timestamps(query, k=5):
                     use neural interpreter to answer query and return k timestamps
-                sampling_answer(query, k=5):
-                    use sampling interpreter to answer query and return k entities
+                groundtruth_answer(query, k=5):
+                    use groundtruth interpreter to answer query and return k entities
                 answer_entities(query, k=5):
-                    auto use neural interpreter or sampling interpreter to answer query and return k entities
+                    auto use neural interpreter or groundtruth interpreter to answer query and return k entities
                 answer_timestamps(query, k=5):
-                    auto use neural interpreter or sampling interpreter to answer query and return k timestamps
+                    auto use neural interpreter or groundtruth interpreter to answer query and return k timestamps
                 commands(): show this help message
             """,
             "list_queries": lambda: query_structures,
@@ -87,8 +87,8 @@ class ExpressionInterpreter(cmd.Cmd):
             "use_neural_interpreter": self.use_neural_interpreter,
             "neural_answer_entities": self.neural_answer_entities,
             "neural_answer_timestamps": self.neural_answer_timestamps,
-            "use_sampling_interpreter": self.use_sampling_interpreter,
-            "sampling_answer": self.sampling_answer,
+            "use_groundtruth_interpreter": self.use_groundtruth_interpreter,
+            "groundtruth_answer": self.groundtruth_answer,
             "answer_entities": self.answer_entities,
             "answer_timestamps": self.answer_timestamps,
         }
@@ -194,7 +194,7 @@ class ExpressionInterpreter(cmd.Cmd):
             answers.append(row)
         return answers
 
-    def use_sampling_interpreter(self):
+    def use_groundtruth_interpreter(self):
         self.data.load_cache([
             "train_triples_ids", "valid_triples_ids", "test_triples_ids",
         ])
@@ -218,10 +218,10 @@ class ExpressionInterpreter(cmd.Cmd):
         test_parser = expression.SamplingParser(
             self.data.entities_ids, relations_ids_with_reverse, self.data.timestamps_ids, test_sro_t, test_sor_t,
             test_srt_o, test_str_o, test_ors_t, test_trs_o, test_tro_s, test_rst_o, test_rso_t, test_t_sro, test_o_srt)
-        self.sampling_parser = test_parser
-        self.switch_parser_to(self.sampling_parser)
+        self.groundtruth_parser = test_parser
+        self.switch_parser_to(self.groundtruth_parser)
 
-    def sampling_answer(self, query: Union[EntitySet, QuerySet, TimeSet], topk=10):
+    def groundtruth_answer(self, query: Union[EntitySet, QuerySet, TimeSet], topk=10):
         answers = []
         timestamps = []
         if query is EntitySet:
@@ -242,12 +242,12 @@ class ExpressionInterpreter(cmd.Cmd):
     def answer_entities(self, query, topk=10):
         if self.parser == self.neural_parser:
             return self.neural_answer_entities(query, topk)
-        return self.sampling_answer(query, topk)
+        return self.groundtruth_answer(query, topk)
 
     def answer_timestamps(self, query, topk=10):
         if self.parser == self.neural_parser:
             return self.neural_answer_timestamps(query, topk)
-        return self.sampling_answer(query, topk)
+        return self.groundtruth_answer(query, topk)
 
     def switch_parser_to(self, parser: BasicParser):
         if self.parser == parser:
@@ -260,10 +260,10 @@ class ExpressionInterpreter(cmd.Cmd):
             if self.neural_parser is None:
                 return "you should load neural parser first. please call `use_neural_interpreter()`"
             self.switch_parser_to(self.neural_parser)
-        elif mode == "sampling":
-            if self.sampling_parser is None:
-                return "you should load sampling parser first. please call `use_sampling_interpreter()`"
-            self.switch_parser_to(self.sampling_parser)
+        elif mode == "groundtruth":
+            if self.groundtruth_parser is None:
+                return "you should load groundtruth parser first. please call `use_groundtruth_interpreter()`"
+            self.switch_parser_to(self.groundtruth_parser)
         else:
             self.switch_parser_to(self.default_parser)
             if mode != "default":
