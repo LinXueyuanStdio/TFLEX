@@ -91,6 +91,8 @@ available commands:
             "list_entities": self.list_entities,
             "list_relations": self.list_relations,
             "list_timestamps": self.list_timestamps,
+            "list_triples": self.list_triples,
+            "list_triples_ids": self.list_triples_ids,
 
             "use_neural_interpreter": self.use_neural_interpreter,
             "neural_answer_entities": self.neural_answer_entities,
@@ -151,6 +153,20 @@ available commands:
         if k == -1:
             return self.data.all_timestamps
         return random.sample(self.data.all_timestamps, k)
+
+    def list_triples(self, k=5):
+        if self.data is None:
+            return "you should load dataset first. please call `use_dataset()`"
+        if k == -1:
+            return self.data.all_triples
+        return random.sample(self.data.all_triples, k)
+
+    def list_triples_ids(self, k=5):
+        if self.data is None:
+            return "you should load dataset first. please call `use_dataset()`"
+        if k == -1:
+            return self.data.all_triples_ids
+        return random.sample(self.data.all_triples_ids, k)
 
     def use_neural_interpreter(self, name,
                                hidden_dim=800, gamma=30.0, center_reg=0.0,
@@ -237,17 +253,14 @@ available commands:
         self.switch_parser_to(self.groundtruth_parser)
 
     def groundtruth_answer(self, query: Union[EntitySet, QuerySet, TimeSet], topk=10):
-        answers = []
-        timestamps = []
         if type(query) is EntitySet:
-            answers = [self.data.all_entities[idx] for idx in query.ids]
+            return [self.data.all_entities[idx] for idx in query.ids]
         elif type(query) is TimeSet:
-            timestamps = [self.data.all_timestamps[idx] for idx in query.ids]
+            return [self.data.all_timestamps[idx] for idx in query.ids]
+        else:
+            raise NotImplementedError("unsupport type {} of query : {}".format(type(query), query))
         # answers = random.sample(answers, min(topk, len(answers)))
         # timestamps = random.sample(timestamps, min(topk, len(timestamps)))
-        if len(answers) > 0:
-            return answers
-        return timestamps
 
     def answer_entities(self, query, topk=10):
         if self.parser == self.neural_parser:
