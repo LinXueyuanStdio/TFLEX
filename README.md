@@ -14,6 +14,7 @@ $$q=V_{?},\exists t:criticize(China, Japan, t) \land (visit(Xi Jinping, V_{?}, t
 pip install -r requirements
 cd assistence
 pip install -e .
+cd ..
 ```
 
 ## Get Started
