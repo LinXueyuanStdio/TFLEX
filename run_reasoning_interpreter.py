@@ -37,6 +37,7 @@ class ExpressionInterpreter(cmd.Cmd):
         self.parser: Interpreter = self.default_parser
 
         self.data: Optional[ComplexQueryData] = None
+        self.dataset_name: Optional[str] = None
         self.dataset: Optional[str] = None
 
         self.neural_parser: Optional[expression.NeuralParser] = None
@@ -115,12 +116,12 @@ available commands:
         }
         return variables, functions
 
-    def use_dataset(self, data_home="data", dataset="ICEWS14"):
-        if dataset == "ICEWS14":
+    def use_dataset(self, data_home="data", dataset_name="ICEWS14"):
+        if dataset_name == "ICEWS14":
             dataset = ICEWS14(data_home)
-        elif dataset == "ICEWS05_15":
+        elif dataset_name == "ICEWS05_15":
             dataset = ICEWS05_15(data_home)
-        elif dataset == "GDELT":
+        elif dataset_name == "GDELT":
             dataset = GDELT(data_home)
         cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
         data = ComplexQueryData(dataset, cache_path=cache)
@@ -132,6 +133,7 @@ available commands:
         ])
         self.data = data
         self.dataset = dataset
+        self.dataset_name = dataset_name
         self.parser.symtable.update({
             "data": data,
             "dataset": dataset,
@@ -183,7 +185,7 @@ available commands:
         from train_TCQE_TFLEX import TFLEX
         if self.dataset is None or self.data is None:
             return "you should load dataset first. please call `use_dataset()`"
-        output = OutputSchema(self.dataset + "-" + name)
+        output = OutputSchema(self.dataset.name + "-" + name)
         entity_count = self.data.entity_count
         relation_count = self.data.relation_count
         timestamp_count = self.data.timestamp_count
