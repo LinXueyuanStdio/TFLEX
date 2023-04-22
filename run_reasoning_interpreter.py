@@ -267,7 +267,7 @@ available commands:
         elif type(query) is TimeSet:
             return [self.data.all_timestamps[idx] for idx in query.ids]
         else:
-            raise NotImplementedError("unsupport type {} of query : {}".format(type(query), query))
+            return [self.data.all_relations[idx] for idx in query.ids]
         # answers = random.sample(answers, min(topk, len(answers)))
         # timestamps = random.sample(timestamps, min(topk, len(timestamps)))
 
