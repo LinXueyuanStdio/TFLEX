@@ -94,7 +94,7 @@ class ExpressionInterpreter(cmd.Cmd):
         }
         return variables, functions
 
-    def use_dataset(self, data_home, dataset):
+    def use_dataset(self, data_home="data", dataset="ICEWS14"):
         if dataset == "ICEWS14":
             dataset = ICEWS14(data_home)
         elif dataset == "ICEWS05_15":
