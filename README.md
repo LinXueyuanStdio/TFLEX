@@ -65,6 +65,15 @@ To show the meta of the generated dataset, run `python run_meta.py`.
 
 To launch an interactive interpreter, please run `python run_reasoning_interpreter.py`
 
+```
+use_dataset(); use_neural_interpreter("TFLEX_dim800_gamma15", device="cuda:2"); list_triples_ids(k=2);
+emb_e1=entity_token(3566); emb_r1=relation_token(169); emb_e2=entity_token(3159);
+emb_t = Pt(emb_e1, emb_r1, emb_e2)
+neural_answer_timestamps(emb_t, topk=3)
+use_groundtruth_interpreter()
+groundtruth_answer(t361)
+```
+
 ## Citation
 ```
 @misc{https://doi.org/10.48550/arxiv.2205.14307,

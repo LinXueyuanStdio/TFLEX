@@ -62,6 +62,7 @@ available commands:
     list_entities(k=5): randomly list k entities, -1 to list all
     list_relations(k=5): randomly list k relations, -1 to list all
     list_timestamps(k=5): randomly list k timestamps, -1 to list all
+    sample(task_name="Pe", k=5): randomly sample k entities, -1 to list all
     use_neural_interpreter(name="TFLEX"):
         alias = use_n()
         use neural interpreter to answer queries
@@ -194,6 +195,14 @@ available commands:
         if k == -1:
             return self.data.all_triples_ids
         return random.sample(self.data.all_triples_ids, k)
+
+    def sample(self, task_name: str = "Pe", k=3):
+        task_data = self.data.load_cache_by_tasks([task_name], "test")[task_name]
+        sample_data = random.sample(task_data, k)
+        print(f"sample {k} {task_name} data:")
+        for queries, easy_answer, hard_answer in sample_data:
+            print(f"queries: {queries}, easy_answer: {easy_answer}, hard_answer: {hard_answer}")
+        return sample_data
 
     def use_neural_interpreter(self, name,
                                hidden_dim=800, gamma=30.0, center_reg=0.0,
