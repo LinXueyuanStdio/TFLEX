@@ -68,16 +68,15 @@ To launch an interactive interpreter, please run `python run_reasoning_interpret
 ```python
 use_dataset(data_home="/data/TFLEX/data"); use_embedding_reasoning_interpreter("TFLEX_dim800_gamma15", device="cuda:1");
 sample(task_name="e2i", k=1);
-use_dataset(); use_embedding_reasoning_interpreter("TFLEX_dim800_gamma15", device="cuda:2"); sample(task_name="e2i", k=1);
 emb_e1=entity_token(); emb_r1=relation_token(); emb_t1=timestamp_token();
 emb_e2=entity_token(); emb_r2=relation_token(); emb_t2=timestamp_token();
 emb_q1 = Pe(emb_e1, emb_r1, emb_t1)
 emb_q2 = Pe(emb_e2, emb_r2, emb_t2)
 emb_q = And(emb_q1, emb_q2)
-neural_answer_entities(emb_q, topk=3)
-neural_answer_timestamps(emb_t, topk=3)
+embedding_answer_entities(emb_q, topk=3)
 use_groundtruth_reasoning_interpreter()
-groundtruth_answer(t361)
+groundtruth_answer()
+OK. The bot correctly predict the hard answer which only exists in the test set!
 ```
 
 ## Citation
