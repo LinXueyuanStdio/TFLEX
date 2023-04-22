@@ -68,15 +68,20 @@ available commands:
         use groundtruth interpreter to answer queries
         this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
         the answer may be wrong if there exists missing link. Note that TKG is incomplete.
-    neural_answer_entities(query, k=5):
+    neural_answer_entities(query, topk=5):
+        alias = ne(query, topk=5)
         use neural interpreter to answer query and return k entities
-    neural_answer_timestamps(query, k=5):
+    neural_answer_timestamps(query, topk=5):
+        alias = nt(query, topk=5)
         use neural interpreter to answer query and return k timestamps
-    groundtruth_answer(query, k=5):
+    groundtruth_answer(query):
+        alias = gt(query)
         use groundtruth interpreter to answer query and return k entities
     answer_entities(query, k=5):
+        alias = e(query, k=5)
         auto use neural interpreter or groundtruth interpreter to answer query and return k entities
     answer_timestamps(query, k=5):
+        alias = t(query, k=5)
         auto use neural interpreter or groundtruth interpreter to answer query and return k timestamps
     commands():
         show this help message
@@ -86,13 +91,21 @@ available commands:
             "list_entities": self.list_entities,
             "list_relations": self.list_relations,
             "list_timestamps": self.list_timestamps,
+
             "use_neural_interpreter": self.use_neural_interpreter,
             "neural_answer_entities": self.neural_answer_entities,
+            "ne": self.neural_answer_entities,
             "neural_answer_timestamps": self.neural_answer_timestamps,
+            "nt": self.neural_answer_timestamps,
+
             "use_groundtruth_interpreter": self.use_groundtruth_interpreter,
             "groundtruth_answer": self.groundtruth_answer,
+            "gt": self.groundtruth_answer,
+
             "answer_entities": self.answer_entities,
+            "e": self.answer_entities,
             "answer_timestamps": self.answer_timestamps,
+            "t": self.answer_timestamps,
         }
         return variables, functions
 
@@ -230,8 +243,8 @@ available commands:
             answers = [self.data.all_entities[idx] for idx in query.ids]
         if type(query) is TimeSet:
             timestamps = [self.data.all_timestamps[idx] for idx in query.ids]
-        answers = random.sample(answers, min(topk, len(answers)))
-        timestamps = random.sample(timestamps, min(topk, len(timestamps)))
+        # answers = random.sample(answers, min(topk, len(answers)))
+        # timestamps = random.sample(timestamps, min(topk, len(timestamps)))
         if len(answers) > 0 and len(timestamps) > 0:
             return {
                 "answers": answers,
