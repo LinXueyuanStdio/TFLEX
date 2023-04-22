@@ -205,7 +205,7 @@ available commands:
         print(query_structures[task_name])
         print(f"sample {k} {task_name}({args}) data:")
         for queries, easy_answer, hard_answer in sample_data:
-            print(f"queries: {queries}, easy_answer: {easy_answer}, hard_answer: {hard_answer}")
+            print(f"queries: {queries}, easy_answer: {easy_answer}, hard_answer: {hard_answer-easy_answer}")
         return sample_data
 
     def use_neural_interpreter(self, name,
