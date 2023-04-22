@@ -4,6 +4,8 @@ code for "TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasonin
 
 $$q=V_{?},\exists t:criticize(China, Japan, t) \land (visit(Xi Jinping, V_{?}, t'>t) \land \lnot visit(Obama, V_{?}, t'>t))$$
 
+![](assets/interpreter.png)
+
 ## Environment
 
 - PyTorch 1.8.1 + cuda 10.2
