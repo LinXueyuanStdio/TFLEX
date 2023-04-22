@@ -136,6 +136,7 @@ available commands:
             "data": data,
             "dataset": dataset,
         })
+        return f"using {dataset}"
 
     def list_entities(self, k=5):
         if self.data is None:
