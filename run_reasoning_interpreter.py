@@ -105,6 +105,7 @@ available commands:
             "list_timestamps": self.list_timestamps,
             "list_triples": self.list_triples,
             "list_triples_ids": self.list_triples_ids,
+            "sample": self.sample,
 
             "use_neural_interpreter": self.use_neural_interpreter,
             "use_n": self.use_neural_interpreter,
