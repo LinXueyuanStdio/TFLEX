@@ -203,6 +203,7 @@ available commands:
         args = ", ".join(args)
         qa = task_data["queries_answers"]
         sample_data = random.sample(qa, k)
+        print(query_structures[task_name])
         print(f"sample {k} {task_name}({args}) data:")
         for queries, easy_answer, hard_answer in sample_data:
             print(f"queries: {queries}, easy_answer: {easy_answer}, hard_answer: {hard_answer}")
