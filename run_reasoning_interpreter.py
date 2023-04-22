@@ -62,9 +62,11 @@ available commands:
     list_relations(k=5): randomly list k relations, -1 to list all
     list_timestamps(k=5): randomly list k timestamps, -1 to list all
     use_neural_interpreter(name="TFLEX"):
+        alias = use_n()
         use neural interpreter to answer queries
         this function will load the trained TCQE model to answer queries.
     use_groundtruth_interpreter():
+        alias = use_gt()
         use groundtruth interpreter to answer queries
         this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
         the answer may be wrong if there exists missing link. Note that TKG is incomplete.
@@ -95,12 +97,14 @@ available commands:
             "list_triples_ids": self.list_triples_ids,
 
             "use_neural_interpreter": self.use_neural_interpreter,
+            "use_n": self.use_neural_interpreter,
             "neural_answer_entities": self.neural_answer_entities,
             "ne": self.neural_answer_entities,
             "neural_answer_timestamps": self.neural_answer_timestamps,
             "nt": self.neural_answer_timestamps,
 
             "use_groundtruth_interpreter": self.use_groundtruth_interpreter,
+            "use_gt": self.use_groundtruth_interpreter,
             "groundtruth_answer": self.groundtruth_answer,
             "gt": self.groundtruth_answer,
 
