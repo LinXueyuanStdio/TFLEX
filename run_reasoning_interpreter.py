@@ -265,12 +265,12 @@ available commands:
         return self.model.timestamp_token(idx)
 
     def neural_answer_entities(self, query_token: TYPE_token, topk=10):
-        answer_range = self.entity_count
+        answer_range = self.data.entity_count
         candidate_answer = torch.LongTensor(range(answer_range))
         return self.neural_answer(query_token, candidate_answer, predict_entity=True, topk=topk)
 
     def neural_answer_timestamps(self, query_token: TYPE_token, topk=10):
-        answer_range = self.timestamps_count
+        answer_range = self.data.timestamp_count
         candidate_answer = torch.LongTensor(range(answer_range))
         return self.neural_answer(query_token, candidate_answer, predict_entity=False, topk=topk)
 
