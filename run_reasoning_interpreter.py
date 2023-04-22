@@ -39,7 +39,7 @@ class ExpressionInterpreter(cmd.Cmd):
         self.dataset_name: Optional[str] = None
         self.dataset: Optional[str] = None
 
-        self.neural_parser: Optional[expression.NeuralParser] = None
+        self.embedding_reasoning_interpreter: Optional[expression.NeuralParser] = None
         self.groundtruth_parser: Optional[expression.SamplingParser] = None
 
     def interactive_ops(self):
@@ -62,11 +62,11 @@ available commands:
     list_relations(k=5): randomly list k relations, -1 to list all
     list_timestamps(k=5): randomly list k timestamps, -1 to list all
     sample(task_name="Pe", k=5): randomly sample k entities, -1 to list all
-    use_neural_interpreter(name="TFLEX"):
-        alias = use_n()
-        use neural interpreter to answer queries
+    use_embedding_reasoning_interpreter(name="TFLEX"):
+        alias = use_e()
+        use embedding reasoning interpreter to answer queries
         this function will load the trained TCQE model to answer queries.
-    use_groundtruth_interpreter():
+    use_groundtruth_reasoning_interpreter():
         alias = use_gt()
         use groundtruth interpreter to answer queries
         this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
@@ -79,21 +79,21 @@ available commands:
         entity_token(entity: Union[int, str]) -> TYPE_token
         relation_token(relation: Union[int, str]) -> TYPE_token
         timestamp_token(timestamp: Union[int, str]) -> TYPE_token
-        neural_answer_entities(query, topk=5):
-            alias = ne(query, topk=5)
-            use neural interpreter to answer query and return k entities
-        neural_answer_timestamps(query, topk=5):
-            alias = nt(query, topk=5)
-            use neural interpreter to answer query and return k timestamps
+        embedding_answer_entities(query, topk=5):
+            alias = ee(query, topk=5)
+            use embedding reasoning interpreter to answer query and return k entities
+        embedding_answer_timestamps(query, topk=5):
+            alias = et(query, topk=5)
+            use embedding reasoning interpreter to answer query and return k timestamps
     groundtruth_answer(query):
         alias = gt(query)
         use groundtruth interpreter to answer query and return k entities
     answer_entities(query, k=5):
         alias = e(query, k=5)
-        auto use neural interpreter or groundtruth interpreter to answer query and return k entities
+        auto use embedding reasoning interpreter or groundtruth reasoning interpreter to answer query and return k entities
     answer_timestamps(query, k=5):
         alias = t(query, k=5)
-        auto use neural interpreter or groundtruth interpreter to answer query and return k timestamps
+        auto use embedding reasoning interpreter or groundtruth reasoning interpreter to answer query and return k timestamps
     commands():
         show this help message
             """,
@@ -106,12 +106,12 @@ available commands:
             "list_triples_ids": self.list_triples_ids,
             "sample": self.sample,
 
-            "use_neural_interpreter": self.use_neural_interpreter,
-            "use_n": self.use_neural_interpreter,
-            "neural_answer_entities": self.neural_answer_entities,
-            "ne": self.neural_answer_entities,
-            "neural_answer_timestamps": self.neural_answer_timestamps,
-            "nt": self.neural_answer_timestamps,
+            "use_embedding_reasoning_interpreter": self.use_embedding_reasoning_interpreter,
+            "use_e": self.use_embedding_reasoning_interpreter,
+            "embedding_answer_entities": self.embedding_answer_entities,
+            "ee": self.embedding_answer_entities,
+            "embedding_answer_timestamps": self.embedding_answer_timestamps,
+            "et": self.embedding_answer_timestamps,
 
             "tensor_id_of": self.tensor_id_of,
             "tensor_entity": self.tensor_entity,
@@ -121,8 +121,8 @@ available commands:
             "relation_token": self.relation_token,
             "timestamp_token": self.timestamp_token,
 
-            "use_groundtruth_interpreter": self.use_groundtruth_interpreter,
-            "use_gt": self.use_groundtruth_interpreter,
+            "use_groundtruth_reasoning_interpreter": self.use_groundtruth_reasoning_interpreter,
+            "use_gt": self.use_groundtruth_reasoning_interpreter,
             "groundtruth_answer": self.groundtruth_answer,
             "gt": self.groundtruth_answer,
 
@@ -208,7 +208,7 @@ available commands:
             print(f"queries: {queries}, easy_answer: {easy_answer}, hard_answer: {hard_answer-easy_answer}")
         return sample_data
 
-    def use_neural_interpreter(self, name,
+    def use_embedding_reasoning_interpreter(self, name,
                                hidden_dim=800, gamma=30.0, center_reg=0.0,
                                test_batch_size=100, input_dropout=0.2, device="cuda"):
         from train_TCQE_TFLEX import TFLEX
@@ -234,9 +234,9 @@ available commands:
         self.model_param_store = ModelParamStoreSchema(output.pathSchema)
         start_step, _, best_score = self.model_param_store.load_best(model, None)
         print(f"load best model at step {start_step} with score {best_score}")
-        self.neural_parser = self.model.parser
-        self.switch_parser_to(self.neural_parser)
-        return "using neural interpreter"
+        self.embedding_reasoning_interpreter = self.model.parser
+        self.switch_parser_to(self.embedding_reasoning_interpreter)
+        return "using embedding reasoning interpreter"
 
     def tensor_id_of(self, idx: int) -> torch.LongTensor:
         return torch.LongTensor([[idx]]).to(self.device)
@@ -277,17 +277,17 @@ available commands:
             raise TypeError(f"timestamp should be int or str, but got {type(timestamp)}")
         return self.model.timestamp_token(idx)
 
-    def neural_answer_entities(self, query_token: TYPE_token, topk=10):
+    def embedding_answer_entities(self, query_token: TYPE_token, topk=10):
         answer_range = self.data.entity_count
         candidate_answer = torch.LongTensor(range(answer_range)).to(self.device)
-        return self.neural_answer(query_token, candidate_answer, predict_entity=True, topk=topk)
+        return self.embedding_answer(query_token, candidate_answer, predict_entity=True, topk=topk)
 
-    def neural_answer_timestamps(self, query_token: TYPE_token, topk=10):
+    def embedding_answer_timestamps(self, query_token: TYPE_token, topk=10):
         answer_range = self.data.timestamp_count
         candidate_answer = torch.LongTensor(range(answer_range)).to(self.device)
-        return self.neural_answer(query_token, candidate_answer, predict_entity=False, topk=topk)
+        return self.embedding_answer(query_token, candidate_answer, predict_entity=False, topk=topk)
 
-    def neural_answer(self, predict: TYPE_token, answer: torch.LongTensor, predict_entity: bool, topk=10):
+    def embedding_answer(self, predict: TYPE_token, answer: torch.LongTensor, predict_entity: bool, topk=10):
         # self.forward_predict(query_structure, query, answer)
         # self.model.single_predict(query_structure, query_tensor)
         all_predict: TYPE_token = tuple([i.unsqueeze(dim=1) for i in predict])  # (B, 1, d)
@@ -306,7 +306,7 @@ available commands:
             answers.append(row)
         return answers
 
-    def use_groundtruth_interpreter(self):
+    def use_groundtruth_reasoning_interpreter(self):
         self.data.load_cache([
             "train_triples_ids", "valid_triples_ids", "test_triples_ids",
         ])
@@ -345,13 +345,13 @@ available commands:
         # timestamps = random.sample(timestamps, min(topk, len(timestamps)))
 
     def answer_entities(self, query, topk=10):
-        if self.parser == self.neural_parser:
-            return self.neural_answer_entities(query, topk)
+        if self.parser == self.embedding_reasoning_interpreter:
+            return self.embedding_answer_entities(query, topk)
         return self.groundtruth_answer(query, topk)
 
     def answer_timestamps(self, query, topk=10):
-        if self.parser == self.neural_parser:
-            return self.neural_answer_timestamps(query, topk)
+        if self.parser == self.embedding_reasoning_interpreter:
+            return self.embedding_answer_timestamps(query, topk)
         return self.groundtruth_answer(query, topk)
 
     def switch_parser_to(self, parser: BasicParser):
@@ -360,14 +360,14 @@ available commands:
         parser.symtable.update(self.parser.symtable)
         self.parser = parser
 
-    def switch_parser(self, mode="neural"):
-        if mode == "neural":
-            if self.neural_parser is None:
-                return "you should load neural parser first. please call `use_neural_interpreter()`"
-            self.switch_parser_to(self.neural_parser)
+    def switch_parser(self, mode="embedding"):
+        if mode == "embedding":
+            if self.embedding_reasoning_interpreter is None:
+                return "you should load embedding parser first. please call `use_embedding_reasoning_interpreter()`"
+            self.switch_parser_to(self.embedding_reasoning_interpreter)
         elif mode == "groundtruth":
             if self.groundtruth_parser is None:
-                return "you should load groundtruth parser first. please call `use_groundtruth_interpreter()`"
+                return "you should load groundtruth parser first. please call `use_groundtruth_reasoning_interpreter()`"
             self.switch_parser_to(self.groundtruth_parser)
         else:
             self.switch_parser_to(self.default_parser)
