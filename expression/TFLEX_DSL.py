@@ -412,19 +412,19 @@ class SamplingParser(BasicParser):
             # print("find_timestamp", timestamps)
             return timestamps
 
-        def And(q1, q2): return EntitySet(ids=q1.ids & q2.ids)
-        def And3(q1, q2, q3): return EntitySet(ids=q1.ids & q2.ids & q3.ids)
-        def Or(q1, q2): return EntitySet(ids=q1.ids | q2.ids)
-        def Not(x): return EntitySet(ids=all_entity_ids - x.ids)
-        def EntityProjection(s, r, t): return EntitySet(ids=find_entity(s, r, t))
-        def TimeProjection(s, r, o): return TimeSet(ids=find_timestamp(s, r, o))
-        def TimeAnd(q1, q2): return TimeSet(ids=q1.ids & q2.ids)
-        def TimeAnd3(q1, q2, q3): return TimeSet(ids=q1.ids & q2.ids & q3.ids)
-        def TimeOr(q1, q2): return TimeSet(ids=q1.ids | q2.ids)
-        def TimeNot(x): return TimeSet(ids=all_timestamp_ids - x.ids if len(x.ids) > 0 else all_timestamp_ids)
-        def TimeBefore(x): return TimeSet(ids=set([t for t in all_timestamp_ids if t < min(x.ids)] if len(x.ids) > 0 else all_timestamp_ids))
-        def TimeAfter(x): return TimeSet(ids=set([t for t in all_timestamp_ids if t > max(x.ids)] if len(x.ids) > 0 else all_timestamp_ids))
-        def TimeNext(x): return TimeSet(ids=set([min(t + 1, max_timestamp_id) for t in x.ids] if len(x.ids) > 0 else all_timestamp_ids))
+        def And(q1, q2): return EntitySet(q1.ids & q2.ids)
+        def And3(q1, q2, q3): return EntitySet(q1.ids & q2.ids & q3.ids)
+        def Or(q1, q2): return EntitySet(q1.ids | q2.ids)
+        def Not(x): return EntitySet(all_entity_ids - x.ids)
+        def EntityProjection(s, r, t): return EntitySet(find_entity(s, r, t))
+        def TimeProjection(s, r, o): return TimeSet(find_timestamp(s, r, o))
+        def TimeAnd(q1, q2): return TimeSet(q1.ids & q2.ids)
+        def TimeAnd3(q1, q2, q3): return TimeSet(q1.ids & q2.ids & q3.ids)
+        def TimeOr(q1, q2): return TimeSet(q1.ids | q2.ids)
+        def TimeNot(x): return TimeSet(all_timestamp_ids - x.ids if len(x.ids) > 0 else all_timestamp_ids)
+        def TimeBefore(x): return TimeSet(set([t for t in all_timestamp_ids if t < min(x.ids)] if len(x.ids) > 0 else all_timestamp_ids))
+        def TimeAfter(x): return TimeSet(set([t for t in all_timestamp_ids if t > max(x.ids)] if len(x.ids) > 0 else all_timestamp_ids))
+        def TimeNext(x): return TimeSet(set([min(t + 1, max_timestamp_id) for t in x.ids] if len(x.ids) > 0 else all_timestamp_ids))
         neural_ops = {  # 4+4+3
             "And": And,
             "And3": And3,
