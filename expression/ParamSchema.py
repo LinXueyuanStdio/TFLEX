@@ -43,19 +43,19 @@ class QuerySet:
     def __contains__(self, b):
         if self.__class__.__name__ != b.__class__.__name__:
             return False
-        if type(self) is not QuerySet or type(b) is not QuerySet:
+        if not isinstance(b, QuerySet):
             return False
         return self.ids.issuperset(b.ids)
 
     def __eq__(self, __value: object) -> bool:
-        if type(__value) is not QuerySet:
+        if not isinstance(__value, QuerySet):
             return False
         if self.__class__.__name__ != __value.__class__.__name__:
             return False
         return self.ids == __value.ids
 
     def __ne__(self, __value: object) -> bool:
-        if type(__value) is not QuerySet:
+        if not isinstance(__value, QuerySet):
             return True
         if self.__class__.__name__ != __value.__class__.__name__:
             return True
