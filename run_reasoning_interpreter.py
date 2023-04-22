@@ -10,6 +10,7 @@ from typing import List, Optional, Tuple
 
 import click
 import torch
+import json
 
 import expression
 from ComplexTemporalQueryData import *
@@ -79,7 +80,7 @@ class ExpressionInterpreter(cmd.Cmd):
                     auto use neural interpreter or groundtruth interpreter to answer query and return k timestamps
                 commands(): show this help message
             """,
-            "list_queries": lambda: query_structures,
+            "list_queries": lambda: json.dumps(query_structures, indent=2),
             "use_dataset": self.use_dataset,
             "list_entities": self.list_entities,
             "list_relations": self.list_relations,
