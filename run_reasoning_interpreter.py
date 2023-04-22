@@ -217,6 +217,7 @@ available commands:
             drop=input_dropout,
         )
         self.model = model.to(device)
+        self.device = device
         self.model_param_store = ModelParamStoreSchema(output.pathSchema)
         start_step, _, best_score = self.model_param_store.load_best(model, None)
         print(f"load best model at step {start_step} with score {best_score}")
@@ -225,7 +226,7 @@ available commands:
         return "using neural interpreter"
 
     def tensor_id_of(self, idx: int) -> torch.LongTensor:
-        return torch.LongTensor([[idx]]).to(self.model.device)
+        return torch.LongTensor([[idx]]).to(self.device)
 
     def tensor_entity(self, entity: str):
         return self.tensor_id_of(self.data.entities_ids[entity])
