@@ -48,37 +48,38 @@ class ExpressionInterpreter(cmd.Cmd):
         }
         functions = {
             "commands": lambda: """
-            available commands:
-                list_queries() : list all predefined queries
-                use_dataset(data_home="./data", dataset="ICEWS14"):
-                    data_home: The folder path to dataset.
-                    dataset: Which dataset to use: ICEWS14, ICEWS05_15, GDELT.
-                    usage example:
-                       >>> use_dataset()
-                       >>> use_dataset("data")
-                       >>> use_dataset("data", "ICEWS14")
-                       >>> use_dataset(dataset="GDELT")
-                list_entities(k=5): randomly list k entities, -1 to list all
-                list_relations(k=5): randomly list k relations, -1 to list all
-                list_timestamps(k=5): randomly list k timestamps, -1 to list all
-                use_neural_interpreter(name="TFLEX"):
-                    use neural interpreter to answer queries
-                    this function will load the trained TCQE model to answer queries.
-                use_groundtruth_interpreter():
-                    use groundtruth interpreter to answer queries
-                    this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
-                    the answer may be wrong if there exists missing link. Note that TKG is incomplete.
-                neural_answer_entities(query, k=5):
-                    use neural interpreter to answer query and return k entities
-                neural_answer_timestamps(query, k=5):
-                    use neural interpreter to answer query and return k timestamps
-                groundtruth_answer(query, k=5):
-                    use groundtruth interpreter to answer query and return k entities
-                answer_entities(query, k=5):
-                    auto use neural interpreter or groundtruth interpreter to answer query and return k entities
-                answer_timestamps(query, k=5):
-                    auto use neural interpreter or groundtruth interpreter to answer query and return k timestamps
-                commands(): show this help message
+available commands:
+    list_queries() : list all predefined queries
+    use_dataset(data_home="./data", dataset="ICEWS14"):
+        data_home: The folder path to dataset.
+        dataset: Which dataset to use: ICEWS14, ICEWS05_15, GDELT.
+        usage example:
+            >>> use_dataset()
+            >>> use_dataset("data")
+            >>> use_dataset("data", "ICEWS14")
+            >>> use_dataset(dataset="GDELT")
+    list_entities(k=5): randomly list k entities, -1 to list all
+    list_relations(k=5): randomly list k relations, -1 to list all
+    list_timestamps(k=5): randomly list k timestamps, -1 to list all
+    use_neural_interpreter(name="TFLEX"):
+        use neural interpreter to answer queries
+        this function will load the trained TCQE model to answer queries.
+    use_groundtruth_interpreter():
+        use groundtruth interpreter to answer queries
+        this interpreter will perform reasoning by subgraph matching over the temporal knowledge graph.
+        the answer may be wrong if there exists missing link. Note that TKG is incomplete.
+    neural_answer_entities(query, k=5):
+        use neural interpreter to answer query and return k entities
+    neural_answer_timestamps(query, k=5):
+        use neural interpreter to answer query and return k timestamps
+    groundtruth_answer(query, k=5):
+        use groundtruth interpreter to answer query and return k entities
+    answer_entities(query, k=5):
+        auto use neural interpreter or groundtruth interpreter to answer query and return k entities
+    answer_timestamps(query, k=5):
+        auto use neural interpreter or groundtruth interpreter to answer query and return k timestamps
+    commands():
+        show this help message
             """,
             "list_queries": lambda: json.dumps(query_structures, indent=2),
             "use_dataset": self.use_dataset,
@@ -225,9 +226,9 @@ class ExpressionInterpreter(cmd.Cmd):
     def groundtruth_answer(self, query: Union[EntitySet, QuerySet, TimeSet], topk=10):
         answers = []
         timestamps = []
-        if query is EntitySet:
+        if type(query) is EntitySet:
             answers = [self.data.all_entities[idx] for idx in query.ids]
-        if query is TimeSet:
+        if type(query) is TimeSet:
             timestamps = [self.data.all_timestamps[idx] for idx in query.ids]
         answers = random.sample(answers, min(topk, len(answers)))
         timestamps = random.sample(timestamps, min(topk, len(timestamps)))
