@@ -198,7 +198,7 @@ available commands:
         return random.sample(self.data.all_triples_ids, k)
 
     def sample(self, task_name: str = "Pe", k=3):
-        task_data = self.data.load_cache_by_tasks([task_name], "test")[task_name]
+        task_data = self.data.load_cache_by_tasks([task_name], "test")[task_name]["queries_answers"]
         sample_data = random.sample(task_data, k)
         print(f"sample {k} {task_name} data:")
         for queries, easy_answer, hard_answer in sample_data:
