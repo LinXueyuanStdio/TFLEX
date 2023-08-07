@@ -4,6 +4,7 @@
 """
 query_structures = {
     # 1. 1-hop relational projection 'P' is predefined, so as And, Not, Or, And3
+    # "P1": "def P1(e1, r1): return P(e1, r1)",  # 1p
     # 2. entity multi-hop
     "P2": "def P2(e1, r1, r2): return P(P(e1, r1), r2)",  # 2p
     "P3": "def P3(e1, r1, r2, r3): return P(P(P(e1, r1), r2), r3)",  # 3p

@@ -13,7 +13,7 @@ def main(data_home):
     avg_answers_count = defaultdict(list)
     for dataset in [ICEWS14(data_home), ICEWS05_15(data_home), GDELT(data_home)]:
         cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-        data = ComplexQueryData(dataset, cache_path=cache)
+        data = TemporalComplexQueryData(dataset, cache_path=cache)
         data.preprocess_data_if_needed()
         data.load_cache(["meta"])
         for k in groups:

@@ -531,7 +531,7 @@ TYPE_train_queries_answers = Dict[str, Dict[str, Union[List[str], List[Tuple[Lis
 TYPE_test_queries_answers = Dict[str, Dict[str, Union[List[str], List[Tuple[List[int], Set[int], Set[int]]]]]]
 
 
-class ComplexQueryData(TemporalKnowledgeData):
+class TemporalComplexQueryData(TemporalKnowledgeData):
 
     def __init__(self,
                  dataset: RelationalTripletDatasetSchema,

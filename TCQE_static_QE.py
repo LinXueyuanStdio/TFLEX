@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import expression
-from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, GDELT
+from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, TemporalComplexQueryData, GDELT
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
 from toolbox.exp.OutputSchema import OutputSchema
@@ -731,7 +731,7 @@ def main(data_home, dataset, name,
     elif dataset == "GDELT":
         dataset = GDELT(data_home)
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-    data = ComplexQueryData(dataset, cache_path=cache)
+    data = TemporalComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
     data.load_cache(["meta"])
 

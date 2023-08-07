@@ -35,7 +35,7 @@ class ExpressionInterpreter(cmd.Cmd):
         self.default_parser = Interpreter(usersyms=dict(**variables, **functions))
         self.parser: Interpreter = self.default_parser
 
-        self.data: Optional[ComplexQueryData] = None
+        self.data: Optional[TemporalComplexQueryData] = None
         self.dataset_name: Optional[str] = None
         self.dataset: Optional[str] = None
 
@@ -141,7 +141,7 @@ available commands:
         elif dataset_name == "GDELT":
             dataset = GDELT(data_home)
         cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-        data = ComplexQueryData(dataset, cache_path=cache)
+        data = TemporalComplexQueryData(dataset, cache_path=cache)
         data.preprocess_data_if_needed()
         data.load_cache([
             "meta",

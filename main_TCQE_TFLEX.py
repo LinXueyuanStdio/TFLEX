@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import expression
-from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, GDELT, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers, groups
+from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, GDELT, ComplexTemporalQueryDatasetCachePath, TemporalComplexQueryData, TYPE_train_queries_answers, groups
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
@@ -952,7 +952,7 @@ class TFLEX(nn.Module):
 
 class MyExperiment(Experiment):
 
-    def __init__(self, output: OutputSchema, data: ComplexQueryData, model, args: TrainingArguments):
+    def __init__(self, output: OutputSchema, data: TemporalComplexQueryData, model, args: TrainingArguments):
         super(MyExperiment, self).__init__(output)
         self.debug(f"{locals()}")
         self.metric_log_store.add_hyper(args, "args")
@@ -1357,7 +1357,7 @@ def build_output(args_data: DataArguments, args_output: OutputArguments, args_ex
     return output
 
 
-def build_data(args_data: DataArguments) -> ComplexQueryData:
+def build_data(args_data: DataArguments) -> TemporalComplexQueryData:
     if args_data.dataset == "ICEWS14":
         dataset = ICEWS14(args_data.data_home)
     elif args_data.dataset == "ICEWS05_15":
@@ -1365,13 +1365,13 @@ def build_data(args_data: DataArguments) -> ComplexQueryData:
     elif args_data.dataset == "GDELT":
         dataset = GDELT(args_data.data_home)
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-    data = ComplexQueryData(dataset, cache_path=cache)
+    data = TemporalComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
     data.load_cache(["meta"])
     return data
 
 
-def build_model(args_model: ModelArguments, data: ComplexQueryData):
+def build_model(args_model: ModelArguments, data: TemporalComplexQueryData):
     entity_count = data.entity_count
     relation_count = data.relation_count
     timestamp_count = data.timestamp_count

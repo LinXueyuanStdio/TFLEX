@@ -17,7 +17,7 @@ def main(data_home, dataset):
     elif dataset == "GDELT":
         dataset = GDELT(data_home)
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-    data = ComplexQueryData(dataset, cache_path=cache)
+    data = TemporalComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
     data.patch()
 

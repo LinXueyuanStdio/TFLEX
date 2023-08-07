@@ -11,6 +11,7 @@ from .symbol import Interpreter
 
 query_structures = {
     # 1. 1-hop Pe and Pt, manually
+    # "Pe": "def Pe(e1, r1, t1): return Pe(e1, r1, t1)",  # 1p
     # 2. entity multi-hop
     "Pe2": "def Pe2(e1, r1, t1, r2, t2): return Pe(Pe(e1, r1, t1), r2, t2)",  # 2p
     "Pe3": "def Pe3(e1, r1, t1, r2, t2, r3, t3): return Pe(Pe(Pe(e1, r1, t1), r2, t2), r3, t3)",  # 3p

@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, GDELT
+from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, ComplexTemporalQueryDatasetCachePath, TemporalComplexQueryData, GDELT
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.RandomSeeds import set_seeds
 from train_TCQE_TFLEX import MyExperiment
@@ -218,7 +218,7 @@ def main(data_home, dataset, name,
     elif dataset == "GDELT":
         dataset = GDELT(data_home)
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-    data = ComplexQueryData(dataset, cache_path=cache)
+    data = TemporalComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
     data.load_cache(["meta"])
 

@@ -12,7 +12,7 @@ from ComplexTemporalQueryData import *
 def main(data_home, dataset):
     for dataset in [ICEWS14(data_home), ICEWS05_15(data_home), GDELT(data_home)]:
         cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-        data = ComplexQueryData(dataset, cache_path=cache)
+        data = TemporalComplexQueryData(dataset, cache_path=cache)
         data.preprocess_data_if_needed()
         data.load_cache(["meta"])
         for i in data.dump():

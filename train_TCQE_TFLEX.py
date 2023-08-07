@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import expression
-from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, GDELT, ComplexTemporalQueryDatasetCachePath, ComplexQueryData, TYPE_train_queries_answers, groups
+from ComplexTemporalQueryData import ICEWS05_15, ICEWS14, GDELT, ComplexTemporalQueryDatasetCachePath, TemporalComplexQueryData, TYPE_train_queries_answers, groups
 from ComplexTemporalQueryDataloader import TestDataset, TrainDataset
 from expression.ParamSchema import is_entity, is_relation, is_timestamp
 from expression.TFLEX_DSL import is_to_predict_entity_set, query_contains_union_and_we_should_use_DNF
@@ -521,6 +521,7 @@ class TFLEX(nn.Module):
         logic = torch.zeros_like(feature).to(feature.device)
         time_feature = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
+        print(torch.max(idx), torch.min(idx))
         return feature, logic, time_feature, time_logic
 
     def relation_token(self, idx) -> TYPE_token:
@@ -528,6 +529,7 @@ class TFLEX(nn.Module):
         logic = convert_to_logic(self.scale(self.relation_logic_embedding(idx)))
         time_feature = convert_to_time_feature(self.scale(self.relation_time_feature_embedding(idx)))
         time_logic = convert_to_time_logic(self.scale(self.relation_time_logic_embedding(idx)))
+        print(torch.max(idx), torch.min(idx))
         return feature, logic, time_feature, time_logic
 
     def timestamp_token(self, idx) -> TYPE_token:
@@ -535,6 +537,7 @@ class TFLEX(nn.Module):
         feature = torch.zeros_like(time_feature).to(time_feature.device)
         logic = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
+        print(torch.max(idx), torch.min(idx))
         return feature, logic, time_feature, time_logic
 
     def embed_args(self, query_args: List[str], query_tensor: torch.Tensor) -> TYPE_token:
@@ -863,7 +866,7 @@ class TFLEX(nn.Module):
 
 class MyExperiment(Experiment):
 
-    def __init__(self, output: OutputSchema, data: ComplexQueryData, model,
+    def __init__(self, output: OutputSchema, data: TemporalComplexQueryData, model,
                  start_step, max_steps, every_test_step, every_valid_step,
                  batch_size, test_batch_size, negative_sample_size,
                  train_device, test_device,
@@ -876,14 +879,12 @@ class MyExperiment(Experiment):
 
         self.model_param_store.save_scripts([__file__])
         entity_count = data.entity_count
-        relation_count = data.relation_count
         timestamp_count = data.timestamp_count
-        max_relation_id = relation_count
         self.groups = groups
         self.log('-------------------------------' * 3)
-        self.log('# entity: %d' % entity_count)
-        self.log('# relation: %d' % relation_count)
-        self.log('# timestamp: %d' % timestamp_count)
+        self.log('# entity: %d' % data.entity_count)
+        self.log('# relation: %d' % data.relation_count)
+        self.log('# timestamp: %d' % data.timestamp_count)
         self.log('# max steps: %d' % max_steps)
 
         # 1. build train dataset
@@ -1307,7 +1308,7 @@ def main(data_home, dataset, name,
     elif dataset == "GDELT":
         dataset = GDELT(data_home)
     cache = ComplexTemporalQueryDatasetCachePath(dataset.cache_path)
-    data = ComplexQueryData(dataset, cache_path=cache)
+    data = TemporalComplexQueryData(dataset, cache_path=cache)
     data.preprocess_data_if_needed()
     data.load_cache([
         "meta",
