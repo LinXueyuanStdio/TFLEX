@@ -521,7 +521,6 @@ class TFLEX(nn.Module):
         logic = torch.zeros_like(feature).to(feature.device)
         time_feature = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
-        print(torch.max(idx), torch.min(idx))
         return feature, logic, time_feature, time_logic
 
     def relation_token(self, idx) -> TYPE_token:
@@ -529,7 +528,6 @@ class TFLEX(nn.Module):
         logic = convert_to_logic(self.scale(self.relation_logic_embedding(idx)))
         time_feature = convert_to_time_feature(self.scale(self.relation_time_feature_embedding(idx)))
         time_logic = convert_to_time_logic(self.scale(self.relation_time_logic_embedding(idx)))
-        print(torch.max(idx), torch.min(idx))
         return feature, logic, time_feature, time_logic
 
     def timestamp_token(self, idx) -> TYPE_token:
@@ -537,7 +535,6 @@ class TFLEX(nn.Module):
         feature = torch.zeros_like(time_feature).to(time_feature.device)
         logic = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
-        print(torch.max(idx), torch.min(idx))
         return feature, logic, time_feature, time_logic
 
     def embed_args(self, query_args: List[str], query_tensor: torch.Tensor) -> TYPE_token:

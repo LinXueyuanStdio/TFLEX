@@ -2,7 +2,6 @@
 @date: 2021/10/26
 @description: null
 """
-
 import click
 
 from ComplexTemporalQueryData import ComplexTemporalQueryDatasetCachePath, TemporalComplexQueryData
@@ -10,6 +9,18 @@ from run_migration_QE_to_TQE import FB15k_237_TFLEX, FB15k_TFLEX, NELL_TFLEX
 from toolbox.exp.OutputSchema import OutputSchema
 from toolbox.utils.RandomSeeds import set_seeds
 from train_TCQE_TFLEX import *
+
+
+class TFLEX_static(TFLEX):
+    def __init__(self, nentity, nrelation, ntimestamp, hidden_dim, gamma,
+                 test_batch_size=1,
+                 center_reg=None, drop: float = 0.):
+        super(TFLEX_static, self).__init__(nentity, nrelation, ntimestamp, hidden_dim, gamma, test_batch_size, center_reg, drop)
+        self.timestamp_feature_embedding.requires_grad_(False)
+
+    def init(self):
+        super(TFLEX_static, self).init()
+        nn.init._no_grad_zero_(self.timestamp_feature_embedding.weight)
 
 
 @click.command()
@@ -70,9 +81,9 @@ def main(data_home, dataset, name,
     relation_count = data.relation_count // 2
     timestamp_count = data.timestamp_count
     max_relation_id = relation_count
-    model = TFLEX(
+    model = TFLEX_static(
         nentity=entity_count,
-        nrelation=relation_count * 2,  # with reverse relations
+        nrelation=relation_count + max_relation_id,  # with reverse relations
         ntimestamp=timestamp_count,
         hidden_dim=hidden_dim,
         gamma=gamma,
