@@ -2,16 +2,18 @@
 
 code for "TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph"
 
-$$q=V_{?},\exists t:criticize(China, Japan, t) \land (visit(Xi Jinping, V_{?}, t'>t) \land \lnot visit(Obama, V_{?}, t'>t))$$
+![](assets/TemporalComplexQuery.png)
 
-![](assets/interpreter.png)
+## News
+
+- Aug. 8, 2023: We plan to release the generated datasets when the paper is accepted. Now the datasets are under review. From the reviews, we find that the reviewers are also interested in other generated datasets, like reshaping the static complex query datasets (FB237, FB15k, NELL) to temporal ones. These datasets are still in progress.
 
 ## Environment
 
 - PyTorch 1.8.1 + cuda 10.2
 
-```
-pip install -r requirements
+```sh
+pip install -r requirements.txt
 cd assistence
 pip install -e .
 cd ..
@@ -67,6 +69,8 @@ To show the meta of the generated dataset, run `python run_meta.py`.
 ## Interpreter
 
 To launch an interactive interpreter, please run `python run_reasoning_interpreter.py`
+
+![](assets/interpreter.png)
 
 ```python
 use_dataset(data_home="/data/TFLEX/data"); use_embedding_reasoning_interpreter("TFLEX_dim800_gamma15", device="cuda:1");
