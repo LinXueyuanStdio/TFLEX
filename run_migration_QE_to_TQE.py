@@ -2,6 +2,7 @@
 from pathlib import Path
 from typing import Union, Dict
 import click
+from random import randint
 from ComplexQueryData import *
 from ComplexTemporalQueryData import ComplexTemporalQueryDatasetCachePath, TemporalComplexQueryData
 import expression
@@ -35,13 +36,16 @@ class NELL_TFLEX(Migration_TFLEX):
 flatten = lambda l: sum(map(flatten, l), []) if isinstance(l, tuple) else [l]
 
 @click.command()
-@click.option("--data_home", type=str, default="data/reasoning", help="The folder path to dataset.")
-@click.option("--temporal_data_home", type=str, default="data", help="The folder path to dataset.")
+@click.option("--data_home", type=str, default="data/reasoning", help="The folder path to source dataset.")
+@click.option("--temporal_data_home", type=str, default="data", help="The folder path to dest dataset.")
 @click.option("--dataset", type=str, default="FB15k-237", help="Which dataset to use: FB15k, FB15k-237, NELL.")
-def main(data_home, temporal_data_home, dataset):
+@click.option("--ts", type=int, default=0, help="0 for one fake timestamp, n>0 for up to n fake timestamps.")
+def main(data_home, temporal_data_home, dataset, ts):
     print("load static QEs")
     tasks = '1p.2p.3p.2i.3i.ip.pi.2in.3in.inp.pin.pni.2u.up'
     evaluate_union = "DNF"
+    suffix = "simple" if ts == 0 else f"time_{ts}"
+    temporal_data_home = temporal_data_home if ts == 0 else (Path(temporal_data_home) / suffix)
     if dataset == "FB15k-237":
         static_dataset = FB15k_237_BetaE(data_home)
         temporal_dataset = FB15k_237_TFLEX(temporal_data_home)
@@ -177,7 +181,7 @@ def main(data_home, temporal_data_home, dataset):
             new_ids = list(range(len(args_mapping)))
             for idx, arg_idx in enumerate(args_mapping):
                 if arg_idx == -1:
-                    new_ids[idx] = 0
+                    new_ids[idx] = randint(0, ts)
                 else:
                     new_ids[idx] = ids[arg_idx]
             qas.append((new_ids, answers))
@@ -217,7 +221,7 @@ def main(data_home, temporal_data_home, dataset):
             new_ids = list(range(len(args_mapping)))
             for idx, arg_idx in enumerate(args_mapping):
                 if arg_idx == -1:
-                    new_ids[idx] = 0
+                    new_ids[idx] = randint(0, ts)
                 else:
                     new_ids[idx] = ids[arg_idx]
             qas.append((new_ids, easy_answers, total_answers))
@@ -255,7 +259,7 @@ def main(data_home, temporal_data_home, dataset):
             new_ids = list(range(len(args_mapping)))
             for idx, arg_idx in enumerate(args_mapping):
                 if arg_idx == -1:
-                    new_ids[idx] = 0
+                    new_ids[idx] = randint(0, ts)
                 else:
                     new_ids[idx] = ids[arg_idx]
             qas.append((new_ids, easy_answers, total_answers))
@@ -300,7 +304,7 @@ def main(data_home, temporal_data_home, dataset):
     meta = {
         "entity_count": data.nentity,
         "relation_count": data.nrelation,
-        "timestamp_count": 1,
+        "timestamp_count": 1 if ts == 0 else ts,
         "query_meta": query_meta,
         # ignore below
         "valid_triples_count": -1,

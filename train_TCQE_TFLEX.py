@@ -521,6 +521,12 @@ class TFLEX(nn.Module):
         logic = torch.zeros_like(feature).to(feature.device)
         time_feature = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
+        # print("entity", f"{feature.max().item()}, {feature.min().item()}",
+        #       f"{logic.max().item()}, {logic.min().item()}",
+        #       f"{time_feature.max().item()}, {time_feature.min().item()}",
+        #       f"{time_logic.max().item()}, {time_logic.min().item()}"
+        #       )
+        # print("entity", f"{idx.max().item()}, {idx.min().item()}")
         return feature, logic, time_feature, time_logic
 
     def relation_token(self, idx) -> TYPE_token:
@@ -528,6 +534,12 @@ class TFLEX(nn.Module):
         logic = convert_to_logic(self.scale(self.relation_logic_embedding(idx)))
         time_feature = convert_to_time_feature(self.scale(self.relation_time_feature_embedding(idx)))
         time_logic = convert_to_time_logic(self.scale(self.relation_time_logic_embedding(idx)))
+        # print("relation", f"{feature.max().item()}, {feature.min().item()}",
+        #       f"{logic.max().item()}, {logic.min().item()}",
+        #       f"{time_feature.max().item()}, {time_feature.min().item()}",
+        #       f"{time_logic.max().item()}, {time_logic.min().item()}"
+        #       )
+        # print("relation", f"{idx.max().item()}, {idx.min().item()}")
         return feature, logic, time_feature, time_logic
 
     def timestamp_token(self, idx) -> TYPE_token:
@@ -535,6 +547,12 @@ class TFLEX(nn.Module):
         feature = torch.zeros_like(time_feature).to(time_feature.device)
         logic = torch.zeros_like(feature).to(feature.device)
         time_logic = torch.zeros_like(feature).to(feature.device)
+        # print("timestamp", f"{feature.max().item()}, {feature.min().item()}",
+        #       f"{logic.max().item()}, {logic.min().item()}",
+        #       f"{time_feature.max().item()}, {time_feature.min().item()}",
+        #       f"{time_logic.max().item()}, {time_logic.min().item()}"
+        #       )
+        # print("timestamp", f"{idx.max().item()}, {idx.min().item()}")
         return feature, logic, time_feature, time_logic
 
     def embed_args(self, query_args: List[str], query_tensor: torch.Tensor) -> TYPE_token:
@@ -905,7 +923,7 @@ class MyExperiment(Experiment):
 
         train_path_queries: TYPE_train_queries_answers = {}
         train_other_queries: TYPE_train_queries_answers = {}
-        path_list = ["Pe", "Pt", "Pe2", 'Pe3']
+        path_list = ["Pe", "Pt"]
         for query_structure_name in train_queries_answers:
             if query_structure_name in path_list:
                 train_path_queries[query_structure_name] = train_queries_answers[query_structure_name]
@@ -1309,7 +1327,6 @@ def main(data_home, dataset, name,
     data.preprocess_data_if_needed()
     data.load_cache([
         "meta",
-
     ])
 
     entity_count = data.entity_count

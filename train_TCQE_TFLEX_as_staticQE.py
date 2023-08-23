@@ -53,17 +53,21 @@ class TFLEX_static(TFLEX):
 @click.option('--eval_tasks', type=str, default="Pe,Pt,Pe2,Pe3", help='the tasks for evaluation')
 @click.option('--eval_all', type=bool, default=False,
               help='if evaluating all, it will use all tasks in data.test_queries_answers')
+@click.option("--ts", type=int, default=0, help="0 for one fake timestamp, n>0 for up to n fake timestamps.")
 def main(data_home, dataset, name,
          start_step, max_steps, every_test_step, every_valid_step,
          batch_size, test_batch_size, negative_sample_size,
          train_device, test_device,
          resume, resume_by_score,
          lr, cpu_num,
-         hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all
+         hidden_dim, input_dropout, gamma, center_reg, train_tasks, train_all, eval_tasks, eval_all,
+         ts,
          ):
     set_seeds(0)
     output = OutputSchema(dataset + "-" + name)
-
+    from pathlib import Path
+    suffix = "simple" if ts == 0 else f"time_{ts}"
+    data_home = data_home if ts == 0 else Path(data_home) / suffix
     if dataset == "FB15k-237":
         dataset = FB15k_237_TFLEX(data_home)
     elif dataset == "FB15k":
@@ -77,11 +81,12 @@ def main(data_home, dataset, name,
         "meta",
     ])
 
+    data.timestamp_count += 1
     entity_count = data.entity_count
     relation_count = data.relation_count // 2
     timestamp_count = data.timestamp_count
     max_relation_id = relation_count
-    model = TFLEX_static(
+    model = TFLEX(
         nentity=entity_count,
         nrelation=relation_count + max_relation_id,  # with reverse relations
         ntimestamp=timestamp_count,
