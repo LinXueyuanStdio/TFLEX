@@ -140,6 +140,8 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 </details>
 
+<br/>
+
 To support your research, we open source some of our LaTeX files. Full LaTeX files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
 
 <details>
@@ -284,6 +286,7 @@ The datasets are available in [Google Drive](https://drive.google.com/drive/fold
 |Pe_bt2i | 7.27 | 21.92 | 21.23 | 30.31 | 61.59 | 64.98 | 88.80 | 100.64 | 100.67|
 </details>
 
+<br/>
 
 To speed up the training, we have preprocessed the dataset and cached the data in `./data/{dataset_name}/cache/`.
 And we aim to provide a unified, human-friendly interface to access the dataset.
