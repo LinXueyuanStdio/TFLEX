@@ -307,20 +307,20 @@ class TemporalKnowledgeData(BaseData):
         self.cache_path = cache_path
 
         # KG data structure stored in triplet format
-        self.all_triples: List[Tuple[str, str, str, str]] = []
+        self.all_triples: List[Tuple[str, str, str, str]] = []  # (s, r, o, t)
         self.train_triples: List[Tuple[str, str, str, str]] = []
         self.test_triples: List[Tuple[str, str, str, str]] = []
         self.valid_triples: List[Tuple[str, str, str, str]] = []
 
-        self.all_triples_ids: List[Tuple[int, int, int, int]] = []
+        self.all_triples_ids: List[Tuple[int, int, int, int]] = []  # (s, r, o, t)
         self.train_triples_ids: List[Tuple[int, int, int, int]] = []
         self.test_triples_ids: List[Tuple[int, int, int, int]] = []
         self.valid_triples_ids: List[Tuple[int, int, int, int]] = []
 
-        self.all_relations: List[str] = []
+        self.all_relations: List[str] = []  # name
         self.all_entities: List[str] = []
         self.all_timestamps: List[str] = []
-        self.entities_ids: List[int] = []
+        self.entities_ids: List[int] = []  # id
         self.relations_ids: List[int] = []
         self.timestamps_ids: List[int] = []
 
@@ -545,7 +545,8 @@ class TemporalComplexQueryData(TemporalKnowledgeData):
         #                                                          answers id set
         # 1. `structure name` is the name of a function (named query function), parsed to AST and eval to get results.
         # 2. `args name list` is the arg list of query function.
-        # 3. valid_queries_answers and test_queries_answers are the same type as train_queries_answers
+        # 3. train_queries_answers, valid_queries_answers and test_queries_answers are heavy to load (~10G+ memory)
+        #    we suggest to load by query task, e.g. load_cache_by_tasks(["Pe", "Pe2", "Pe3", "e2i", "e3i"], "train")
         self.train_queries_answers: TYPE_train_queries_answers = {
             # "Pe_aPt": {
             #     "args": ["e1", "r1", "e2", "r2", "e3"],
@@ -555,7 +556,7 @@ class TemporalComplexQueryData(TemporalKnowledgeData):
             #         ([1, 2, 3, 4, 5], {2, 3, 5}),
             #     ]
             # }
-            # answers = Pe_aPt(1, 2, 3, 4, 5)
+            # >>> answers = Pe_aPt(1, 2, 3, 4, 5)
             # then, answers == {2, 3}
         }
         self.valid_queries_answers: TYPE_test_queries_answers = {
@@ -567,11 +568,23 @@ class TemporalComplexQueryData(TemporalKnowledgeData):
             #         ([1, 2, 3, 4, 5], {2, 3}, {2, 3, 5}),
             #     ]
             # }
-            # answers = Pe_aPt(1, 2, 3, 4, 5)
+            # >>> answers = Pe_aPt(1, 2, 3, 4, 5)
             # in training set, answers == {2, 3}
             # in validation set, answers == {2, 3, 5}, harder and more complete
         }
-        self.test_queries_answers: TYPE_test_queries_answers = {}
+        self.test_queries_answers: TYPE_test_queries_answers = {
+            # "Pe_aPt": {
+            #     "args": ["e1", "r1", "e2", "r2", "e3"],
+            #     "queries_answers": [
+            #         ([1, 2, 3, 4, 5], {2, 3, 5}, {2, 3, 5, 6}),
+            #         ([1, 2, 3, 4, 5], {2, 3, 5}, {2, 3, 5, 6}),
+            #         ([1, 2, 3, 4, 5], {2, 3, 5}, {2, 3, 5, 6}),
+            #     ]
+            # }
+            # >>> answers = Pe_aPt(1, 2, 3, 4, 5)
+            # in training and validation set, answers == {2, 3, 5}
+            # in testing set, answers == {2, 3, 5, 6}, harder and more complete
+        }
         # meta
         self.query_meta = {
             # "Pe_aPt": {
