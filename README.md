@@ -2,6 +2,8 @@
 
 Code for "[TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph](https://openreview.net/forum?id=oaGdsgB18L)" accepted to NeurIPS 2023.
 
+[[OpenReview]](https://openreview.net/forum?id=oaGdsgB18L) [[arXiv]](https://arxiv.org/abs/2205.14307) [[Dataset: Google Drive]](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing)
+
 Multi-hop logical reasoning over knowledge graph (KG) plays a fundamental role in many artificial intelligence tasks. Recent complex query embedding (CQE) methods for reasoning focus on static KGs, while temporal knowledge graphs (TKGs) have not been fully explored. Reasoning over TKGs has two challenges: 1. The query should answer entities or timestamps; 2. The operators should consider both set logic on entity set and temporal logic on timestamp set. To bridge this gap, we define the multi-hop logical reasoning problem on TKGs. With generated three datasets, we propose the first temporal CQE named Temporal Feature-Logic Embedding framework (TFLEX) to answer the temporal complex queries. We utilize vector logic to compute the logic part of Temporal Feature-Logic embeddings, thus naturally modeling all First-Order Logic (FOL) operations on entity set. In addition, our framework extends vector logic on timestamp set to cope with three extra temporal operators (After, Before and Between). Experiments on numerous query patterns demonstrate the effectiveness of our method.
 
 Below is a typical multi-hop temporal complex query and its computation graph: "During François Hollande was the president of France, which countries did Xi Jinping visit but Barack Obama did not visit?". In the computation graph, there are entity set (blue circle), timestamp set (green triangle), time set projection (green arrow), entity set projection (blue arrow) and logical operators (red rectangle).
@@ -138,7 +140,7 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 </details>
 
-To support your research, we open source some of our LaTeX source files. Full LaTeX source files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
+To support your research, we open source some of our LaTeX files. Full LaTeX files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
 
 <details>
   <summary>Reported results and corresponding table tex files</summary>
