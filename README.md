@@ -138,6 +138,19 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 </details>
 
+To support your research, we open source some of our LaTeX source files. Full LaTeX source files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
+
+<details>
+  <summary>Reported results and corresponding table tex files</summary>
+
+![table1_main_results](assets/table1_main_results.png)
+
+- [Table 1: Main Results](./assets/table1_main_results.tex)
+- [Table 2: Full Detail Results](./assets/table2_full_results.tex)
+- [Table 3: TKGC Results](./assets/table3_TKGC.tex)
+
+</details>
+
 # Dataset
 
 The datasets are available in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing).

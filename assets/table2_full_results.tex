@@ -1,0 +1,281 @@
+
+\begin{table*}
+  \caption{MRR results on ICEWS14. The group $\text{avg}_{x}$ wraps to two rows. \textbf{AVG} denotes average performance under all query types.}
+  \label{table:MRR_results_ICEWS14}
+  \centering
+  \resizebox{\textwidth}{!}{
+    \begin{tabular}{lrrrrrrrrrrrrrrrrrrrrrrrrrrrrr }
+      \toprule
+      \textbf{Model} & $\text{avg}_e$                   & \textbf{Pe}      & \textbf{Pe2}     & \textbf{Pe3}        & \textbf{e2i}      & \textbf{e3i}                                                                  \\
+      \midrule
+      Query2box      & 25.06                            & 25.81            & 17.29            & 12.97               & 16.00             & 53.25                                                                         \\
+      BetaE          & 37.19                            & 39.52            & 23.77            & 17.50               & 23.77             & 81.38                                                                         \\
+      ConE           & 41.94                            & 42.55            & 30.90            & 24.78               & 26.52             & 84.93                                                                         \\
+      ConE(temporal) & 42.23&  41.21&  31.83&  24.99&  28.98&  84.17\\
+      FLEX           & 43.67                            & 45.25            & 33.07            & 27.22               & 27.62             & 85.18                                                                         \\
+      TFLEX          & 56.79                            & 48.21            & 37.27            & 33.53               & 69.24             & 95.70                                                                         \\
+      X(ConE)        & 40.93                            & 40.58            & 28.84            & 24.31               & 30.93             & 79.98                                                                         \\
+      X-1F           & 56.89                            & 48.61            & 37.51            & 32.61               & 71.25             & 94.47                                                                         \\
+      X-logic        & 56.64                            & 48.00            & 37.42            & 31.23               & 73.11             & 93.45                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_t$                   & \textbf{Pt}      & \textbf{aPt}     & \textbf{bPt}        & \textbf{Pe\_Pt}   & \textbf{Pt\_sPe\_Pt} & \textbf{Pt\_oPe\_Pt} & \textbf{t2i}     & \textbf{t3i} \\
+      \midrule
+      TFLEX          & 17.56                            & 20.87            & 3.00             & 2.96                & 14.27             & 9.57                 & 9.46                 & 27.49            & 52.84        \\
+      X(ConE)        & 16.41                            & 19.45            & 3.06             & 3.01                & 13.96             & 8.79                 & 8.67                 & 25.01            & 49.36        \\
+      X-1F           & 18.77                            & 21.94            & 3.04             & 2.99                & 16.69             & 10.73                & 10.44                & 29.66            & 54.71        \\
+      X-logic        & 18.03                            & 21.33            & 3.10             & 3.05                & 15.76             & 9.85                 & 9.94                 & 28.57            & 52.63        \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{e, \mathcal{C}_e}$  & \textbf{e2i\_N}  & \textbf{e3i\_N}  & \textbf{Pe\_e2i\_N} & \textbf{e2i\_PeN} & \textbf{e2i\_NPe}                                                             \\
+      \midrule
+      BetaE          & 36.69                            & 30.44            & 87.93            & 19.94               & 22.80             & 22.36                                                                         \\
+      ConE           & 44.88                            & 40.98            & 99.12            & 29.22               & 29.84             & 25.22                                                                         \\
+      ConE(temporal) & 44.94&   41.45&   98.99&  29.48&  30.71&24.09\\
+      FLEX           & 44.41                            & 38.30            & 99.22            & 31.18               & 30.49             & 22.84                                                                         \\
+      TFLEX          & 50.82                            & 45.55            & 99.56            & 34.74               & 35.63             & 38.61                                                                         \\
+      X(ConE)        & 42.15                            & 39.10            & 96.25            & 26.92               & 27.59             & 20.89                                                                         \\
+      X-1F           & 49.78                            & 42.31            & 99.31            & 34.89               & 34.77             & 37.61                                                                         \\
+      X-logic        & 51.17                            & 44.65            & 99.25            & 35.30               & 36.31             & 40.33                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{t, \mathcal{C}_t}$  & t2i\_N           & t3i\_N           & Pe\_t2i\_N          & t2i\_PtN          & t2i\_NPt                                                                      \\
+      \midrule
+      TFLEX          & 36.37                            & 25.38            & 98.91            & 34.05               & 11.42             & 12.07                                                                         \\
+      X(ConE)        & 35.24                            & 26.90            & 98.82            & 30.30               & 9.44              & 10.75                                                                         \\
+      X-1F           & 37.73                            & 26.40            & 98.82            & 37.85               & 12.38             & 13.23                                                                         \\
+      X-logic        & 36.39                            & 25.68            & 98.69            & 33.30               & 11.34             & 12.93                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{\{\mathcal{U}_e\}}$ & \textbf{e2u}     & \textbf{Pe\_e2u}                                                                                                                           \\
+      \midrule
+      BetaE          & 19.95                            & 18.61            & 21.28                                                                                                                                      \\
+      ConE           & 26.47                            & 21.84            & 31.11                                                                                                                                      \\
+      ConE(temporal) & 27.63&  23.01&  32.26\\
+      FLEX           & 29.25                            & 24.05            & 34.46                                                                                                                                      \\
+      TFLEX          & 35.74                            & 29.20            & 42.28                                                                                                                                      \\
+      X(ConE)        & 25.46                            & 20.26            & 30.67                                                                                                                                      \\
+      X-1F           & 34.48                            & 30.04            & 38.93                                                                                                                                      \\
+      X-logic        & 34.68                            & 29.44            & 39.92                                                                                                                                      \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{\{\mathcal{U}_t\}}$ & \textbf{t2u}     & \textbf{Pe\_t2u}                                                                                                                           \\
+      \midrule
+      TFLEX          & 26.24                            & 30.73            & 21.74                                                                                                                                      \\
+      X(ConE)        & 24.07                            & 27.63            & 20.51                                                                                                                                      \\
+      X-1F           & 28.04                            & 33.91            & 22.16                                                                                                                                      \\
+      X-logic        & 26.36                            & 31.21            & 21.52                                                                                                                                      \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{x}$                 & \textbf{e2i\_Pe} & \textbf{Pe\_e2i} & \textbf{Pe\_aPt}    & \textbf{Pe\_bPt}  & \textbf{Pe\_at2i}    & \textbf{Pe\_bt2i}                                      \\
+      TFLEX          & 28.03                            & 98.86            & 36.77            & 8.66                & 9.74              & 7.90                 & 7.78                                                   \\
+      X(ConE)        & 26.65                            & 87.31            & 28.72            & 11.01               & 10.40             & 11.21                & 11.27                                                  \\
+      X-1F           & 29.31                            & 98.87            & 36.00            & 10.04               & 10.21             & 8.30                 & 8.06                                                   \\
+      X-logic        & 28.61                            & 97.64            & 36.96            & 10.09               & 10.27             & 8.76                 & 8.93                                                   \\
+      \cmidrule(lr){3-10}
+                     & \textbf{AVG}                     & \textbf{t2i\_Pe} & \textbf{Pe\_t2i} & \textbf{Pt\_sPe}    & \textbf{Pt\_oPe}  & \textbf{Pt\_se2i}    & \textbf{Pt\_oe2i}    & \textbf{between}                \\
+      TFLEX          & 35.93                            & 96.62            & 64.50            & 4.32                & 10.58             & 8.20                 & 7.95                 & 2.57                            \\
+      X(ConE)        & 30.13                            & 95.40            & 63.04            & 3.77                & 8.82              & 6.44                 & 5.76                 & 3.32                            \\
+      X-1F           & 36.43                            & 97.24            & 70.32            & 4.88                & 10.73             & 12.24                & 11.55                & 2.55                            \\
+      X-logic        & 35.98                            & 96.35            & 64.31            & 4.97                & 10.35             & 10.59                & 10.35                & 2.34                            \\
+      \bottomrule
+    \end{tabular}
+  }
+\end{table*}
+
+\begin{table*}
+  \caption{MRR results on ICEWS05-15. The group $\text{avg}_{x}$ wraps to two rows. \textbf{AVG} denotes average performance under all query types.}
+  \label{table:MRR_results_ICEWS05-15}
+  \centering
+  \resizebox{\textwidth}{!}{
+    \begin{tabular}{lrrrrrrrrrrrrrrrrrrrrrrrrrrrrr }
+      \toprule
+      \textbf{Model} & $\text{avg}_e$                   & \textbf{Pe}      & \textbf{Pe2}     & \textbf{Pe3}        & \textbf{e2i}      & \textbf{e3i}                                                                  \\
+      \midrule
+      Query2box      & 24.00                            & 25.94            & 16.62            & 14.22               & 17.68             & 45.52                                                                         \\
+      BetaE          & 31.33                            & 35.78            & 21.47            & 18.18               & 18.10             & 63.11                                                                         \\
+      ConE           & 40.93                            & 42.67            & 29.39            & 24.79               & 26.15             & 81.64                                                                         \\
+      ConE(temporal) & 40.74&  42.64&  29.30&  24.76&  25.35&  81.65\\
+      FLEX           & 38.96                            & 41.60            & 29.80            & 24.58               & 24.37             & 74.46                                                                         \\
+      TFLEX          & 48.99                            & 43.04            & 36.28            & 33.89               & 41.17             & 90.60                                                                         \\
+      X(ConE)        & 36.29                            & 39.90            & 26.62            & 22.85               & 22.52             & 69.56                                                                         \\
+      X-1F           & 49.90                            & 43.07            & 36.87            & 34.96               & 40.85             & 93.76                                                                         \\
+      X-logic        & 44.80                            & 40.57            & 31.47            & 30.67               & 35.80             & 85.47                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_t$                   & \textbf{Pt}      & \textbf{aPt}     & \textbf{bPt}        & \textbf{Pe\_Pt}   & \textbf{Pt\_sPe\_Pt} & \textbf{Pt\_oPe\_Pt} & \textbf{t2i}     & \textbf{t3i} \\
+      \midrule
+      TFLEX          & 4.39                             & 10.62            & 0.38             & 0.38                & 7.29              & 2.63                 & 1.83                 & 3.85             & 8.15         \\
+      X(ConE)        & 4.41                             & 10.98            & 0.38             & 0.38                & 6.75              & 2.16                 & 1.63                 & 4.22             & 8.81         \\
+      X-1F           & 4.43                             & 10.71            & 0.38             & 0.38                & 7.40              & 2.73                 & 1.86                 & 3.80             & 8.16         \\
+      X-logic        & 3.29                             & 8.57             & 0.38             & 0.39                & 6.37              & 1.69                 & 1.41                 & 2.49             & 5.06         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{e, \mathcal{C}_e}$  & \textbf{e2i\_N}  & \textbf{e3i\_N}  & \textbf{Pe\_e2i\_N} & \textbf{e2i\_PeN} & \textbf{e2i\_NPe}                                                             \\
+      \midrule
+      BetaE          & 29.70                            & 21.68            & 71.08            & 20.31               & 21.11             & 14.30                                                                         \\
+      ConE           & 43.52                            & 43.04            & 96.08            & 28.41               & 28.75             & 21.30                                                                         \\
+      ConE(temporal) & 43.34& 42.85& 96.08&   28.33&28.62& 20.83    \\
+      FLEX           & 42.10                            & 36.22            & 97.47            & 27.93               & 27.23             & 21.64                                                                         \\
+      TFLEX          & 46.17                            & 41.34            & 96.69            & 34.29               & 34.63             & 23.88                                                                         \\
+      X(ConE)        & 38.12                            & 33.70            & 88.83            & 24.80               & 25.60             & 17.64                                                                         \\
+      X-1F           & 46.11                            & 38.06            & 96.82            & 35.76               & 36.20             & 23.73                                                                         \\
+      X-logic        & 41.92                            & 36.57            & 91.16            & 30.37               & 31.42             & 20.07                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{t, \mathcal{C}_t}$  & \textbf{t2i\_N}  & \textbf{t3i\_N}  & \textbf{Pe\_t2i\_N} & \textbf{t2i\_PtN} & \textbf{t2i\_NPt}                                                             \\
+      \midrule
+      TFLEX          & 30.16                            & 16.09            & 98.40            & 31.39               & 3.35              & 1.58                                                                          \\
+      X(ConE)        & 29.49                            & 16.55            & 98.46            & 28.23               & 2.53              & 1.69                                                                          \\
+      X-1F           & 30.26                            & 16.05            & 98.37            & 32.07               & 3.27              & 1.56                                                                          \\
+      X-logic        & 28.34                            & 12.94            & 96.03            & 29.47               & 2.18              & 1.07                                                                          \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{\{\mathcal{U}_e\}}$ & \textbf{e2u}     & \textbf{Pe\_e2u}                                                                                                                           \\
+      \midrule
+      BetaE          & 21.54                            & 20.95            & 22.13                                                                                                                                      \\
+      ConE           & 43.02                            & 37.21            & 48.83                                                                                                                                      \\
+      ConE(temporal) & 43.14&  37.05&  49.24\\
+      FLEX           & 44.38                            & 35.72            & 53.04                                                                                                                                      \\
+      TFLEX          & 54.37                            & 52.99            & 55.75                                                                                                                                      \\
+      X(ConE)        & 36.37                            & 29.89            & 42.86                                                                                                                                      \\
+      X-1F           & 54.05                            & 52.47            & 55.64                                                                                                                                      \\
+      X-logic        & 45.36                            & 43.84            & 46.88                                                                                                                                      \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{\{\mathcal{U}_t\}}$ & \textbf{t2u}     & \textbf{Pe\_t2u}                                                                                                                           \\
+      \midrule
+      TFLEX          & 28.69                            & 44.99            & 12.39                                                                                                                                      \\
+      X(ConE)        & 26.40                            & 40.35            & 12.46                                                                                                                                      \\
+      X-1F           & 27.70                            & 43.38            & 12.02                                                                                                                                      \\
+      X-logic        & 23.39                            & 37.07            & 9.71                                                                                                                                       \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{x}$                 & \textbf{e2i\_Pe} & \textbf{Pe\_e2i} & \textbf{Pe\_aPt}    & \textbf{Pe\_bPt}  & \textbf{Pe\_at2i}    & \textbf{Pe\_bt2i}                                      \\
+      TFLEX          & 24.26                            & 94.23            & 57.16            & 5.07                & 4.56              & 4.38                 & 3.93                                                   \\
+      X(ConE)        & 21.69                            & 81.36            & 38.20            & 5.63                & 5.03              & 5.80                 & 5.36                                                   \\
+      X-1F           & 24.41                            & 94.26            & 55.97            & 5.14                & 4.79              & 4.37                 & 3.95                                                   \\
+      X-logic        & 21.95                            & 87.48            & 50.11            & 4.28                & 3.95              & 3.96                 & 3.55                                                   \\
+      \cmidrule(lr){3-10}
+                     & \textbf{AVG}                     & \textbf{t2i\_Pe} & \textbf{Pe\_t2i} & \textbf{Pt\_sPe}    & \textbf{Pt\_oPe}  & \textbf{Pt\_se2i}    & \textbf{Pt\_oe2i}    & \textbf{between}                \\
+      TFLEX          & 33.72                            & 92.25            & 48.35            & 0.46                & 2.82              & 0.98                 & 1.02                 & 0.22                            \\
+      X(ConE)        & 27.54                            & 91.92            & 43.83            & 0.58                & 2.18              & 0.95                 & 1.02                 & 0.14                            \\
+      X-1F           & 33.98                            & 92.21            & 50.77            & 0.46                & 2.89              & 1.13                 & 1.23                 & 0.17                            \\
+      X-logic        & 29.86                            & 86.17            & 40.78            & 0.62                & 1.98              & 1.10                 & 1.21                 & 0.16                            \\
+      \bottomrule
+    \end{tabular}
+  }
+\end{table*}
+
+\begin{table*}
+  \caption{MRR results on GDELT-500. The group $\text{avg}_{x}$ wraps to two rows. \textbf{AVG} denotes average performance under all query types.}
+  \label{table:MRR_results_GDELT-500}
+  \centering
+  \resizebox{\textwidth}{!}{
+    \begin{tabular}{lrrrrrrrrrrrrrrrrrrrrrrrrrrrrr }
+      \toprule
+      \textbf{Model} & $\text{avg}_e$                   & \textbf{Pe}      & \textbf{Pe2}     & \textbf{Pe3}        & \textbf{e2i}      & \textbf{e3i}                                                                  \\
+      \midrule
+      Query2box      & 9.67                             & 10.70            & 4.73             & 3.41                & 12.28             & 17.22                                                                         \\
+      BetaE          & 14.75                            & 14.02            & 5.76             & 4.71                & 18.61             & 30.67                                                                         \\
+      ConE           & 18.44                            & 16.65            & 6.18             & 4.70                & 23.11             & 41.55                                                                         \\
+      ConE(temporal) & 18.51&  17.61&   5.62&   4.57& 24.52&  40.22\\
+      FLEX           & 19.07                            & 17.72            & 5.78             & 4.67                & 24.30             & 42.85                                                                         \\
+      TFLEX          & 19.60                            & 18.50            & 5.76             & 4.68                & 25.94             & 43.14                                                                         \\
+      X(ConE)        & 17.83                            & 17.05            & 5.76             & 4.66                & 24.02             & 37.66                                                                         \\
+      X-1F           & 17.92                            & 16.18            & 6.35             & 4.84                & 22.41             & 39.80                                                                         \\
+      X-logic        & 17.36                            & 15.80            & 6.22             & 4.85                & 22.45             & 37.47                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_t$                   & \textbf{Pt}      & \textbf{aPt}     & \textbf{bPt}        & \textbf{Pe\_Pt}   & \textbf{Pt\_sPe\_Pt} & \textbf{Pt\_oPe\_Pt} & \textbf{t2i}     & \textbf{t3i} \\
+      \midrule
+      TFLEX          & 5.38                             & 6.49             & 3.25             & 3.27                & 6.16              & 3.06                 & 2.88                 & 6.78             & 11.17        \\
+      X(ConE)        & 3.16                             & 2.15             & 3.39             & 3.33                & 6.96              & 2.29                 & 2.31                 & 2.34             & 2.49         \\
+      X-1F           & 5.49                             & 6.62             & 3.30             & 3.30                & 5.84              & 3.07                 & 3.05                 & 7.08             & 11.66        \\
+      X-logic        & 5.75                             & 7.15             & 3.34             & 3.31                & 5.95              & 3.14                 & 3.06                 & 7.52             & 12.54        \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{e, \mathcal{C}_e}$  & \textbf{e2i\_N}  & \textbf{e3i\_N}  & \textbf{Pe\_e2i\_N} & \textbf{e2i\_PeN} & \textbf{e2i\_NPe}                                                             \\
+      \midrule
+      BetaE          & 11.15                            & 11.22            & 24.17            & 5.53                & 5.46              & 9.39                                                                          \\
+      ConE           & 12.67                            & 12.69            & 29.09            & 5.47                & 5.42              & 10.66                                                                         \\
+      ConE(temporal) & 12.67& 13.42 &    27.98& 5.31& 5.00& 11.63\\
+      FLEX           & 13.35                            & 13.57            & 30.25            & 5.47                & 5.47              & 11.99                                                                         \\
+      TFLEX          & 13.52                            & 14.46            & 30.09            & 5.51                & 5.19              & 12.36                                                                         \\
+      X(ConE)        & 12.34                            & 13.42            & 26.28            & 5.54                & 5.35              & 11.14                                                                         \\
+      X-1F           & 12.13                            & 11.77            & 27.63            & 5.70                & 5.40              & 10.14                                                                         \\
+      X-logic        & 12.11                            & 12.32            & 27.00            & 5.70                & 5.55              & 10.01                                                                         \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{t, \mathcal{C}_t}$  & \textbf{t2i\_N}  & \textbf{t3i\_N}  & \textbf{Pe\_t2i\_N} & \textbf{t2i\_PtN} & \textbf{t2i\_NPt}                                                             \\
+      \midrule
+      TFLEX          & 6.31                             & 5.92             & 9.01             & 9.30                & 2.76              & 4.56                                                                          \\
+      X(ConE)        & 3.93                             & 2.24             & 2.43             & 10.00               & 2.26              & 2.74                                                                          \\
+      X-1F           & 6.50                             & 5.90             & 9.70             & 9.15                & 2.85              & 4.90                                                                          \\
+      X-logic        & 6.86                             & 6.51             & 10.94            & 8.78                & 2.94              & 5.14                                                                          \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{\{\mathcal{U}_e\}}$ & \textbf{e2u}     & \textbf{Pe\_e2u}                                                                                                                           \\
+      \midrule
+      BetaE          & 6.20                             & 4.64             & 7.75                                                                                                                                       \\
+      ConE           & 6.96                             & 4.68             & 9.25                                                                                                                                       \\
+      ConE(temporal) & 7.30&   4.50&  10.09\\
+      FLEX           & 7.44                             & 4.47             & 10.42                                                                                                                                      \\
+      TFLEX          & 7.58                             & 4.62             & 10.55                                                                                                                                      \\
+      X(ConE)        & 7.41                             & 4.64             & 10.19                                                                                                                                      \\
+      X-1F           & 6.92                             & 4.80             & 9.04                                                                                                                                       \\
+      X-logic        & 6.91                             & 4.74             & 9.09                                                                                                                                       \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{\{\mathcal{U}_t\}}$ & \textbf{t2u}     & \textbf{Pe\_t2u}                                                                                                                           \\
+      \midrule
+      TFLEX          & 6.71                             & 9.03             & 4.38                                                                                                                                       \\
+      X(ConE)        & 6.35                             & 10.39            & 2.31                                                                                                                                       \\
+      X-1F           & 6.59                             & 8.60             & 4.58                                                                                                                                       \\
+      X-logic        & 6.80                             & 8.85             & 4.76                                                                                                                                       \\
+      \midrule
+      \midrule
+                     & $\text{avg}_{x}$                 & \textbf{e2i\_Pe} & \textbf{Pe\_e2i} & \textbf{Pe\_aPt}    & \textbf{Pe\_bPt}  & \textbf{Pe\_at2i}    & \textbf{Pe\_bt2i}                                      \\
+      TFLEX          & 6.17                             & 17.53            & 6.38             & 4.73                & 4.58              & 4.47                 & 4.58                                                   \\
+      X(ConE)        & 6.17                             & 17.53            & 6.44             & 6.45                & 6.18              & 6.02                 & 5.97                                                   \\
+      X-1F           & 6.47                             & 18.13            & 6.82             & 5.48                & 5.35              & 5.19                 & 5.31                                                   \\
+      X-logic        & 6.64                             & 17.45            & 6.79             & 5.56                & 5.44              & 5.35                 & 5.37                                                   \\
+      \cmidrule(lr){3-10}
+                     & \textbf{AVG}                     & \textbf{t2i\_Pe} & \textbf{Pe\_t2i} & \textbf{Pt\_sPe}    & \textbf{Pt\_oPe}  & \textbf{Pt\_se2i}    & \textbf{Pt\_oe2i}    & \textbf{between}                \\
+      TFLEX          & 9.32                             & 8.36             & 15.83            & 3.11                & 2.81              & 2.93                 & 3.07                 & 1.85                            \\
+      X(ConE)        & 8.17                             & 2.45             & 17.97            & 2.70                & 2.24              & 2.20                 & 2.29                 & 1.76                            \\
+      X-1F           & 8.86                             & 8.80             & 15.13            & 2.92                & 2.72              & 3.11                 & 3.29                 & 1.87                            \\
+      X-logic        & 8.92                             & 10.28            & 15.28            & 3.27                & 3.11              & 3.23                 & 3.36                 & 1.79                            \\
+      \bottomrule
+    \end{tabular}
+  }
+\end{table*}
+
+% bib
+@inproceedings{Query2box,
+  title={Query2box: Reasoning Over Knowledge Graphs In Vector Space Using Box Embeddings},
+  author={Ren, H and Hu, W and Leskovec, J},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2020}
+}
+@article{BetaE,
+  title={Beta Embeddings for Multi-Hop Logical Reasoning in Knowledge Graphs},
+  author={Ren, Hongyu and Leskovec, Jure},
+  journal={Neural Information Processing Systems (NeurIPS)},
+  year={2020}
+}
+@article{ConE,
+  title={ConE: Cone Embeddings for Multi-Hop Reasoning over Knowledge Graphs},
+  author={Zhang, Zhanqiu and Wang, Jie and Chen, Jiajun and Ji, Shuiwang and Wu, Feng},
+  journal={Advances in Neural Information Processing Systems},
+  volume={34},
+  year={2021}
+}
+% TFLEX
+@inproceedings{xueyuan2023tflex,
+  title={{TFLEX}: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
+  author={Lin Xueyuan and Haihong E and Chengjin Xu and Gengxian Zhou and Haoran Luo and Tianyi Hu and Fenglong Su and Ningyuan Li and Mingzhi Sun},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
+  year={2023},
+  url={https://openreview.net/forum?id=oaGdsgB18L}
+}

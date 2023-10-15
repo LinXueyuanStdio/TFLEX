@@ -1,0 +1,168 @@
+
+\begin{table*}[t]
+  \centering
+  \caption{TKGC Results (\%) on ICEWS14, ICEWS05-15, and GDELT. The results from top to bottom are organized as static KGEs, timestamp-based transformation TKGEs, tensor decomposition, autoregressive models and ours. Best results are in bold. $\dagger,\star$ indicate the results taken from \cite{RE-GCN,ChronoR}. Other results are the best numbers reported in their respective paper.}
+  \label{tab:TKGC_results}
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{l rrrr rrrr rrrr}
+    \toprule
+    \multirow{2}{*}{Model}
+                                     & \multicolumn{4}{c}{ICEWS14} & \multicolumn{4}{c}{ICEWS05-15} & \multicolumn{4}{c}{GDELT}                                                                          \\
+    \cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+                                     & MRR  & Hit@1 & Hit@3 & Hit@10 & MRR  & Hit@1 & Hit@3 & Hit@10 & MRR  & Hit@1 & Hit@3 & Hit@10 \\
+    \midrule
+    TransE$^\star$~\cite{TransE}     & 28.0 & 9.4   & -     & 63.7   & 29.4 & 9.0   & -     & 66.3   & 11.3 & 0.0   & 15.8  & 31.2   \\
+    DistMult$^\star$~\cite{DistMult} & 43.9 & 32.3  & -     & 67.2   & 45.6 & 33.7  & -     & 69.1   & 19.6 & 11.7  & 20.8  & 34.8   \\
+    SimplE$^\star$~\cite{SimplE}     & 45.8 & 34.1  & 51.6  & 68.7   & 47.8 & 35.9  & 53.9  & 70.8   & 20.6 & 12.4  & 22.0  & 36.6   \\
+    \midrule
+    ConT~\cite{ConT}                  & 18.5 & 11.7  & 20.5  & 31.5   & 16.3 & 10.5  & 18.9  & 27.2   & 14.4 & 8.0   & 15.6  & 26.5   \\
+    TTransE~\cite{TTransE}            & 25.5 & 7.4   & -     & 60.1   & 27.1 & 8.4   & -     & 61.6   & 11.5 & 0.0   & 16.0  & 31.8   \\
+    HyTE~\cite{HyTE}                  & 29.7 & 10.8  & 41.6  & 65.5   & 31.6 & 11.6  & 44.5  & 68.1   & 11.8 & 0.0   & 16.5  & 32.6   \\
+    TA-DistMult~\cite{TA-DistMult}    & 47.7 & 36.3  & -     & 68.6   & 47.4 & 34.6  & -     & 72.8   & 20.6 & 12.4  & 21.9  & 36.5   \\
+    DE-TransE~\cite{DE-SimplE}        & 32.6 & 12.4  & 46.7  & 68.6   & 31.4 & 10.8  & 45.3  & 68.5   & 12.6 & 0.0   & 18.1  & 35.0   \\
+    DE-DistMult~\cite{DE-SimplE}      & 50.1 & 39.2  & 56.9  & 70.8   & 48.4 & 36.6  & 54.6  & 71.8   & 21.3 & 13.0  & 22.8  & 37.6   \\
+    DE-SimplE~\cite{DE-SimplE}        & 52.6 & 41.8  & 59.2  & 72.5   & 51.3 & 39.2  & 57.8  & 74.8   & 23.0 & 14.1  & 24.8  & 40.3   \\
+    ChronoR~\cite{ChronoR}            & \textbf{62.5} & \textbf{54.7}  & \textbf{66.9}  & \textbf{77.3}   & \textbf{67.5} & \textbf{59.6}  & \textbf{72.3}  & \textbf{82.0}  & -    & -     & -     & -      \\
+    \midrule
+    TuckERT~\cite{TuckERT}            & 59.4 & 51.8  & 64.0  & 73.1   & 62.7 & 55.0  & 67.4  & 76.9   & \textbf{41.1} & \textbf{31.0}  & \textbf{45.3}  & \textbf{61.4}   \\
+    TuckERTNT~\cite{TuckERT}          & 60.4 & 52.1  & 65.5  & 75.3   & 63.8 & 55.9  & 68.6  & 78.3   & 38.1 & 28.3  & 41.8  & 57.6   \\
+    \midrule
+    RGCRN$^\dagger$~\cite{GCRN,RE-GCN} & 33.3 & 24.0  & 36.5  & 51.5   & 35.9 & 26.2  & 40.0  & 54.6   & 18.6 & 11.5  & 19.8  & 32.4   \\
+    CyGNet$^\dagger$~\cite{CyGNet}     & 34.6 & 25.3  & 38.8  & 53.1   & 35.4 & 25.4  & 40.2  & 54.4   & 18.0 & 11.1  & 19.1  & 31.5   \\
+    RE-NET$^\dagger$~\cite{RE-NET}     & 35.7 & 25.9  & 40.1  & 54.8   & 36.8 & 26.2  & 41.8  & 57.6   & 19.6 & 12.0  & 20.5  & 33.8   \\
+    RE-GCN$^\dagger$~\cite{RE-GCN}     & 37.7 & 27.1  & 42.5  & 58.8   & 38.2 & 27.4  & 43.0  & 59.9   & 19.1 & 11.9  & 20.4  & 33.1   \\
+    \midrule
+    TFLEX-1p                         & 43.9 & 31.4  & 49.6  & 64.4   & 40.6 & 29.1  & 47.5  & 66.1   & 16.5 & 8.6   & 17.3  & 33.1   \\
+    TFLEX                            & 48.2 & 35.7  & 56.5  & 72.3   & 43.0 & 30.0  & 49.8  & 69.5   & 18.5 & 10.1  & 19.6  & 34.9   \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table*}
+
+
+% bib
+@inproceedings{TransE,
+  author    = {Antoine Bordes and
+               Nicolas Usunier and
+               Alberto Garc{\'{\i}}a{-}Dur{\'{a}}n and
+               Jason Weston and
+               Oksana Yakhnenko},
+  year      = {2013},
+  title     = {Translating Embeddings for Modeling Multi-relational Data},
+  booktitle = {NIPS 2013.}
+}
+@inproceedings{DistMult,
+  author    = {Yang, Bishan and Yih, Scott Wen-tau and He, Xiaodong and Gao, Jianfeng and Deng, Li},
+  title     = {Embedding Entities and Relations for Learning and Inference in Knowledge Bases},
+  booktitle = {Proceedings of the International Conference on Learning Representations (ICLR) 2015},
+  year      = {2015},
+  month     = {May},
+  edition   = {Proceedings of the International Conference on Learning Representations (ICLR) 2015}
+}
+@inproceedings{SimplE,
+  title={SimplE Embedding for Link Prediction in Knowledge Graphs},
+  author={Seyed Mehran Kazemi and David L. Poole},
+  booktitle={Neural Information Processing Systems},
+  year={2018},
+  url={https://api.semanticscholar.org/CorpusID:3674966}
+}
+@article{ConT,
+  title={Embedding models for episodic knowledge graphs},
+  author={Yunpu Ma and Volker Tresp and Erik A. Daxberger},
+  journal={J. Web Semant.},
+  year={2018},
+  volume={59},
+  url={https://api.semanticscholar.org/CorpusID:54444869}
+}
+@inproceedings{TTransE,
+    title = "Towards Time-Aware Knowledge Graph Completion",
+    author = "Jiang, Tingsong  and
+      Liu, Tianyu  and
+      Ge, Tao  and
+      Sha, Lei  and
+      Chang, Baobao  and
+      Li, Sujian  and
+      Sui, Zhifang",
+    booktitle = "Proceedings of {COLING} 2016, the 26th International Conference on Computational Linguistics: Technical Papers",
+    month = dec,
+    year = "2016",
+    address = "Osaka, Japan",
+    publisher = "The COLING 2016 Organizing Committee",
+    url = "https://aclanthology.org/C16-1161",
+    pages = "1715--1724",
+    abstract = "Knowledge graph (KG) completion adds new facts to a KG by making inferences from existing facts. Most existing methods ignore the time information and only learn from time-unknown fact triples. In dynamic environments that evolve over time, it is important and challenging for knowledge graph completion models to take into account the temporal aspects of facts. In this paper, we present a novel time-aware knowledge graph completion model that is able to predict links in a KG using both the existing facts and the temporal information of the facts. To incorporate the happening time of facts, we propose a time-aware KG embedding model using temporal order information among facts. To incorporate the valid time of facts, we propose a joint time-aware inference model based on Integer Linear Programming (ILP) using temporal consistencyinformationasconstraints. Wefurtherintegratetwomodelstomakefulluseofglobal temporal information. We empirically evaluate our models on time-aware KG completion task. Experimental results show that our time-aware models achieve the state-of-the-art on temporal facts consistently.",
+}
+@inproceedings{HyTE,
+    title = "{H}y{TE}: Hyperplane-based Temporally aware Knowledge Graph Embedding",
+    author = "Dasgupta, Shib Sankar  and
+      Ray, Swayambhu Nath  and
+      Talukdar, Partha",
+    booktitle = "Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing",
+    month = oct # "-" # nov,
+    year = "2018",
+    address = "Brussels, Belgium",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D18-1225",
+    doi = "10.18653/v1/D18-1225",
+    pages = "2001--2011",
+    abstract = "Knowledge Graph (KG) embedding has emerged as an active area of research resulting in the development of several KG embedding methods. Relational facts in KG often show temporal dynamics, e.g., the fact (Cristiano{\_}Ronaldo, playsFor, Manchester{\_}United) is valid only from 2003 to 2009. Most of the existing KG embedding methods ignore this temporal dimension while learning embeddings of the KG elements. In this paper, we propose HyTE, a temporally aware KG embedding method which explicitly incorporates time in the entity-relation space by associating each timestamp with a corresponding hyperplane. HyTE not only performs KG inference using temporal guidance, but also predicts temporal scopes for relational facts with missing time annotations. Through extensive experimentation on temporal datasets extracted from real-world KGs, we demonstrate the effectiveness of our model over both traditional as well as temporal KG embedding methods.",
+}
+@inproceedings{TA-DistMult,
+  title={Learning Sequence Encoders for Temporal Knowledge Graph Completion},
+  author={Alberto Garc{\'i}a-Dur{\'a}n and Sebastijan Dumancic and Mathias Niepert},
+  booktitle={Conference on Empirical Methods in Natural Language Processing},
+  year={2018},
+  url={https://api.semanticscholar.org/CorpusID:52183483}
+}
+@inproceedings{DE-SimplE,
+  title={Diachronic embedding for temporal knowledge graph completion},
+  author={Goel, Rishab and Kazemi, Seyed Mehran and Brubaker, Marcus and Poupart, Pascal},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={34},
+  pages={3988--3995},
+  year={2020}
+}
+@inproceedings{ChronoR,
+  title={ChronoR: Rotation Based Temporal Knowledge Graph Embedding},
+  author={Ali Reza Sadeghian and Mohammadreza Armandpour and Anthony Colas and Daisy Zhe Wang},
+  booktitle={AAAI Conference on Artificial Intelligence},
+  year={2021},
+  url={https://api.semanticscholar.org/CorpusID:232269660}
+}
+@article{TuckERT,
+  title={Tucker decomposition-based Temporal Knowledge Graph Completion},
+  author={Pengpeng Shao and Guohua Yang and Dawei Zhang and Jianhua Tao and Feihu Che and Tong Liu},
+  journal={Knowl. Based Syst.},
+  year={2020},
+  volume={238},
+  pages={107841}
+}
+@article{RE-GCN,
+  title={Temporal Knowledge Graph Reasoning Based on Evolutional Representation Learning},
+  author={Zixuan Li and Xiaolong Jin and Wei Li and Saiping Guan and Jiafeng Guo and Huawei Shen and Yuanzhuo Wang and Xueqi Cheng},
+  journal={Proceedings of the 44th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+  year={2021},
+  url={https://api.semanticscholar.org/CorpusID:233324265}
+}
+@inproceedings{CyGNet,
+  title={Learning from History: Modeling Temporal Knowledge Graphs with Sequential Copy-Generation Networks},
+  author={Cunchao Zhu and Muhao Chen and Changjun Fan and Guangquan Cheng and Yan Zhan},
+  booktitle={AAAI Conference on Artificial Intelligence},
+  year={2020},
+  url={https://api.semanticscholar.org/CorpusID:229180723}
+}
+@inproceedings{GCRN,
+  title={Structured Sequence Modeling with Graph Convolutional Recurrent Networks},
+  author={Youngjoo Seo and Micha{\"e}l Defferrard and Pierre Vandergheynst and Xavier Bresson},
+  booktitle={International Conference on Neural Information Processing},
+  year={2016},
+  url={https://api.semanticscholar.org/CorpusID:2687749}
+}
+% TFLEX
+@inproceedings{xueyuan2023tflex,
+  title={{TFLEX}: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
+  author={Lin Xueyuan and Haihong E and Chengjin Xu and Gengxian Zhou and Haoran Luo and Tianyi Hu and Fenglong Su and Ningyuan Li and Mingzhi Sun},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
+  year={2023},
+  url={https://openreview.net/forum?id=oaGdsgB18L}
+}
