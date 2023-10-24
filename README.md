@@ -1,4 +1,12 @@
-# TFLEX
+<div align="center">
+
+# TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph #
+
+[![PyTorch](https://img.shields.io/badge/PyTorch_1.8+-ee4c2c?logo=pytorch&logoColor=white)](https://pytorch.org/get-started/locally/)
+![acceptance](https://img.shields.io/badge/Conference-NeurIPS2023-blue.svg?&labelColor=gray)
+![license](https://img.shields.io/badge/License-Apache2.0-green.svg?labelColor=gray)
+
+</div>
 
 Code for "[TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph](https://openreview.net/forum?id=oaGdsgB18L)" accepted to NeurIPS 2023.
 
@@ -144,14 +152,14 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 To support your research, we open source some of our LaTeX files. Full LaTeX files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
 
-<details>
-  <summary>Reported results and corresponding table tex files</summary>
-
-![table1_main_results](assets/table1_main_results.png)
-
 - [Table 1: Main Results](./assets/table1_main_results.tex)
 - [Table 2: Full Detail Results](./assets/table2_full_results.tex)
 - [Table 3: TKGC Results](./assets/table3_TKGC.tex)
+
+<details>
+  <summary>Reported results</summary>
+
+![table1_main_results](assets/table1_main_results.png)
 
 </details>
 
@@ -536,10 +544,11 @@ OK. The bot correctly predict the hard answer which only exists in the test set!
 
 # Citation
 
-Please cite our paper if you use this code or dataset in your own work:
+If you find this codebase or dataset useful in your research, please cite the original paper.
 
 (`Xueyuan et al., 2023` preferred, instead of `Lin et al., 2023`)
-```latex
+
+```bibtex
 @inproceedings{
   xueyuan2023tflex,
   title={{TFLEX}: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
