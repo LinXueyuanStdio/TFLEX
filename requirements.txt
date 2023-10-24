@@ -17,10 +17,10 @@ sklearn~=0.0
 scikit-learn~=1.0
 fitlog~=0.9.13
 gym~=0.18.3
-Werkzeug~=2.0.1
+Werkzeug~=2.2.3
 pandas~=1.0.3
 packaging~=20.9
-scipy~=1.6.2
-requests~=2.25.1
+scipy>=1.10.0
+requests>=2.31.0
 uvicorn~=0.17.5
 rich
