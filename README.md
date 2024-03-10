@@ -18,13 +18,25 @@ Below is a typical multi-hop temporal complex query and its computation graph: "
 
 ![](assets/TemporalComplexQuery.png)
 
-## News
+## 🔔 News
 
-- Oct. 15, 2023: Accepted to NeurIPS 2023! We have released the datasets of TFLEX in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing).
+- **`Oct. 15, 2023`: Accepted to NeurIPS 2023! We have released the datasets of TFLEX in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing).**
 
-## Environment
 
-- PyTorch 1.8.1 + cuda 10.2
+## 🌍 Contents
+
+- [Install](#install)
+- [Get Started](#get-started)
+- [Results](#results)
+- [Visualization](#visualization)
+- [Interpreter](#interpreter)
+- [Dataset](#dataset)
+
+### 🔬 Install
+
+- Python (>= 3.7)
+- [PyTorch](http://pytorch.org/) (>= 1.6.0)
+- numpy (>= 1.19.2)
 
 ```sh
 pip install -r requirements.txt
@@ -33,9 +45,10 @@ pip install -e .
 cd ..
 ```
 
-# Get Started
+### 🚀 Get Started
 
-Download the datasets in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing) and place in `data` folder.
+❗NOTE: Download the datasets in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing) (~5G) and place in `data` folder.
+
 ```
 ./data
   - ICEWS14
@@ -104,7 +117,7 @@ Options:
 
 
 <details>
-  <summary>Full commands for reproducing all results in the paper</summary>
+  <summary>👈 🔎 Full commands for reproducing all results in the paper</summary>
 
 
 ```shell
@@ -150,26 +163,51 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 <br/>
 
-To support your research, we open source some of our LaTeX files. Full LaTeX files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
+### 🎯 Results
 
-- [Table 1: Main Results](./assets/table1_main_results.tex)
-- [Table 2: Full Detail Results](./assets/table2_full_results.tex)
-- [Table 3: TKGC Results](./assets/table3_TKGC.tex)
-
-<details>
-  <summary>Reported results</summary>
+<details open>
+  <summary>👈 🔎 Reported results</summary>
 
 ![table1_main_results](assets/table1_main_results.png)
 
 </details>
 
-# Dataset
+To support your research, we also open source some of our LaTeX files. Full LaTeX files can be found in [arXiv](https://arxiv.org/abs/2205.14307).
 
-The datasets are available in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing).
+- [Table 1: Main Results](./assets/table1_main_results.tex)
+- [Table 2: Full Detail Results](./assets/table2_full_results.tex)
+- [Table 3: TKGC Results](./assets/table3_TKGC.tex)
 
+### 🔬 Visualization
+
+Please refer to `notebook/Draw.ipynb` to visualize the inference process of temporal complex queries.
+
+![](assets/TimeInferenceVisualization.png)
+
+### 🤖 Interpreter
+
+To launch an interactive interpreter, please run `python run_reasoning_interpreter.py`
+
+![](assets/interpreter.png)
+
+```python
+use_dataset(data_home="/data/TFLEX/data"); use_embedding_reasoning_interpreter("TFLEX_dim800_gamma15", device="cuda:1");
+sample(task_name="e2i", k=1);
+emb_e1=entity_token(); emb_r1=relation_token(); emb_t1=timestamp_token();
+emb_e2=entity_token(); emb_r2=relation_token(); emb_t2=timestamp_token();
+emb_q1 = Pe(emb_e1, emb_r1, emb_t1)
+emb_q2 = Pe(emb_e2, emb_r2, emb_t2)
+emb_q = And(emb_q1, emb_q2)
+embedding_answer_entities(emb_q, topk=3)
+use_groundtruth_reasoning_interpreter()
+groundtruth_answer()
+OK. The bot correctly predict the hard answer which only exists in the test set!
+```
+
+### 📚 Dataset
 
 <details>
-  <summary>Data directory structure</summary>
+  <summary>👈 🔎 Data directory structure</summary>
 
 ```
 ./data
@@ -199,7 +237,7 @@ The datasets are available in [Google Drive](https://drive.google.com/drive/fold
 </details>
 
 <details>
-  <summary>Dataset statistics: queries_count</summary>
+  <summary>👈 🔎 Dataset statistics: queries_count</summary>
 
 | query | ICEWS14|     |       | ICEWS05_15|   |      | GDELT |       |      |
 | :---- | :---- | :---- | :--- | :---- | :---- | :--- | :---- | :---- | :--- |
@@ -247,7 +285,7 @@ The datasets are available in [Google Drive](https://drive.google.com/drive/fold
 </details>
 
 <details>
-  <summary>Dataset statistics: avg_answers_count</summary>
+  <summary>👈 🔎 Dataset statistics: avg_answers_count</summary>
 
 | query | ICEWS14|     |       | ICEWS05_15|   |      | GDELT |       |      |
 | :---- | :---- | :---- | :--- | :---- | :---- | :--- | :---- | :---- | :--- |
@@ -296,6 +334,8 @@ The datasets are available in [Google Drive](https://drive.google.com/drive/fold
 
 <br/>
 
+**📚 Explore the dataset**
+
 To speed up the training, we have preprocessed the dataset and cached the data in `./data/{dataset_name}/cache/`.
 And we aim to provide a unified, human-friendly interface to access the dataset.
 That is, we need to annotate the type of each data object in the dataset and allow to access as attribution.
@@ -328,7 +368,7 @@ print(data.test_queries_answers)  # all cache can be found in dir "./data/{datas
 ```
 
 <details>
-  <summary>Available attribution and cache</summary>
+  <summary>👈 🔎 Available attribution and cache</summary>
 
 ```py
 # (s, r, o, t)
@@ -444,6 +484,8 @@ print(type(idx2entity))
 cache_data(idx2entity, "./data/{dataset_name}/cache/idx2entity.pkl")
 ```
 
+**📚 Customize your own TKG complex query dataset**
+
 To implement other temporal knowledge graph complex query datasets, we need to provide initial data files and customize a dataset schema class:
 ```py
 """
@@ -516,35 +558,9 @@ Options:
   --help            Show this message and exit.
 ```
 
-# Visualization
+## 🤝 Citation
 
-Please refer to `notebook/Draw.ipynb` to visualize the inference process of temporal complex queries.
-
-![](assets/TimeInferenceVisualization.png)
-
-# Interpreter
-
-To launch an interactive interpreter, please run `python run_reasoning_interpreter.py`
-
-![](assets/interpreter.png)
-
-```python
-use_dataset(data_home="/data/TFLEX/data"); use_embedding_reasoning_interpreter("TFLEX_dim800_gamma15", device="cuda:1");
-sample(task_name="e2i", k=1);
-emb_e1=entity_token(); emb_r1=relation_token(); emb_t1=timestamp_token();
-emb_e2=entity_token(); emb_r2=relation_token(); emb_t2=timestamp_token();
-emb_q1 = Pe(emb_e1, emb_r1, emb_t1)
-emb_q2 = Pe(emb_e2, emb_r2, emb_t2)
-emb_q = And(emb_q1, emb_q2)
-embedding_answer_entities(emb_q, topk=3)
-use_groundtruth_reasoning_interpreter()
-groundtruth_answer()
-OK. The bot correctly predict the hard answer which only exists in the test set!
-```
-
-# Citation
-
-If you find this codebase or dataset useful in your research, please cite the original paper.
+Please condiser citing this paper if you use the ```code``` or ```data``` from our work. Thanks a lot :)
 
 (`Xueyuan et al., 2023` preferred, instead of `Lin et al., 2023`)
 
@@ -559,4 +575,6 @@ If you find this codebase or dataset useful in your research, please cite the or
 }
 ```
 
-License: Apache 2.0
+---
+
+TFLEX is released under the `Apache 2.0` license.
