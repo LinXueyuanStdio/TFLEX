@@ -27,14 +27,14 @@ Below is a typical multi-hop temporal complex query and its computation graph: "
 
 ## 🌍 Contents
 
-- [Install](#-install)
-- [Get Started](#-get-started)
-- [Results](#-results)
-- [Visualization](#-visualization)
-- [Interpreter](#-interpreter)
-- [Dataset](#-dataset)
+- [1. Install](#-1-install)
+- [2. Get Started](#-2-get-started)
+- [3. Results](#-3-results)
+- [4. Visualization](#-4-visualization)
+- [5. Interpreter](#-5-interpreter)
+- [6. Dataset](#-6-dataset)
 
-### 🔬 Install
+### 🔬 1. Install
 
 - Python (>= 3.7)
 - [PyTorch](http://pytorch.org/) (>= 1.8.0)
@@ -47,7 +47,7 @@ pip install -e .
 cd ..
 ```
 
-### 🚀 Get Started
+### 🚀 2. Get Started
 
 ❗NOTE: Download the datasets in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing) (~5G) and place in `data` folder.
 
@@ -165,7 +165,7 @@ CUDA_VISIBLE_DEVICES=0 python train_TCQE_ConE.py --name="ConE_dim800_gamma15" --
 
 <br/>
 
-### 🎯 Results
+### 🎯 3. Results
 
 <details open>
   <summary>👈 🔎 Reported results</summary>
@@ -180,13 +180,13 @@ To support your research, we also open source some of our LaTeX files. Full LaTe
 - [Table 2: Full Detail Results](./assets/table2_full_results.tex)
 - [Table 3: TKGC Results](./assets/table3_TKGC.tex)
 
-### 🔬 Visualization
+### 🔬 4. Visualization
 
 Please refer to `notebook/Draw.ipynb` to visualize the inference process of temporal complex queries.
 
 ![](assets/TimeInferenceVisualization.png)
 
-### 🤖 Interpreter
+### 🤖 5. Interpreter
 
 To launch an interactive interpreter, please run `python run_reasoning_interpreter.py`
 
@@ -206,7 +206,7 @@ groundtruth_answer()
 OK. The bot correctly predict the hard answer which only exists in the test set!
 ```
 
-### 📚 Dataset
+### 📚 6. Dataset
 
 <details>
   <summary>👈 🔎 Data directory structure</summary>
