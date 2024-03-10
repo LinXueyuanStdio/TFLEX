@@ -25,12 +25,12 @@ Below is a typical multi-hop temporal complex query and its computation graph: "
 
 ## 🌍 Contents
 
-- [Install](#install)
-- [Get Started](#get-started)
-- [Results](#results)
-- [Visualization](#visualization)
-- [Interpreter](#interpreter)
-- [Dataset](#dataset)
+- [Install](#-install)
+- [Get Started](#-get-started)
+- [Results](#-results)
+- [Visualization](#-visualization)
+- [Interpreter](#-interpreter)
+- [Dataset](#-dataset)
 
 ### 🔬 Install
 
