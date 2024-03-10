@@ -1,3 +1,5 @@
+<div id="top"></div>
+
 <div align="center">
 
 # TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph #
@@ -35,7 +37,7 @@ Below is a typical multi-hop temporal complex query and its computation graph: "
 ### 🔬 Install
 
 - Python (>= 3.7)
-- [PyTorch](http://pytorch.org/) (>= 1.6.0)
+- [PyTorch](http://pytorch.org/) (>= 1.8.0)
 - numpy (>= 1.19.2)
 
 ```sh
@@ -577,4 +579,6 @@ Please condiser citing this paper if you use the ```code``` or ```data``` from o
 
 ---
 
-TFLEX is released under the `Apache 2.0` license.
+TFLEX is released under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) license.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
