@@ -85,7 +85,7 @@ class TemporalKnowledgeDatasetCachePath(DatasetCachePath):
         self.cache_idx2timestamp_path = self.cache_path / 'idx2timestamp.pkl'
         self.cache_entity2idx_path = self.cache_path / 'entity2idx.pkl'
         self.cache_relation2idx_path = self.cache_path / 'relation2idx.pkl'
-        self.cache_timestamps2idx_path = self.cache_path / 'timestamp2idx.pkl'
+        self.cache_timestamp2idx_path = self.cache_path / 'timestamp2idx.pkl'
 
 
 def read_triple_srot(file_path: Union[str, Path]) -> List[Tuple[str, str, str, str]]:
@@ -450,7 +450,7 @@ class TemporalKnowledgeData(BaseData):
         cache_data(self.idx2timestamp, self.cache_path.cache_idx2timestamp_path)
         cache_data(self.relation2idx, self.cache_path.cache_relation2idx_path)
         cache_data(self.entity2idx, self.cache_path.cache_entity2idx_path)
-        cache_data(self.timestamp2idx, self.cache_path.cache_timestamps2idx_path)
+        cache_data(self.timestamp2idx, self.cache_path.cache_timestamp2idx_path)
 
         cache_data(self.meta(), self.cache_path.cache_metadata_path)
 
@@ -551,9 +551,9 @@ class TemporalComplexQueryData(TemporalKnowledgeData):
             # "Pe_aPt": {
             #     "args": ["e1", "r1", "e2", "r2", "e3"],
             #     "queries_answers": [
-            #         ([1, 2, 3, 4, 5], {2, 3, 5}),
-            #         ([1, 2, 3, 4, 5], {2, 3, 5}),
-            #         ([1, 2, 3, 4, 5], {2, 3, 5}),
+            #         ([1, 2, 3, 4, 5], {2, 3}),
+            #         ([1, 2, 3, 4, 5], {2, 3}),
+            #         ([1, 2, 3, 4, 5], {2, 3}),
             #     ]
             # }
             # >>> answers = Pe_aPt(1, 2, 3, 4, 5)
@@ -569,8 +569,10 @@ class TemporalComplexQueryData(TemporalKnowledgeData):
             #     ]
             # }
             # >>> answers = Pe_aPt(1, 2, 3, 4, 5)
-            # in training set, answers == {2, 3}
-            # in validation set, answers == {2, 3, 5}, harder and more complete
+            # >>> args, esay_answer, full_answer = self.valid_queries_answers["Pe_aPt"]["queries_answers"][0]
+            # >>> hard_answer = full_answer - esay_answer
+            # in training graph, answers == {2, 3}  (which is also named 'easy answer' set)
+            # in validation graph (train+valid edges), answers == {2, 3, 5}, harder and more complete
         }
         self.test_queries_answers: TYPE_test_queries_answers = {
             # "Pe_aPt": {
@@ -582,8 +584,10 @@ class TemporalComplexQueryData(TemporalKnowledgeData):
             #     ]
             # }
             # >>> answers = Pe_aPt(1, 2, 3, 4, 5)
-            # in training and validation set, answers == {2, 3, 5}
-            # in testing set, answers == {2, 3, 5, 6}, harder and more complete
+            # >>> args, esay_answer, full_answer = self.test_queries_answers["Pe_aPt"]["queries_answers"][0]
+            # >>> hard_answer = full_answer - esay_answer
+            # in validation graph (train+valid edges), answers == {2, 3, 5}
+            # in testing graph (train+valid+test edges), answers == {2, 3, 5, 6}, harder and more complete
         }
         # meta
         self.query_meta = {
