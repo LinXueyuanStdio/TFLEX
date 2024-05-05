@@ -22,6 +22,8 @@ Below is a typical multi-hop temporal complex query and its computation graph: "
 
 ## 🔔 News
 
+- **`May. 5, 2024`: Datasets are also held in 🤗 HuggingFace: [ICEWS14](https://huggingface.co/datasets/linxy/ICEWS14), [ICEWS05_15](https://huggingface.co/datasets/linxy/ICEWS05_15), [GDELT](https://huggingface.co/datasets/linxy/GDELT)**
+- **`May. 1, 2024`: ICEWS14 dataset is converted to json list for academic exploring.**
 - **`Oct. 15, 2023`: Accepted to NeurIPS 2023! We have released the datasets of TFLEX in [Google Drive](https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing).**
 
 
@@ -569,7 +571,7 @@ Please condiser citing this paper if you use the ```code``` or ```data``` from o
 ```bibtex
 @inproceedings{
   xueyuan2023tflex,
-  title={{TFLEX}: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
+  title={TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
   author={Lin Xueyuan and Haihong E and Chengjin Xu and Gengxian Zhou and Haoran Luo and Tianyi Hu and Fenglong Su and Ningyuan Li and Mingzhi Sun},
   booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
   year={2023},
