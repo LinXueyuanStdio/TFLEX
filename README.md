@@ -44,7 +44,7 @@ Below is a typical multi-hop temporal complex query and its computation graph: "
 
 ```sh
 pip install -r requirements.txt
-cd assistence
+cd assistance
 pip install -e .
 cd ..
 ```
