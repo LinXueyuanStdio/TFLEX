@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="A novel embedding-based framework for complex logical reasoning over temporal knowledge graph.">
+  <meta property="og:title" content="TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph" />
+  <meta property="og:description" content="A novel embedding-based framework for complex logical reasoning over temporal knowledge graph." />
+  <meta property="og:url" content="https://linxueyuan.online/TFLEX" />
+  <meta property="og:image" content="./static/image/poster.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+
+  <meta name="twitter:title" content="TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph">
+  <meta name="twitter:description" content="A novel embedding-based framework for complex logical reasoning over temporal knowledge graph.">
+  <!-- Path to banner image, should be in the path listed below. Optimal dimenssions are 1200X600-->
+  <meta name="twitter:image" content="./static/images/poster.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <meta name="keywords" content="TKGR, TKGC, TKGE, KGR, KGR, Temporal Knowledge Graph Reasoning, Temporal Knowledge Graph Embedding, Temporal Knowledge Graph, Temporal Logic, Knowledge Graph Reasoning, Knowledge Graph Embedding, Knowledge Graph, Machine Learning">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="image_src" href="./static/images/poster.png">
+
+
+  <title>TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph</title>
+  <link rel="icon" type="image/x-icon" href="./static/images/favicon.ico" />
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TPP2NGPX6X"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-TPP2NGPX6X');
+  </script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+  <!-- <script src="https://unpkg.com/interactjs/dist/interact.min.js"></script> -->
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <link rel="stylesheet" type="text/css" href="./static/slick/slick.css" />
+  <link rel="stylesheet" type="text/css" href="./static/slick/slick-theme.css" />
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+
+<body>
+
+  <nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
+    </div>
+    <div class="navbar-menu">
+      <div class="navbar-start" style="flex-grow: 1; justify-content: center;">
+        <a class="navbar-item" href="https://linxueyuan.online">
+          <span class="icon">
+            <i class="fas fa-home"></i>
+          </span>
+        </a>
+
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link">
+            More Research
+          </a>
+          <div class="navbar-dropdown">
+            
+            <a class="navbar-item" href="https://linxueyuan.online/TFLEX">
+              TFLEX
+            </a>
+            
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </nav>
+
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container">
+        <div class="container has-text-centered">
+          <h1 class="title is-1 publication-title">TFLEX: Temporal Feature-Logic Embedding Framework <br />for Complex Reasoning over Temporal Knowledge Graph</h1>
+          <h3 class="title is-4 conference-authors">
+            <a target="_blank" href="https://neurips.cc">NeurIPS 2023</a>
+          </h3>
+          <div class="is-size-5 publication-authors">
+            
+            <div class="author-block">
+              <a href="https://linxueyuan.online" target="_blank">Xueyuan Lin</a><sup>1</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Haihong E</a><sup>1,*</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Chengjin Xu</a><sup>2,*</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Gengxian Zhou</a><sup>1</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Haoran Luo</a><sup>1</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Tianyi Hu</a><sup>1</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Fenglong Su</a><sup>3</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Ningyuan Li</a><sup>1</sup>
+            </div>
+            
+            <div class="author-block">
+              <a href="" target="_blank">Mingzhi Sun</a><sup>1</sup>
+            </div>
+            
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            
+            <span class="author-block"><sup>1</sup>Beijing University of Posts and Telecommunications</span>
+            
+            <span class="author-block"><sup>2</sup>University of Bonn</span>
+            
+            <span class="author-block"><sup>3</sup>National University of Defense Technology</span>
+            
+            <span class="author-block"><sup>*</sup>Corresponding Authors</span>
+            
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://openreview.net/pdf?id=oaGdsgB18L" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fas fa-file-pdf"></i>
+                  </span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2205.14307" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://github.com/LinXueyuanStdio/TFLEX" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                </a>
+              </span>
+              <!-- Dataset Link. -->
+              <span class="link-block">
+                <a href="https://drive.google.com/drive/folders/1ddkJoUBKxgonD8rYTIL_Tb3Pei_Mtvdb?usp=sharing" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fas fa-database"></i>
+                  </span>
+                  <span>Dataset</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero teaser">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <!-- <video id="teaser" autoplay controls muted loop playsinline height="100%">
+          <source src="./static/images/teaser.mp4" type="video/mp4">
+        </video> -->
+        <div class="has-text-centered">
+          <img style="width: 90%;" src="./static/images/architecture.png" alt="TFLEX architecture." />
+        </div>
+        <h2 class="subtitle has-text-centered">
+          A typical multi-hop temporal complex query and its computation graph: "During François Hollande was the president of France, which countries did Xi Jinping visit but Barack Obama did not visit?". In the computation graph, there are entity set (blue circle), timestamp set (green triangle), time set projection (green arrow), entity set projection (blue arrow) and logical operators (red rectangle).
+        </h2>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="hero is-light is-small">
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <div id="results-carousel" class="carousel results-carousel">
+
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pe.png" alt="Pe" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pe
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pe2.png" alt="Pe2" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pe2
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pe3.png" alt="Pe3" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pe3
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pe_Pt.png" alt="Pe_Pt" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pe_Pt
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pe_e2i.png" alt="Pe_e2i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pe_e2i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pe_t2i_N.png" alt="Pe_t2i_N" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pe_t2i_N
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pt.png" alt="Pt" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pt
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pt_re2i.png" alt="Pt_re2i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pt_re2i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/Pt_se2i.png" alt="Pt_se2i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                Pt_se2i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/e2i.png" alt="e2i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                e2i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/e2i_NPe.png" alt="e2i_NPe" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                e2i_NPe
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/e2i_Pe.png" alt="e2i_Pe" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                e2i_Pe
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/e3i.png" alt="e3i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                e3i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/t2i.png" alt="t2i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                t2i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/t2i_NPt.png" alt="t2i_NPt" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                t2i_NPt
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/t2i_Pe.png" alt="t2i_Pe" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                t2i_Pe
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/t2i_PtN.png" alt="t2i_PtN" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                t2i_PtN
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+          <div>
+            <div class="results-item">
+              <div class="has-text-centered">
+                <img style="width: 100%;" src="./static/images/visualization/t3i.png" alt="t3i" />
+              </div>
+              <h2 class="subtitle has-text-centered">
+                t3i
+              </h2>
+              <!-- <video poster="" id="espresso-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="espresso-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/espresso_depth.mp4" type="video/mp4">
+              </video> -->
+            </div>
+          </div>
+          
+
+          <!-- <div>
+            <div class="results-item">
+              <video poster="" id="americano-rgb" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/americano_rgb.mp4" type="video/mp4">
+              </video>
+              <video poster="" id="americano-depth" autoplay controls muted loop playsinline height="100%">
+                <source src="./static/videos/americano_depth.mp4" type="video/mp4">
+              </video>
+            </div>
+          </div> -->
+
+        </div>
+
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-three-quarters">
+            <p>
+              The explanation of answers given by TFLEX
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="section">
+    <div class="container is-max-desktop">
+
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Multi-hop logical reasoning over knowledge graph plays a fundamental role in many artificial intelligence tasks. Recent complex query embedding methods for reasoning focus on static KGs, while temporal knowledge graphs have not been fully explored. Reasoning over TKGs has two challenges: 1. The query should answer entities or timestamps; 2. The operators should consider both set logic on entity set and temporal logic on timestamp set. To bridge this gap, we introduce the multi-hop logical reasoning problem on TKGs and then propose the first temporal complex query embedding named Temporal Feature-Logic Embedding framework (TFLEX) to answer the temporal complex queries. Specifically, we utilize fuzzy logic to compute the logic part of the Temporal Feature-Logic embedding, thus naturally modeling all first-order logic operations on the entity set. In addition, we further extend fuzzy logic on timestamp set to cope with three extra temporal operators (After, Before and Between). Experiments on numerous query patterns demonstrate the effectiveness of our method.
+            </p>
+          </div>
+        </div>
+      </div>
+      <!--/ Abstract. -->
+
+      <!-- Paper video. -->
+      <!-- <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-2">Video</h2>
+          <div class="publication-video">
+            <iframe width="640" height="480" src="" title="YouTube video player" frameborder="0"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>
+          </div>
+        </div>
+      </div> -->
+      <!--/ Paper video. -->
+
+      <!-- Experiments. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Experiments</h2>
+          
+          <div class="has-text-centered">
+            <img style="width: 100%;" src="./static/images/Table1.png" alt="Average MRR results for different groups of temporal complex queries." />
+          </div>
+          <h2 class="content has-text-justified">
+            We compare TFLEX with state-of-the-art query embeddings Query2box, BetaE and ConE on answering entities. Existing query embeddings only handle FOL on entity set, but unable to cope with temporal logic over timestamp set. Therefore, the results of these three methods have to be obtained by ignoring the timestamps, so that the avg_t, avg_{t,Ct} , avg_{U_t} and avgx of three methods are zeros. Comparing the results of these methods in Table 1, we can see that TFLEX outperforms all the baselines on all the metrics. These results demonstrate that TFLEX can perform reasoning over TKGs well, at least better than the existing query embeddings.
+          </h2>
+          
+          <div class="has-text-centered">
+            <img style="width: 100%;" src="./static/images/Table2.png" alt="TKGC Results (%) on ICEWS14, ICEWS05-15, and GDELT." />
+          </div>
+          <h2 class="content has-text-justified">
+            TFLEX is competitive with translation-based methods (ConT, TTransE, HyTE, etc.), but it doesn't outperform the SOTA TKGC methods like ChronoR and TuckERT. However, the result doesn't affect the novelty and contribution of this paper. Please note that the projection operator of TFLEX is as simple as TTransE, not further optimized for TKGC tasks only. Upgrading the projection operator to outperform SOTA TKGC methods remains a future work.
+          </h2>
+          
+          <div class="has-text-centered">
+            <img style="width: 100%;" src="./static/images/interpreter.png" alt="The screenshot of a real running interpreter." />
+          </div>
+          <h2 class="content has-text-justified">
+            <p> In implementation, we define the basic functions and query structures as functions in python, which are named Complex Query Function (CQF). There are lots of advantages of using python functions to define query structures. Firstly, the functions are easy to understand and debug. Secondly, the functions are easy to be reused in the dataset-sampling process and model-training process. Thirdly, the functions are easy to be extended to support more complex query structures and reimplement the existing query embedding methods. </p> <p> We use the python interpreter to parse the function to Abstract Syntax Tree (AST), which is a more friendly readable subset of computation graph. In this way, executing the computation graph is equivalent to executing the CQF in python interpreter. Since we have the god privileged access to the AST, we can modify the interpreter to support various dynamic reasoning processes </p> <p> In the screenshot, we randomly select an example of e2i query. Then, we use the embedding reasoning interpreter to get the final answer set step by step. The final answer set is shown in the ranking list, where each answer is followed by its similarity score to the query. Finally, the bot correctly predicts the hard answer which only exists in the test set! </p>
+          </h2>
+          
+        </div>
+      </div>
+      <!--/ Experiments. -->
+      <!-- Conclusion. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Conclusion</h2>
+          <div class="content has-text-justified">
+            <p>
+              In this work, we firstly define a temporal multi-hop logical reasoning task on temporal knowledge graphs. Then we generate three new TKG datasets and propose the Temporal Feature-Logic embedding framework, TFLEX, to handle temporal complex queries in datasets. Fuzzy logic is used to guide all FOL transformations on the logic part of embeddings. We also further extended fuzzy logic to implement extra temporal operators (Before, After and Between). To the best of our knowledge, TFLEX is the first framework to support multi-hop complex reasoning on temporal knowledge graphs. Experiments on benchmark datasets demonstrate the efficacy of the proposed framework in handling different operations in complex queries
+            </p>
+          </div>
+        </div>
+      </div>
+      <!--/ Conclusion. -->
+
+      <!-- BroaderImpact. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Broader Impact</h2>
+          <div class="content has-text-justified">
+            <p>
+              <p> Multi-hop reasoning makes the information stored in TKGs more valuable. With the help of multi-hop reasoning, we can digest more hidden and implicit information in TKGs. It will broaden and deepen KG applications in various fields, such as question answering, recommend systems, and information retrieval. It may also bring about risks exposing unexpected personal information on public data. </p> <p> Finance temporal knowledge graph is a good example to illustrate the broader impact of multi-hop reasoning. In the financial field, the information stored in TKGs is very sensitive. The one-hop reasoning can complete the hidden financial transaction, while the multi-hop reasoning can help to detect the fraud. The After operator could also be used to predict the future financial transaction. People may take the advantages of logical reasoning to digest financial factor to obtain excess returns. </p> <p> Military temporal knowledge graph is another example. With the help of multi-hop logical reasoning, we may predict the future military strategy of a country. Besides, with the fuzzy completion of the hidden military information, we can also detect the hidden militarily moves, which may save thousands of soldiers' lives. </p> <p> The last example is social temporal knowledge graph. The behaviors of people are left and stored in TKGs. With the help of logical reasoning, we may predict a short future of a person. For example, the query may answer the evolution of user profiles: how long may a person transfer to another role, from student to worker, becoming a parent, or being a grandparent. Tracking the user's identity change can provide super benefits for merchants' advertising. Detecting the role of a person is also helpful to provide more personalized services. </p> <p> However, we should agree that the multi-hop reasoning is still at an extremely early stage, though it may bring about risks. Therefore, we should pay more attention to the security of TKGs and the privacy of users at the mean time when we explore the technology of multi-hop reasoning over TKGs. </p>
+            </p>
+          </div>
+        </div>
+      </div>
+      <!--/ BroaderImpact. -->
+    </div>
+  </section>
+
+  <hr />
+
+  <section class="section" id="BibTeX">
+    <div class="container content is-max-desktop">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>@inproceedings{lin2023tflex,
+  author = {Xueyuan Lin and Haihong E and Chengjin Xu and Gengxian Zhou and Haoran Luo and Tianyi Hu and Fenglong Su and Ningyuan Li and Mingzhi Sun},
+  booktitle = {Thirty-seventh Conference on Neural Information Processing Systems},
+  title = {TFLEX: Temporal Feature-Logic Embedding Framework for Complex Reasoning over Temporal Knowledge Graph},
+  url = {https://openreview.net/forum?id=oaGdsgB18L},
+  year = {2023}
+}</code></pre>
+    </div>
+  </section>
+
+
+  <!-- <section class="section" id="acknowledgements">
+    <div class="container content is-max-desktop">
+      <h2 class="title">Acknowledgements</h2>
+      <p>Special thanks to <a href="https://homes.cs.washington.edu/~holynski/">Aleksander Hołyński</a>,
+        <a href="https://roxanneluo.github.io/">Xuan Luo</a>, and Haley Cho for their support and
+        help with collecting data. Thanks to <a href="https://zhengqili.github.io/">Zhengqi Li</a> and
+        <a href="http://www.oliverwang.info/">Oliver Wang</a> for their help with the NSFF experiments.
+      </p>
+    </div>
+  </section> -->
+
+
+  <footer class="footer">
+    <div class="container">
+      <div class="content has-text-centered">
+        <a class="icon-link" href="https://openreview.net/pdf?id=oaGdsgB18L">
+          <i class="fas fa-file-pdf"></i>
+        </a>
+        <a class="icon-link" href="https://github.com/LinXueyuanStdio" class="external-link" disabled>
+          <i class="fab fa-github"></i>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="text/javascript" src="./static/slick/slick.min.js"></script>
+</body>
+
+</html>
