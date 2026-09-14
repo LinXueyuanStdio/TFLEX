@@ -472,7 +472,7 @@ class Interpreter:
         etc.
 
         """
-        if node.__class__ == ast.Name:
+        if isinstance(node, ast.Name):
             if (not valid_symbol_name(node.id) or
                     node.id in self.readonly_symbols):
                 errmsg = "invalid symbol name (reserved word?) %s" % node.id
@@ -481,8 +481,8 @@ class Interpreter:
             if node.id in self.no_deepcopy:
                 self.no_deepcopy.remove(node.id)
 
-        elif node.__class__ == ast.Attribute:
-            if node.ctx.__class__ == ast.Load:
+        elif isinstance(node, ast.Attribute):
+            if isinstance(node.ctx, ast.Load):
                 msg = "cannot assign to attribute %s" % node.attr
                 self.raise_exception(node, exc=AttributeError, msg=msg)
 
@@ -500,13 +500,12 @@ class Interpreter:
 
     def on_attribute(self, node):  # ('value', 'attr', 'ctx')
         """Extract attribute."""
-        ctx = node.ctx.__class__
-        if ctx == ast.Store:
+        if isinstance(node.ctx, ast.Store):
             msg = "attribute for storage: shouldn't be here!"
             self.raise_exception(node, exc=RuntimeError, msg=msg)
 
         sym = self.run(node.value)
-        if ctx == ast.Del:
+        if isinstance(node.ctx, ast.Del):
             return delattr(sym, node.attr)
 
         # ctx is ast.Load
@@ -563,7 +562,7 @@ class Interpreter:
             if tnode.ctx.__class__ != ast.Del:
                 break
             children = []
-            while tnode.__class__ == ast.Attribute:
+            while isinstance(tnode, ast.Attribute):
                 children.append(tnode.attr)
                 tnode = tnode.value
             if (tnode.__class__ == ast.Name and
@@ -587,7 +586,7 @@ class Interpreter:
     def on_boolop(self, node):  # ('op', 'values')
         """Boolean operator."""
         val = self.run(node.values[0])
-        is_and = ast.And == node.op.__class__
+        is_and = isinstance(node.op, ast.And)
         if (is_and and val) or (not is_and and not val):
             for n in node.values[1:]:
                 val = op2func(node.op)(val, self.run(n))
@@ -745,7 +744,7 @@ class Interpreter:
             args = args + self.run(starargs)
 
         keywords = {}
-        if func == print:
+        if func is print:
             keywords['file'] = self.writer
         for key in node.keywords:
             if not isinstance(key, ast.keyword):
